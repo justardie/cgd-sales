@@ -70,8 +70,8 @@ export default function DashboardPage() {
         supabase.from("team_status_history").select("user_id,sp_level").eq("month", month).eq("year", year),
       ])
 
-      // Exclude admin from rankings — only show sales hunters with actual targets
-      const salesUsers = (usersRes.data || []).filter(u => u.role !== "admin" && u.monthly_target > 0)
+      // Exclude admin from rankings — show ALL sales users (SL + SM), regardless of target amount
+      const salesUsers = (usersRes.data || []).filter(u => u.role !== "admin")
       const visibleUsers = isAdmin ? salesUsers : salesUsers.filter(u => u.id === user!.id)
 
       const omsetMap: Record<string, number> = {}
