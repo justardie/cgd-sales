@@ -111,7 +111,7 @@ export default function DashboardPage() {
     name: h.name.split(" ")[0],
     "Revenue Target": Math.round(h.monthly_target / 1_000_000),
     "Win or Die":     Math.round(h.win_or_die_target / 1_000_000),
-    "Aktual":         Math.round(h.omset / 1_000_000),
+    "Realisasi":         Math.round(h.omset / 1_000_000),
   }))
 
   return (
@@ -174,7 +174,7 @@ export default function DashboardPage() {
         {isAdmin && chartData.length > 0 && (
           <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <h2 className="text-sm font-semibold text-white mb-4">
-              Revenue vs Win or Die vs Aktual — {getMonthName(month)} {year} (juta Rp)
+              Revenue vs Win or Die vs Realisasi — {getMonthName(month)} {year} (juta Rp)
             </h2>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartData} barCategoryGap="25%" barGap={3}>
@@ -187,11 +187,11 @@ export default function DashboardPage() {
                 />
                 <Bar dataKey="Revenue Target" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Win or Die" fill="#7c2d12" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Aktual" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="Realisasi" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={
-                      entry["Aktual"] >= entry["Revenue Target"] ? "#22c55e" :
-                      entry["Aktual"] >= entry["Revenue Target"] * 0.7 ? "#3b82f6" : "#ef4444"
+                      entry["Realisasi"] >= entry["Revenue Target"] ? "#22c55e" :
+                      entry["Realisasi"] >= entry["Revenue Target"] * 0.7 ? "#3b82f6" : "#ef4444"
                     } />
                   ))}
                 </Bar>
