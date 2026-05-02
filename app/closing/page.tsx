@@ -4,14 +4,30 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, getCurrentMonth, getCurrentYear, getMonthName, pct } from "@/lib/utils"
-import { DollarSign, Plus, X, CheckCircle } from "lucide-react"
-import type { Closing, Pipeline, User } from "@/types"
+import { Plus, X, CheckCircle } from "lucide-react"
+import type { Closing, User } from "@/types"
+
+// Existing pipeline table uses: name (konsumen), sales (project), value, slhunter, unit
+interface ExistingPipeline {
+  id: string
+  name: string
+  sales: string
+  unit: string
+  value: number
+  slhunter: string
+  status: string
+  user_id?: string
+}
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-md rounded-xl relative" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={16} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }}>
+      <div className="w-full max-w-md rounded-xl relative"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
+          <X size={16} />
+        </button>
         {children}
       </div>
     </div>
@@ -21,11 +37,12 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 export default function ClosingPage() {
   const { user, isAdmin } = useAuth()
   const [closings, setClosings] = useState<Closing[]>([])
-  const [pipelines, setPipelines] = useState<Pipeline[]>([])
+  const [pipelines, setPipelines] = useState<ExistingPipeline[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [myTarget, setMyTarget] = useState(0)
 
   const month = getCurrentMonth()
   const year = getCurrentYear()
@@ -41,23 +58,37 @@ export default function ClosingPage() {
     notes: "",
   })
 
-  const [myTarget, setMyTarget] = useState(0)
-
   useEffect(() => { if (user) fetchData() }, [user])
 
   async function fetchData() {
     setLoading(true)
     const [closingsRes, pipeRes, usersRes, targetRes] = await Promise.all([
-      supabase.from("closings").select("*").eq("month", month).eq("year", year).order("closing_date", { ascending: false }),
-      supabase.from("pipeline").select("*")
-        .not("status", "eq", "closed_won").not("status", "eq", "closed_lost"),
-      isAdmin ? supabase.from("users").select("id,name,monthly_target").eq("status", "active") : Promise.resolve({ data: [] }),
-      !isAdmin ? supabase.from("users").select("monthly_target").eq("id", user!.id).single() : Promise.resolve({ data: null }),
+      supabase.from("closings").select("*")
+        .eq("month", month).eq("year", year)
+        .order("closing_date", { ascending: false }),
+      supabase.from("pipeline")
+        .select("id,name,sales,unit,value,slhunter,status,user_id")
+        .not("status", "eq", "closed_won")
+        .not("status", "eq", "closed_lost"),
+      isAdmin
+        ? supabase.from("users").select("id,name,monthly_target").eq("status", "active")
+        : Promise.resolve({ data: [] }),
+      !isAdmin
+        ? supabase.from("users").select("monthly_target").eq("id", user!.id).single()
+        : Promise.resolve({ data: null }),
     ])
-    const allClosings = closingsRes.data || []
+
+    const allClosings = (closingsRes.data || []) as Closing[]
     setClosings(isAdmin ? allClosings : allClosings.filter(c => c.user_id === user!.id))
-    setPipelines((pipeRes.data || []).filter(p => isAdmin || p.user_id === user!.id))
-    if (isAdmin) setUsers(usersRes.data as User[] || [])
+
+    const allPipes = (pipeRes.data || []) as ExistingPipeline[]
+    setPipelines(allPipes.filter(p =>
+      isAdmin ||
+      p.user_id === user!.id ||
+      (p.slhunter || "").toLowerCase() === (user!.name || "").toLowerCase()
+    ))
+
+    if (isAdmin) setUsers((usersRes.data || []) as User[])
     if (targetRes.data) setMyTarget((targetRes.data as { monthly_target: number }).monthly_target || 0)
     setLoading(false)
   }
@@ -68,11 +99,11 @@ export default function ClosingPage() {
       setForm(f => ({
         ...f,
         pipeline_id: id,
-        konsumen_name: p.konsumen_name,
-        project: p.project || "",
+        konsumen_name: p.name || "",
+        project: p.sales || "",
         unit: p.unit || "",
-        closing_value: p.estimated_value?.toString() || "",
-        user_id: p.user_id,
+        closing_value: p.value?.toString() || "",
+        user_id: p.user_id || f.user_id,
       }))
     }
   }
@@ -95,7 +126,8 @@ export default function ClosingPage() {
       notes: form.notes || null,
     })
     if (form.pipeline_id) {
-      await supabase.from("pipeline").update({ status: "closed_won", updated_at: new Date().toISOString() })
+      await supabase.from("pipeline")
+        .update({ status: "closed_won" })
         .eq("id", form.pipeline_id)
     }
     setSaving(false)
@@ -107,9 +139,6 @@ export default function ClosingPage() {
   const myClosings = closings.filter(c => isAdmin || c.user_id === user?.id)
   const totalOmset = myClosings.reduce((s, c) => s + (c.closing_value || 0), 0)
   const achievement = pct(totalOmset, myTarget)
-
-  const omsetByUser: Record<string, number> = {}
-  closings.forEach(c => { omsetByUser[c.user_id] = (omsetByUser[c.user_id] || 0) + (c.closing_value || 0) })
 
   return (
     <DashboardShell>
@@ -126,7 +155,7 @@ export default function ClosingPage() {
         </div>
 
         {/* Stats */}
-        {!isAdmin && (
+        {!isAdmin ? (
           <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -143,13 +172,13 @@ export default function ClosingPage() {
                 style={{ width: `${Math.min(achievement, 100)}%`, background: achievement >= 100 ? "#22c55e" : achievement >= 70 ? "#3b82f6" : "#ef4444" }} />
             </div>
           </div>
-        )}
-
-        {isAdmin && (
+        ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl p-4 col-span-2" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="text-xs text-slate-500 mb-1">Total Omset Tim</div>
-              <div className="text-2xl font-bold text-green-400">{formatRupiah(closings.reduce((s, c) => s + (c.closing_value || 0), 0))}</div>
+              <div className="text-2xl font-bold text-green-400">
+                {formatRupiah(closings.reduce((s, c) => s + (c.closing_value || 0), 0))}
+              </div>
             </div>
             <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="text-xs text-slate-500 mb-1">Transaksi</div>
@@ -158,7 +187,9 @@ export default function ClosingPage() {
             <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="text-xs text-slate-500 mb-1">Avg. Deal</div>
               <div className="text-xl font-bold text-white">
-                {closings.length > 0 ? formatRupiah(Math.round(closings.reduce((s, c) => s + (c.closing_value || 0), 0) / closings.length)) : "—"}
+                {closings.length > 0
+                  ? formatRupiah(Math.round(closings.reduce((s, c) => s + (c.closing_value || 0), 0) / closings.length))
+                  : "—"}
               </div>
             </div>
           </div>
@@ -193,7 +224,9 @@ export default function ClosingPage() {
                   <td className="px-4 py-3 text-right font-bold text-green-400">{formatRupiah(c.closing_value)}</td>
                   <td className="px-4 py-3 text-xs text-slate-400">{c.closing_date}</td>
                   <td className="px-4 py-3 text-center">
-                    {c.pipeline_id ? <CheckCircle size={14} className="text-green-400 mx-auto" /> : <span className="text-slate-700 text-xs">—</span>}
+                    {c.pipeline_id
+                      ? <CheckCircle size={14} className="text-green-400 mx-auto" />
+                      : <span className="text-slate-700 text-xs">—</span>}
                   </td>
                 </tr>
               ))}
@@ -210,7 +243,8 @@ export default function ClosingPage() {
               {isAdmin && (
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Hunter</label>
-                  <select value={form.user_id} onChange={e => setForm(f => ({ ...f, user_id: e.target.value }))}
+                  <select value={form.user_id}
+                    onChange={e => setForm(f => ({ ...f, user_id: e.target.value }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                     <option value="">— Pilih Hunter —</option>
@@ -220,11 +254,14 @@ export default function ClosingPage() {
               )}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Dari Pipeline (opsional)</label>
-                <select value={form.pipeline_id} onChange={e => onPipelineSelect(e.target.value)}
+                <select value={form.pipeline_id}
+                  onChange={e => { if (e.target.value) onPipelineSelect(e.target.value); else setForm(f => ({ ...f, pipeline_id: "" })) }}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="">— Manual (tanpa pipeline) —</option>
-                  {pipelines.map(p => <option key={p.id} value={p.id}>{p.konsumen_name} · {p.project}</option>)}
+                  {pipelines.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} · {p.sales}</option>
+                  ))}
                 </select>
               </div>
               {[
@@ -235,7 +272,9 @@ export default function ClosingPage() {
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-xs text-slate-500 block mb-1">{f.label}</label>
-                  <input type={f.type || "text"} value={form[f.key as keyof typeof form]}
+                  <input
+                    type={f.type || "text"}
+                    value={form[f.key as keyof typeof form]}
                     onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                     required={f.required}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -246,7 +285,8 @@ export default function ClosingPage() {
                 <label className="text-xs text-slate-500 block mb-1">Tanggal Closing</label>
                 <input type="date" value={form.closing_date}
                   onChange={e => setForm(f => ({ ...f, closing_date: e.target.value }))}
-                  required className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  required
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div className="flex gap-2 pt-1">
@@ -267,4 +307,3 @@ export default function ClosingPage() {
     </DashboardShell>
   )
 }
-

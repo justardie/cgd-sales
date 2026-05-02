@@ -1,26 +1,33 @@
 ﻿-- ============================================================
--- CGD Sales Dashboard — Migration 001 (SAFE VERSION)
--- Handles pre-existing pipeline/closings tables gracefully
--- Run in Supabase: Dashboard > SQL Editor > New query
+-- CGD Sales Dashboard — Migration 001 (FINAL SAFE VERSION)
+-- Berdasarkan schema existing:
+--   pipeline: id, name, slhunter, sales, unit, payment,
+--             value, bf, source, status, visitdate, dateadded, note, ts
+--   visits:   id, slhunter, sales, date, project, count, note, filed, ts
+-- Strategy:
+--   - Jangan ubah pipeline/visits (data lama aman)
+--   - Tambah user_id ke pipeline saja (nullable, untuk entri baru)
+--   - Buat visit_logs (fresh table untuk sistem baru)
+--   - Buat users, closings, activities, team_status_history
 -- ============================================================
 
--- ── 1. USERS (new table) ────────────────────────────────────
+-- ── 1. USERS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
-  id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name            TEXT NOT NULL,
-  pin_hash        TEXT NOT NULL,
-  role            TEXT NOT NULL DEFAULT 'hunter'
-                    CHECK (role IN ('admin','hunter')),
-  status          TEXT NOT NULL DEFAULT 'active'
-                    CHECK (status IN ('active','resigned')),
-  monthly_target  BIGINT NOT NULL DEFAULT 0,
+  id                UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name              TEXT NOT NULL,
+  pin_hash          TEXT NOT NULL,
+  role              TEXT NOT NULL DEFAULT 'hunter'
+                      CHECK (role IN ('admin','hunter')),
+  status            TEXT NOT NULL DEFAULT 'active'
+                      CHECK (status IN ('active','resigned')),
+  monthly_target    BIGINT NOT NULL DEFAULT 0,
   win_or_die_target BIGINT NOT NULL DEFAULT 0,
-  visit_target    INTEGER NOT NULL DEFAULT 40,
-  created_at      TIMESTAMPTZ DEFAULT NOW()
+  visit_target      INTEGER NOT NULL DEFAULT 40,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── 2. VISITS (new table) ───────────────────────────────────
-CREATE TABLE IF NOT EXISTS visits (
+-- ── 2. VISIT_LOGS (fresh table, bukan visits lama) ──────────
+CREATE TABLE IF NOT EXISTS visit_logs (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   visit_date  DATE NOT NULL,
@@ -33,168 +40,53 @@ CREATE TABLE IF NOT EXISTS visits (
   year        INTEGER NOT NULL,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_visits_user_month ON visits(user_id, month, year);
+CREATE INDEX IF NOT EXISTS idx_visit_logs_user_month ON visit_logs(user_id, month, year);
 
--- ── 3. PIPELINE — add missing columns to existing table ─────
--- (Table may already exist with old data — we only ADD, never drop)
-CREATE TABLE IF NOT EXISTS pipeline (
-  id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  konsumen_name  TEXT NOT NULL DEFAULT '',
-  status         TEXT NOT NULL DEFAULT 'cold',
-  created_at     TIMESTAMPTZ DEFAULT NOW(),
-  updated_at     TIMESTAMPTZ DEFAULT NOW()
-);
-
+-- ── 3. PIPELINE — tambah user_id saja (nullable) ────────────
+-- Tidak ubah kolom existing. Data lama tetap aman.
 DO $$
 BEGIN
-  -- Add user_id if not present
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='pipeline' AND column_name='user_id'
   ) THEN
     ALTER TABLE pipeline ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE SET NULL;
-  END IF;
-
-  -- Add project if not present
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='pipeline' AND column_name='project'
-  ) THEN
-    ALTER TABLE pipeline ADD COLUMN project TEXT;
-  END IF;
-
-  -- Add unit if not present
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='pipeline' AND column_name='unit'
-  ) THEN
-    ALTER TABLE pipeline ADD COLUMN unit TEXT;
-  END IF;
-
-  -- Add estimated_value if not present
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='pipeline' AND column_name='estimated_value'
-  ) THEN
-    ALTER TABLE pipeline ADD COLUMN estimated_value BIGINT;
-  END IF;
-
-  -- Add notes if not present
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='pipeline' AND column_name='notes'
-  ) THEN
-    ALTER TABLE pipeline ADD COLUMN notes TEXT;
-  END IF;
-
-  -- Add konsumen_name if not present (for truly new tables only)
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='pipeline' AND column_name='konsumen_name'
-  ) THEN
-    ALTER TABLE pipeline ADD COLUMN konsumen_name TEXT;
+    RAISE NOTICE 'Added user_id to pipeline';
+  ELSE
+    RAISE NOTICE 'pipeline.user_id already exists';
   END IF;
 END $$;
 
--- Safe index creation
 DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='pipeline' AND column_name='user_id'
   ) THEN
-    CREATE INDEX IF NOT EXISTS idx_pipeline_user ON pipeline(user_id);
+    CREATE INDEX IF NOT EXISTS idx_pipeline_user_id ON pipeline(user_id);
   END IF;
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='pipeline' AND column_name='status'
-  ) THEN
-    CREATE INDEX IF NOT EXISTS idx_pipeline_status ON pipeline(status);
-  END IF;
+  CREATE INDEX IF NOT EXISTS idx_pipeline_status ON pipeline(status);
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
--- ── 4. CLOSINGS — add missing columns to existing table ─────
+-- ── 4. CLOSINGS (baru — tidak ada di schema existing) ───────
 CREATE TABLE IF NOT EXISTS closings (
   id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  pipeline_id   TEXT,  -- referensi ke pipeline.id (text)
+  konsumen_name TEXT NOT NULL,
+  project       TEXT,
+  unit          TEXT,
   closing_value BIGINT NOT NULL DEFAULT 0,
-  closing_date  DATE NOT NULL DEFAULT CURRENT_DATE,
+  closing_date  DATE NOT NULL,
+  month         INTEGER NOT NULL,
+  year          INTEGER NOT NULL,
+  notes         TEXT,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_closings_user_month ON closings(user_id, month, year);
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='user_id'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='pipeline_id'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN pipeline_id UUID REFERENCES pipeline(id) ON DELETE SET NULL;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='konsumen_name'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN konsumen_name TEXT;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='project'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN project TEXT;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='unit'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN unit TEXT;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='month'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN month INTEGER;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='year'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN year INTEGER;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='notes'
-  ) THEN
-    ALTER TABLE closings ADD COLUMN notes TEXT;
-  END IF;
-END $$;
-
--- Safe index on closings
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='user_id'
-  ) AND EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='closings' AND column_name='month'
-  ) THEN
-    CREATE INDEX IF NOT EXISTS idx_closings_user_month ON closings(user_id, month, year);
-  END IF;
-END $$;
-
--- ── 5. ACTIVITIES (new table) ───────────────────────────────
+-- ── 5. ACTIVITIES ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS activities (
   id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title       TEXT NOT NULL,
@@ -210,17 +102,16 @@ CREATE TABLE IF NOT EXISTS activities (
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── 6. TEAM STATUS HISTORY (new table) ──────────────────────
+-- ── 6. TEAM STATUS HISTORY ───────────────────────────────────
 CREATE TABLE IF NOT EXISTS team_status_history (
-  id        UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  month     INTEGER NOT NULL,
-  year      INTEGER NOT NULL,
-  sp_level  INTEGER NOT NULL DEFAULT 0,
-  reason    TEXT,
+  id         UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  month      INTEGER NOT NULL,
+  year       INTEGER NOT NULL,
+  sp_level   INTEGER NOT NULL DEFAULT 0,
+  reason     TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, month, year)
 );
 
--- ── Done ────────────────────────────────────────────────────
-SELECT 'Migration 001 selesai ✓' AS status;
+SELECT 'Migration 001 selesai ✓ — Tabel baru: users, visit_logs, closings, activities, team_status_history' AS status;

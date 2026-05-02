@@ -5,7 +5,30 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
 import { TrendingUp, Plus, X, Search } from "lucide-react"
-import type { Pipeline, User } from "@/types"
+
+// Existing pipeline table columns:
+// id (text), name (konsumen), slhunter (nama hunter), sales (proyek),
+// unit, payment, value (numeric), bf, source, status,
+// visitdate, dateadded, note, ts (bigint)
+// + user_id (UUID, added by migration — nullable)
+
+interface PipelineRow {
+  id: string
+  name: string          // konsumen
+  slhunter: string      // hunter name (text, legacy)
+  sales: string         // project
+  unit: string
+  payment: string
+  value: number         // estimated value
+  bf: string
+  source: string
+  status: string
+  visitdate: string
+  dateadded: string
+  note: string
+  ts: number
+  user_id?: string      // new column, nullable
+}
 
 const STATUSES = [
   { value: "cold", label: "Cold", color: "bg-slate-500/20 text-slate-400" },
@@ -16,13 +39,19 @@ const STATUSES = [
   { value: "closed_lost", label: "Batal", color: "bg-red-500/20 text-red-400" },
 ]
 
-const statusBadge = (s: string) => STATUSES.find(x => x.value === s) || { label: s, color: "bg-slate-500/20 text-slate-400" }
+const statusBadge = (s: string) =>
+  STATUSES.find(x => x.value === s) ||
+  { label: s || "—", color: "bg-slate-500/20 text-slate-400" }
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-md rounded-xl relative" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={16} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }}>
+      <div className="w-full max-w-md rounded-xl relative"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
+          <X size={16} />
+        </button>
         {children}
       </div>
     </div>
@@ -31,55 +60,61 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
 export default function PipelinePage() {
   const { user, isAdmin } = useAuth()
-  const [pipelines, setPipelines] = useState<Pipeline[]>([])
-  const [users, setUsers] = useState<User[]>([])
+  const [pipelines, setPipelines] = useState<PipelineRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<Pipeline | null>(null)
+  const [editing, setEditing] = useState<PipelineRow | null>(null)
   const [search, setSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
-    user_id: user?.id || "",
-    konsumen_name: "",
-    project: "",
+    name: "",       // konsumen
+    sales: "",      // project
     unit: "",
-    estimated_value: "",
+    value: "",      // estimated value
+    source: "",
+    payment: "",
     status: "cold",
-    notes: "",
+    note: "",
   })
 
   useEffect(() => { if (user) fetchData() }, [user])
 
   async function fetchData() {
     setLoading(true)
-    const [pipeRes, usersRes] = await Promise.all([
-      supabase.from("pipeline").select("*").order("created_at", { ascending: false }),
-      isAdmin ? supabase.from("users").select("id,name").eq("status", "active") : Promise.resolve({ data: [] }),
-    ])
-    const all = pipeRes.data || []
-    setPipelines(isAdmin ? all : all.filter(p => p.user_id === user!.id))
-    if (isAdmin) setUsers(usersRes.data as User[] || [])
+    const query = supabase.from("pipeline").select("*").order("ts", { ascending: false })
+    const { data } = await query
+    const all = (data || []) as PipelineRow[]
+    // For non-admin: filter by user_id (new entries) OR by slhunter name match (legacy)
+    if (isAdmin) {
+      setPipelines(all)
+    } else {
+      setPipelines(all.filter(p =>
+        p.user_id === user!.id ||
+        p.slhunter?.toLowerCase() === user!.name?.toLowerCase()
+      ))
+    }
     setLoading(false)
   }
 
   function openNew() {
     setEditing(null)
-    setForm({ user_id: user!.id, konsumen_name: "", project: "", unit: "", estimated_value: "", status: "cold", notes: "" })
+    setForm({ name: "", sales: "", unit: "", value: "", source: "", payment: "", status: "cold", note: "" })
     setShowModal(true)
   }
 
-  function openEdit(p: Pipeline) {
+  function openEdit(p: PipelineRow) {
     setEditing(p)
     setForm({
-      user_id: p.user_id,
-      konsumen_name: p.konsumen_name,
-      project: p.project || "",
+      name: p.name || "",
+      sales: p.sales || "",
       unit: p.unit || "",
-      estimated_value: p.estimated_value?.toString() || "",
-      status: p.status,
-      notes: p.notes || "",
+      value: p.value?.toString() || "",
+      source: p.source || "",
+      payment: p.payment || "",
+      status: p.status || "cold",
+      note: p.note || "",
     })
     setShowModal(true)
   }
@@ -88,19 +123,23 @@ export default function PipelinePage() {
     e.preventDefault()
     setSaving(true)
     const payload = {
-      user_id: form.user_id || user!.id,
-      konsumen_name: form.konsumen_name,
-      project: form.project || null,
+      name: form.name,
+      slhunter: user!.name,
+      sales: form.sales || null,
       unit: form.unit || null,
-      estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
+      value: form.value ? Number(form.value) : null,
+      source: form.source || null,
+      payment: form.payment || null,
       status: form.status,
-      notes: form.notes || null,
-      updated_at: new Date().toISOString(),
+      note: form.note || null,
+      user_id: user!.id,
+      ts: Date.now(),
+      dateadded: new Date().toISOString().slice(0, 10),
     }
     if (editing) {
       await supabase.from("pipeline").update(payload).eq("id", editing.id)
     } else {
-      await supabase.from("pipeline").insert({ ...payload, created_at: new Date().toISOString() })
+      await supabase.from("pipeline").insert(payload)
     }
     setSaving(false)
     setShowModal(false)
@@ -108,17 +147,18 @@ export default function PipelinePage() {
   }
 
   const filtered = pipelines.filter(p => {
-    const matchSearch = !search || p.konsumen_name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.project || "").toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search ||
+      (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.sales || "").toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === "all" || p.status === filterStatus
     return matchSearch && matchStatus
   })
 
+  const activePipes = pipelines.filter(p => !["closed_won", "closed_lost"].includes(p.status))
   const stats = {
-    total: pipelines.filter(p => !["closed_won","closed_lost"].includes(p.status)).length,
+    total: activePipes.length,
     hot: pipelines.filter(p => p.status === "hot").length,
-    totalValue: pipelines.filter(p => !["closed_lost"].includes(p.status))
-      .reduce((s, p) => s + (p.estimated_value || 0), 0),
+    totalValue: activePipes.reduce((s, p) => s + (Number(p.value) || 0), 0),
   }
 
   return (
@@ -127,7 +167,9 @@ export default function PipelinePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-white">Pipeline</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{stats.total} prospek aktif · {formatRupiah(stats.totalValue)}</p>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {stats.total} prospek aktif · {formatRupiah(stats.totalValue)}
+            </p>
           </div>
           <button onClick={openNew}
             className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
@@ -142,7 +184,8 @@ export default function PipelinePage() {
             { label: "Hot", val: stats.hot, color: "text-orange-400" },
             { label: "Est. Nilai", val: formatRupiah(stats.totalValue), color: "text-green-400" },
           ].map((s, i) => (
-            <div key={i} className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={i} className="rounded-xl p-4"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="text-xs text-slate-500 mb-1">{s.label}</div>
               <div className={`text-xl font-bold ${s.color}`}>{s.val}</div>
             </div>
@@ -158,11 +201,14 @@ export default function PipelinePage() {
               className="pl-8 pr-3 py-2 text-sm rounded-lg text-white outline-none w-64"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {[{ value: "all", label: "Semua" }, ...STATUSES].map(s => (
               <button key={s.value} onClick={() => setFilterStatus(s.value)}
-                className={`text-xs px-3 py-1.5 rounded-lg transition ${filterStatus === s.value ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
-                style={filterStatus !== s.value ? { background: "var(--surface)", border: "1px solid var(--border)" } : {}}>
+                className={`text-xs px-3 py-1.5 rounded-lg transition ${
+                  filterStatus === s.value ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
+                }`}
+                style={filterStatus !== s.value
+                  ? { background: "var(--surface)", border: "1px solid var(--border)" } : {}}>
                 {s.label}
               </button>
             ))}
@@ -190,18 +236,26 @@ export default function PipelinePage() {
               ) : filtered.slice(0, 100).map(p => {
                 const s = statusBadge(p.status)
                 return (
-                  <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
-                    {isAdmin && <td className="px-4 py-3 text-xs text-slate-400">{p.user_id?.slice(0, 8)}…</td>}
-                    <td className="px-4 py-3 font-medium text-white">{p.konsumen_name}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{p.project}{p.unit ? ` · ${p.unit}` : ""}</td>
+                  <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}
+                    className="hover:bg-white/[0.02]">
+                    {isAdmin && (
+                      <td className="px-4 py-3 text-xs text-slate-400">{p.slhunter || "—"}</td>
+                    )}
+                    <td className="px-4 py-3 font-medium text-white">{p.name || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      {p.sales}{p.unit ? ` · ${p.unit}` : ""}
+                    </td>
                     <td className="px-4 py-3 text-right text-slate-300 text-xs">
-                      {p.estimated_value ? formatRupiah(p.estimated_value) : "—"}
+                      {p.value ? formatRupiah(Number(p.value)) : "—"}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button onClick={() => openEdit(p)} className="text-xs text-blue-400 hover:text-blue-300 transition">Edit</button>
+                      <button onClick={() => openEdit(p)}
+                        className="text-xs text-blue-400 hover:text-blue-300 transition">
+                        Edit
+                      </button>
                     </td>
                   </tr>
                 )
@@ -214,28 +268,23 @@ export default function PipelinePage() {
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
           <div className="p-5">
-            <h3 className="text-sm font-semibold text-white mb-4">{editing ? "Edit Pipeline" : "Tambah Pipeline"}</h3>
+            <h3 className="text-sm font-semibold text-white mb-4">
+              {editing ? "Edit Pipeline" : "Tambah Pipeline"}
+            </h3>
             <form onSubmit={handleSave} className="space-y-3">
-              {isAdmin && (
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">Hunter</label>
-                  <select value={form.user_id} onChange={e => setForm(f => ({ ...f, user_id: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <option value={user!.id}>Saya</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
-                </div>
-              )}
               {[
-                { key: "konsumen_name", label: "Nama Konsumen", required: true },
-                { key: "project", label: "Proyek" },
+                { key: "name", label: "Nama Konsumen", required: true },
+                { key: "sales", label: "Proyek" },
                 { key: "unit", label: "Unit / Tipe" },
-                { key: "estimated_value", label: "Estimasi Nilai (Rp)", type: "number" },
+                { key: "value", label: "Estimasi Nilai (Rp)", type: "number" },
+                { key: "source", label: "Sumber Lead" },
+                { key: "payment", label: "Cara Bayar" },
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-xs text-slate-500 block mb-1">{f.label}</label>
-                  <input type={f.type || "text"} value={form[f.key as keyof typeof form]}
+                  <input
+                    type={f.type || "text"}
+                    value={form[f.key as keyof typeof form]}
                     onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                     required={f.required}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -244,7 +293,8 @@ export default function PipelinePage() {
               ))}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Status</label>
-                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                <select value={form.status}
+                  onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -252,8 +302,10 @@ export default function PipelinePage() {
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Catatan</label>
-                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  rows={2} className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
+                <textarea value={form.note}
+                  onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                  rows={2}
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div className="flex gap-2 pt-1">

@@ -44,11 +44,11 @@ export default function VisitPage() {
   async function fetchData() {
     setLoading(true)
     const [visitsRes, usersRes] = await Promise.all([
-      supabase.from("visits")
+      supabase.from("visit_logs")
         .select("*")
         .eq("month", month).eq("year", year)
         .order("visit_date", { ascending: false })
-        .eq(isAdmin ? "year" : "user_id", isAdmin ? year : user!.id),
+        ,
       isAdmin ? supabase.from("users").select("id,name").eq("status", "active") : Promise.resolve({ data: [] }),
     ])
     setVisits(visitsRes.data || [])
@@ -61,7 +61,7 @@ export default function VisitPage() {
     setSaving(true)
     setMsg(null)
     const date = new Date(form.visit_date)
-    const { error } = await supabase.from("visits").insert({
+    const { error } = await supabase.from("visit_logs").insert({
       user_id: form.user_id || user!.id,
       visit_date: form.visit_date,
       visit_type: form.visit_type,
@@ -101,7 +101,7 @@ export default function VisitPage() {
         year: d.getFullYear(),
       }
     })
-    const { error } = await supabase.from("visits").insert(inserts)
+    const { error } = await supabase.from("visit_logs").insert(inserts)
     if (error) setMsg({ type: "err", text: error.message })
     else { setMsg({ type: "ok", text: `${inserts.length} visit diimport!` }); fetchData() }
     if (fileRef.current) fileRef.current.value = ""
@@ -270,3 +270,4 @@ export default function VisitPage() {
     </DashboardShell>
   )
 }
+
