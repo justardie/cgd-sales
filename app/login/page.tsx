@@ -1,8 +1,23 @@
-﻿"use client"
+"use client"
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { loginUser, saveSession } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
+
+const TEAM_MEMBERS = [
+  'Ardie',
+  'Roy Ferdinand H.',
+  'Lyndon Sumarli',
+  'Jimmy Darmadi',
+  'Firyal Badriyyah',
+  'Aida (Rosmaida)',
+  'Aldo (Rinaldo)',
+  'Frans',
+  'Andre',
+  'Prediman',
+  'Ellen',
+  'Asun',
+]
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,13 +29,13 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) { setError('Masukkan nama'); return }
+    if (!name) { setError('Pilih nama kamu'); return }
     if (pin.length !== 4) { setError('PIN harus 4 digit'); return }
     setLoading(true)
     setError('')
     const user = await loginUser(name, pin)
     if (!user) {
-      setError('Nama atau PIN salah')
+      setError('PIN salah')
       setLoading(false)
       return
     }
@@ -49,15 +64,17 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="text-xs text-slate-400 font-medium block mb-1.5">Nama</label>
-              <input
-                type="text"
+              <select
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Masukkan nama lengkap"
-                className="w-full rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:ring-2 focus:ring-blue-500"
                 style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
-                autoComplete="off"
-              />
+              >
+                <option value="">-- Pilih nama kamu --</option>
+                {TEAM_MEMBERS.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-xs text-slate-400 font-medium block mb-1.5">PIN (4 digit)</label>
