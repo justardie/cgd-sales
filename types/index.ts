@@ -61,6 +61,7 @@ export interface Closing {
   project: string | null
   unit: string | null
   closing_value: number
+  visit_date: string | null
   closing_date: string
   month: number
   year: number
