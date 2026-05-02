@@ -3,8 +3,8 @@ import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, getCurrentMonth, getCurrentYear, getMonthName, getWeekNumber } from "@/lib/utils"
-import { MapPin, Plus, Upload, CheckCircle, AlertCircle } from "lucide-react"
+import { formatRupiah, getMonthName, getWeekNumber } from "@/lib/utils"
+import { MapPin, Plus, Upload, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Visit, User } from "@/types"
 import * as XLSX from "xlsx"
 
@@ -19,6 +19,8 @@ const VISIT_TYPES = [
 
 interface VisitWithUser extends Visit { user?: User }
 
+const now = new Date()
+
 export default function VisitPage() {
   const { user, isAdmin } = useAuth()
   const [visits, setVisits] = useState<VisitWithUser[]>([])
@@ -27,9 +29,15 @@ export default function VisitPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(now.getFullYear())
 
-  const month = getCurrentMonth()
-  const year = getCurrentYear()
+  function prevMonth() {
+    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
 
   const [form, setForm] = useState({
     user_id: user?.id || "",
@@ -39,7 +47,7 @@ export default function VisitPage() {
     notes: "",
   })
 
-  useEffect(() => { if (user) { setForm(f => ({ ...f, user_id: user.id })); fetchData() } }, [user])
+  useEffect(() => { if (user) { setForm(f => ({ ...f, user_id: user.id })); fetchData() } }, [user, month, year])
 
   async function fetchData() {
     setLoading(true)
@@ -118,12 +126,25 @@ export default function VisitPage() {
   return (
     <DashboardShell>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold text-white">Visit</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{getMonthName(month)} {year}</p>
+            <p className="text-sm text-slate-500 mt-0.5">Rekap kunjungan bulanan</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <button onClick={prevMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
+              {getMonthName(month)} {year}
+            </div>
+            <button onClick={nextMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronRight size={14} />
+            </button>
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>

@@ -3,8 +3,8 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, getCurrentMonth, getCurrentYear, getMonthName, pct } from "@/lib/utils"
-import { Plus, X, CheckCircle } from "lucide-react"
+import { formatRupiah, getMonthName, pct } from "@/lib/utils"
+import { Plus, X, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Closing, User } from "@/types"
 
 // Existing pipeline table uses: name (konsumen), sales (project), value, slhunter, unit
@@ -44,8 +44,15 @@ export default function ClosingPage() {
   const [saving, setSaving] = useState(false)
   const [myTarget, setMyTarget] = useState(0)
 
-  const month = getCurrentMonth()
-  const year = getCurrentYear()
+  const [month, setMonth] = useState(new Date().getMonth() + 1)
+  const [year, setYear] = useState(new Date().getFullYear())
+
+  function prevMonth() {
+    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
 
   const [form, setForm] = useState({
     user_id: user?.id || "",
@@ -58,7 +65,7 @@ export default function ClosingPage() {
     notes: "",
   })
 
-  useEffect(() => { if (user) fetchData() }, [user])
+  useEffect(() => { if (user) fetchData() }, [user, month, year])
 
   async function fetchData() {
     setLoading(true)
@@ -143,15 +150,30 @@ export default function ClosingPage() {
   return (
     <DashboardShell>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold text-white">Closing</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{getMonthName(month)} {year}</p>
+            <p className="text-sm text-slate-500 mt-0.5">Realisasi penjualan</p>
           </div>
-          <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
-            <Plus size={14} /> Input Closing
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={prevMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
+              {getMonthName(month)} {year}
+            </div>
+            <button onClick={nextMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronRight size={14} />
+            </button>
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
+              <Plus size={14} /> Input Closing
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
