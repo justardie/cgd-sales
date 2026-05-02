@@ -6,19 +6,25 @@ import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, getMonthName, pct, spBadgeColor } from "@/lib/utils"
 import { TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
 
-// Each Sales Hunter has their own Sales Persons.
 // Sales Hunters → no SP (Surat Peringatan).
 // Sales Persons → SP applies, tracked in team_status_history.
-const HUNTERS = [
+// dbName = actual name stored in users table (if different from display name)
+const HUNTERS: Array<{
+  name: string
+  dbName?: string
+  color: string
+  sp: string[]
+}> = [
   {
     name: "Lyndon Sumarli",
     color: "bg-blue-500/10 border-blue-500/30 text-blue-400",
     sp: ["Heriyandi", "Riduan Hasudungan Hutabarat", "Tiar Riki Aryanto", "Mhd Sidiq Abdussalam"],
   },
   {
+    // DB name is "Jimmy Darmadi" — added to own sp[] since he operates solo
     name: "Jimmy Darmadi",
     color: "bg-green-500/10 border-green-500/30 text-green-400",
-    sp: [],
+    sp: ["Jimmy Darmadi"],
   },
   {
     name: "Firyal Badriyyah",
@@ -42,6 +48,7 @@ const HUNTERS = [
   },
   {
     name: "Andriansyah (Andre)",
+    dbName: "Andre",   // seed.sql stores this as "Andre"
     color: "bg-cyan-500/10 border-cyan-500/30 text-cyan-400",
     sp: ["Riezkya Adella", "Risa Opiani", "Ari Kurnia Sandy", "Syarah Mustika", "Kanigia Lubis", "Salsabila Rahman", "Dea Alvony Agista"],
   },
@@ -57,6 +64,7 @@ const HUNTERS = [
   },
   {
     name: "Rika Sanusi (Asun)",
+    dbName: "Asun",    // seed.sql stores this as "Asun"
     color: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
     sp: ["Santoso", "Sentia Julika", "Rio Pratama", "Eka Vitria Lestari"],
   },
@@ -64,7 +72,7 @@ const HUNTERS = [
 
 interface MemberStatus {
   id: string
-  name: string
+  name: string           // always display name
   role_type: "SH" | "SP"
   monthly_target: number
   omset: number
@@ -91,8 +99,14 @@ export default function TeamPage() {
     if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
   }
 
-  const allHunterNames = new Set(HUNTERS.map(h => h.name))
+  // Build lookup sets — hunters are always priority over SP even if self-listed
   const allSPNames = new Set(HUNTERS.flatMap(h => h.sp))
+  // Accepts both display name AND legacy dbName for hunters
+  const allHunterDbLookup = new Set(
+    HUNTERS.flatMap(h => h.dbName ? [h.name, h.dbName] : [h.name])
+  )
+  // Combined lookup for DB query filter
+  const allDbNames = new Set([...allHunterDbLookup, ...allSPNames])
 
   async function fetchData() {
     setLoading(true)
@@ -111,16 +125,25 @@ export default function TeamPage() {
     ;(spRes.data || []).forEach(s => { spMap[s.user_id] = { id: s.id, sp_level: s.sp_level } })
 
     const list: MemberStatus[] = (usersRes.data || [])
-      .filter(u => allHunterNames.has(u.name) || allSPNames.has(u.name))
-      .map(u => ({
-        id: u.id,
-        name: u.name,
-        role_type: allHunterNames.has(u.name) ? "SH" : "SP",
-        monthly_target: u.monthly_target,
-        omset: omsetMap[u.id] || 0,
-        sp_level: spMap[u.id]?.sp_level ?? 0,
-        sp_history_id: spMap[u.id]?.id || null,
-      }))
+      .filter(u => allDbNames.has(u.name))
+      .map(u => {
+        // Hunters always take priority (even if also in sp[])
+        const isHunter = allHunterDbLookup.has(u.name)
+        // Normalize display name: "Andre" → "Andriansyah (Andre)", "Asun" → "Rika Sanusi (Asun)"
+        const hunterDef = isHunter
+          ? HUNTERS.find(h => h.name === u.name || h.dbName === u.name)
+          : null
+        const displayName = hunterDef ? hunterDef.name : u.name
+        return {
+          id: u.id,
+          name: displayName,
+          role_type: isHunter ? "SH" : "SP",
+          monthly_target: u.monthly_target,
+          omset: omsetMap[u.id] || 0,
+          sp_level: spMap[u.id]?.sp_level ?? 0,
+          sp_history_id: spMap[u.id]?.id || null,
+        }
+      })
 
     setMembers(list)
     setLoading(false)
@@ -185,7 +208,7 @@ export default function TeamPage() {
                 className={`rounded-xl overflow-hidden border ${borderColor(hunter.color)}`}
                 style={{ background: "var(--surface)" }}>
 
-                {/* Hunter Header */}
+                {/* Hunter Card Header */}
                 <div className={`px-4 py-3 border-b ${borderColor(hunter.color)}`}
                   style={{ background: "var(--surface2)" }}>
                   <div className="flex items-center gap-2">
@@ -199,7 +222,7 @@ export default function TeamPage() {
                   {(() => {
                     const m = getMember(hunter.name)
                     if (!m) return (
-                      <div className="text-xs text-slate-600 mt-1.5">Data belum tersedia</div>
+                      <div className="text-xs text-slate-600 mt-1.5">Data tidak ditemukan</div>
                     )
                     const ach = pct(m.omset, m.monthly_target)
                     return (
@@ -220,70 +243,90 @@ export default function TeamPage() {
                 </div>
 
                 {/* Sales Persons */}
-                {hunter.sp.length === 0 ? (
-                  <div className="px-4 py-3 text-xs text-slate-600 italic">Tidak ada Sales Person</div>
-                ) : (
-                  <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-                    {hunter.sp.map(spName => {
-                      const m = getMember(spName)
+                <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+                  {hunter.sp.map(spName => {
+                    const m = getMember(spName)
+                    const isSelf = spName === hunter.name
 
-                      // SP not yet in users table
-                      if (!m) return (
-                        <div key={spName} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
-                            <span className="text-xs font-bold text-slate-500">OK</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium text-white">{spName}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
-                            </div>
-                            <div className="text-xs text-slate-600 mt-0.5">Belum terdaftar di sistem</div>
+                    // Not in DB yet — show clean row, no warning text
+                    if (!m) return (
+                      <div key={spName} className="px-4 py-3 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
+                          <span className="text-xs font-bold text-slate-500">OK</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-white">{spName}</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
                           </div>
                         </div>
-                      )
+                      </div>
+                    )
 
-                      // SP found in users table
+                    // Self-reference (e.g. Jimmy): hunter in own SP list — no SP badge/controls
+                    if (isSelf) {
+                      const ach = pct(m.omset, m.monthly_target)
                       return (
-                        <div key={spName} className="px-4 py-3 flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${spBadgeColor(m.sp_level)}`}>
-                            <span className="text-xs font-bold">{m.sp_level > 0 ? `SP${m.sp_level}` : "OK"}</span>
+                        <div key={spName} className="px-4 py-3 flex items-center gap-3 bg-indigo-500/[0.03]">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-500/10 flex-shrink-0">
+                            <span className="text-xs font-bold text-indigo-400">SH</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-semibold text-white">{m.name}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400">Solo Hunter</span>
                             </div>
-                            {m.sp_level > 0 && (
-                              <div className="text-xs text-slate-500 mt-0.5">
-                                Level SP: <span className="text-red-400 font-semibold">SP{m.sp_level}</span>
-                              </div>
-                            )}
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {formatRupiah(m.omset)} / {formatRupiah(m.monthly_target)}
+                              <span className={`ml-2 font-bold ${ach >= 100 ? "text-green-400" : ach >= 70 ? "text-blue-400" : "text-red-400"}`}>
+                                {ach}%
+                              </span>
+                            </div>
                           </div>
-                          {/* SP ± Controls — admin only */}
-                          {isAdmin && (
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              <button
-                                onClick={() => adjustSP(m.id, -1, m.sp_level, m.sp_history_id)}
-                                disabled={m.sp_level <= 0 || saving === m.id}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-green-400 hover:bg-green-500/10 disabled:opacity-30 transition"
-                                title="Turunkan SP">
-                                <TrendingDown size={13} />
-                              </button>
-                              <button
-                                onClick={() => adjustSP(m.id, 1, m.sp_level, m.sp_history_id)}
-                                disabled={m.sp_level >= 5 || saving === m.id}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/10 disabled:opacity-30 transition"
-                                title="Naikkan SP">
-                                <TrendingUp size={13} />
-                              </button>
+                        </div>
+                      )
+                    }
+
+                    // Regular Sales Person — SP badge + admin ± controls
+                    return (
+                      <div key={spName} className="px-4 py-3 flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${spBadgeColor(m.sp_level)}`}>
+                          <span className="text-xs font-bold">{m.sp_level > 0 ? `SP${m.sp_level}` : "OK"}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-white">{m.name}</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
+                          </div>
+                          {m.sp_level > 0 && (
+                            <div className="text-xs text-red-400 font-semibold mt-0.5">
+                              SP{m.sp_level}
                             </div>
                           )}
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
+                        {/* SP ± Controls — admin only */}
+                        {isAdmin && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => adjustSP(m.id, -1, m.sp_level, m.sp_history_id)}
+                              disabled={m.sp_level <= 0 || saving === m.id}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-green-400 hover:bg-green-500/10 disabled:opacity-30 transition"
+                              title="Turunkan SP">
+                              <TrendingDown size={13} />
+                            </button>
+                            <button
+                              onClick={() => adjustSP(m.id, 1, m.sp_level, m.sp_history_id)}
+                              disabled={m.sp_level >= 5 || saving === m.id}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/10 disabled:opacity-30 transition"
+                              title="Naikkan SP">
+                              <TrendingUp size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             ))}
           </div>
