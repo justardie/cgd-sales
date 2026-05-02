@@ -207,7 +207,7 @@ export default function ClosingPage() {
       omset: rows.reduce((s, c) => s + (c.closing_value || 0), 0),
       count: rows.length,
     }
-  }).filter(h => h.target > 0 || h.omset > 0)
+  })
     .sort((a, b) => b.omset - a.omset)
 
   // Filtered rows for table
@@ -264,50 +264,44 @@ export default function ClosingPage() {
           </div>
         )}
 
-        {/* Hunter target vs realisasi — admin only */}
-        {isAdmin && hunterStats.length > 0 && (
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-            <div className="px-5 py-3 flex items-center gap-2" style={{ background: "var(--surface)" }}>
-              <span className="text-sm font-semibold text-white">Target vs Realisasi Hunter — {getMonthName(month)}</span>
+        {/* Hunter summary cards — admin only, always shown even with zero */}
+        {isAdmin && (
+          <div>
+            <div className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wide">
+              Target vs Realisasi Hunter — {getMonthName(month)}
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                    <th className="px-4 py-2.5 text-left text-xs text-slate-500 font-medium">Hunter</th>
-                    <th className="px-4 py-2.5 text-right text-xs text-slate-500 font-medium">Target</th>
-                    <th className="px-4 py-2.5 text-right text-xs text-slate-500 font-medium">Realisasi</th>
-                    <th className="px-4 py-2.5 text-right text-xs text-slate-500 font-medium">%</th>
-                    <th className="px-4 py-2.5 text-right text-xs text-slate-500 font-medium">Tx</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {hunterStats.map(h => {
-                    const ach = pct(h.omset, h.target)
-                    const isActive = filterHunter === h.id
-                    return (
-                      <tr key={h.id}
-                        onClick={() => setFilterHunter(isActive ? "" : h.id)}
-                        style={{ borderBottom: "1px solid var(--border)" }}
-                        className={`cursor-pointer transition ${isActive ? "bg-white/[0.05]" : "hover:bg-white/[0.02]"}`}>
-                        <td className="px-4 py-2.5 text-xs font-medium text-white">{h.name}</td>
-                        <td className="px-4 py-2.5 text-right text-xs text-slate-400">{formatRupiah(h.target)}</td>
-                        <td className="px-4 py-2.5 text-right text-xs font-semibold"
-                          style={{ color: h.omset >= h.target ? "#22c55e" : "#f1f5f9" }}>
-                          {formatRupiah(h.omset)}
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            ach >= 100 ? "bg-green-500/20 text-green-400" :
-                            ach >= 70 ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
-                          }`}>{ach}%</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs text-slate-400">{h.count}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {hunterStats.map(h => {
+                const ach = pct(h.omset, h.target)
+                const isActive = filterHunter === h.id
+                const cs =
+                  ach >= 71 ? { bg: "bg-blue-500/10",   border: "border-blue-500/30",   pct: "text-blue-300" } :
+                  ach >= 41 ? { bg: "bg-yellow-500/10", border: "border-yellow-500/30", pct: "text-yellow-300" } :
+                               { bg: "bg-red-500/10",    border: "border-red-500/30",    pct: "text-red-300" }
+                return (
+                  <button key={h.id}
+                    onClick={() => setFilterHunter(isActive ? "" : h.id)}
+                    className={`rounded-xl p-4 text-left border transition ${cs.bg} ${cs.border} ${isActive ? "ring-2 ring-white/20" : "opacity-90 hover:opacity-100"}`}>
+                    {/* Row 1: Hunter Name */}
+                    <div className="text-xs font-semibold text-white truncate mb-2">{h.name}</div>
+                    {/* Row 2: Achievement Revenue — large */}
+                    <div className="text-lg font-black text-white leading-tight mb-2">
+                      {formatRupiah(h.omset)}
+                    </div>
+                    {/* Row 3: Monthly Target + % */}
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="text-[10px] text-slate-400 leading-snug">
+                        Target<br />
+                        <span className="text-slate-300 font-medium">{formatRupiah(h.target)}</span>
+                      </div>
+                      <span className={`text-xl font-black ${cs.pct}`}>{ach}%</span>
+                    </div>
+                    {h.count > 0 && (
+                      <div className="text-[10px] text-slate-500 mt-1.5">{h.count} transaksi</div>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}

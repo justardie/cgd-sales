@@ -3,13 +3,13 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, pct, getMonthName, spBadgeColor } from "@/lib/utils"
+import { formatRupiah, pct, getMonthName } from "@/lib/utils"
 import { TrendingUp, MapPin, DollarSign, Users, AlertTriangle, Trophy, ChevronLeft, ChevronRight } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts"
 
 interface HunterStat {
   id: string; name: string; monthly_target: number; win_or_die_target: number
-  visit_target: number; omset: number; visits: number; sp_level: number; rank?: number
+  visit_target: number; omset: number; visits: number; rank?: number
 }
 
 function StatCard({ label, value, sub, icon: Icon, color }: {
@@ -30,12 +30,19 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
   )
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number }[]; label?: string }) => {
+const CustomTooltip = ({ active, payload, label }: {
+  active?: boolean; payload?: { name: string; value: number; fill?: string }[]; label?: string
+}) => {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-lg p-3 text-xs" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
       <div className="font-semibold text-white mb-1">{label}</div>
-      {payload.map(p => <div key={p.name} className="text-slate-300">{p.name}: {formatRupiah(p.value)}</div>)}
+      {payload.map(p => (
+        <div key={p.name} className="text-slate-300 flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: p.fill || "#888" }} />
+          {p.name}: {formatRupiah(p.value * 1_000_000)}
+        </div>
+      ))}
     </div>
   )
 }
@@ -62,15 +69,13 @@ export default function DashboardPage() {
   async function fetchDashboard() {
     setLoading(true)
     try {
-      const [usersRes, closingsRes, visitsRes, pipelineRes, teamRes] = await Promise.all([
+      const [usersRes, closingsRes, visitsRes, pipelineRes] = await Promise.all([
         supabase.from("users").select("id,name,role,monthly_target,win_or_die_target,visit_target,status").eq("status", "active"),
         supabase.from("closings").select("user_id,closing_value").eq("month", month).eq("year", year),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("pipeline").select("user_id,value,status").not("status", "eq", "closed_lost"),
-        supabase.from("team_status_history").select("user_id,sp_level").eq("month", month).eq("year", year),
       ])
 
-      // Exclude admin from rankings — show ALL sales users (SL + SM), regardless of target amount
       const salesUsers = (usersRes.data || []).filter(u => u.role !== "admin")
       const visibleUsers = isAdmin ? salesUsers : salesUsers.filter(u => u.id === user!.id)
 
@@ -80,13 +85,10 @@ export default function DashboardPage() {
       const visitMap: Record<string, number> = {}
       ;(visitsRes.data || []).forEach(v => { visitMap[v.user_id] = (visitMap[v.user_id] || 0) + (v.count || 0) })
 
-      const spMap: Record<string, number> = {}
-      ;(teamRes.data || []).forEach(t => { spMap[t.user_id] = t.sp_level })
-
       const list: HunterStat[] = visibleUsers.map(u => ({
         id: u.id, name: u.name, monthly_target: u.monthly_target,
         win_or_die_target: u.win_or_die_target, visit_target: u.visit_target,
-        omset: omsetMap[u.id] || 0, visits: visitMap[u.id] || 0, sp_level: spMap[u.id] ?? 0,
+        omset: omsetMap[u.id] || 0, visits: visitMap[u.id] || 0,
       })).sort((a, b) => pct(b.omset, b.monthly_target) - pct(a.omset, a.monthly_target))
         .map((h, i) => ({ ...h, rank: i + 1 }))
 
@@ -104,10 +106,12 @@ export default function DashboardPage() {
 
   const totalTarget = hunters.reduce((s, h) => s + h.monthly_target, 0)
   const warnHunters = hunters.filter(h => h.win_or_die_target > 0 && h.omset < h.win_or_die_target)
+
   const chartData = hunters.map(h => ({
     name: h.name.split(" ")[0],
-    Target: Math.round(h.monthly_target / 1_000_000),
-    Aktual: Math.round(h.omset / 1_000_000),
+    "Revenue Target": Math.round(h.monthly_target / 1_000_000),
+    "Win or Die":     Math.round(h.win_or_die_target / 1_000_000),
+    "Aktual":         Math.round(h.omset / 1_000_000),
   }))
 
   return (
@@ -170,17 +174,25 @@ export default function DashboardPage() {
         {isAdmin && chartData.length > 0 && (
           <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <h2 className="text-sm font-semibold text-white mb-4">
-              Omset vs Target — {getMonthName(month)} {year} (juta Rp)
+              Revenue vs Win or Die vs Aktual — {getMonthName(month)} {year} (juta Rp)
             </h2>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} barCategoryGap="30%" barGap={4}>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={chartData} barCategoryGap="25%" barGap={3}>
                 <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                <Bar dataKey="Target" fill="#1e3a5f" radius={[4, 4, 0, 0]} name="Target" />
-                <Bar dataKey="Aktual" radius={[4, 4, 0, 0]} name="Aktual">
+                <Legend
+                  wrapperStyle={{ fontSize: "11px", paddingTop: "12px" }}
+                  formatter={(value) => <span style={{ color: "#94a3b8" }}>{value}</span>}
+                />
+                <Bar dataKey="Revenue Target" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Win or Die" fill="#7c2d12" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Aktual" radius={[4, 4, 0, 0]}>
                   {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.Aktual >= entry.Target ? "#22c55e" : entry.Aktual >= entry.Target * 0.7 ? "#3b82f6" : "#ef4444"} />
+                    <Cell key={i} fill={
+                      entry["Aktual"] >= entry["Revenue Target"] ? "#22c55e" :
+                      entry["Aktual"] >= entry["Revenue Target"] * 0.7 ? "#3b82f6" : "#ef4444"
+                    } />
                   ))}
                 </Bar>
               </BarChart>
@@ -188,57 +200,67 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Rankings — sales only, no admin */}
+        {/* Rankings */}
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
           <div className="px-5 py-4 flex items-center gap-2" style={{ background: "var(--surface)" }}>
             <Trophy size={15} className="text-yellow-400" />
             <h2 className="text-sm font-semibold text-white">Ranking Performa — {getMonthName(month)} {year}</h2>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium w-8">#</th>
-                <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
-                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target</th>
-                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Realisasi</th>
-                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">%</th>
-                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Visit</th>
-                <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">SP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat data...</td></tr>
-              ) : !hunters.length ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Belum ada data bulan ini</td></tr>
-              ) : hunters.map(h => {
-                const ach = pct(h.omset, h.monthly_target)
-                return (
-                  <tr key={h.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-slate-500 text-xs font-bold">{h.rank}</td>
-                    <td className="px-4 py-3 font-medium text-white text-xs">{h.name}</td>
-                    <td className="px-4 py-3 text-right text-slate-400 text-xs">{formatRupiah(h.monthly_target)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-xs"
-                      style={{ color: h.omset >= h.monthly_target ? "#22c55e" : "#f1f5f9" }}>
-                      {formatRupiah(h.omset)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                        ach >= 100 ? "bg-green-500/20 text-green-400" :
-                        ach >= 70 ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
-                      }`}>{ach}%</span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-400 text-xs">{h.visits}/{h.visit_target}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${spBadgeColor(h.sp_level)}`}>
-                        {h.sp_level > 0 ? `SP${h.sp_level}` : "—"}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium w-8">#</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Revenue Target</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Win or Die</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Realisasi</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Revenue %</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">WoD %</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Visit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat data...</td></tr>
+                ) : !hunters.length ? (
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600 text-xs">Belum ada data bulan ini</td></tr>
+                ) : hunters.map(h => {
+                  const revPct = pct(h.omset, h.monthly_target)
+                  const wodPct = h.win_or_die_target > 0 ? pct(h.omset, h.win_or_die_target) : null
+                  return (
+                    <tr key={h.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
+                      <td className="px-4 py-3 text-slate-500 text-xs font-bold">{h.rank}</td>
+                      <td className="px-4 py-3 font-medium text-white text-xs">{h.name}</td>
+                      <td className="px-4 py-3 text-right text-slate-400 text-xs">{formatRupiah(h.monthly_target)}</td>
+                      <td className="px-4 py-3 text-right text-slate-500 text-xs">
+                        {h.win_or_die_target > 0 ? formatRupiah(h.win_or_die_target) : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-xs"
+                        style={{ color: h.omset >= h.monthly_target ? "#22c55e" : "#f1f5f9" }}>
+                        {formatRupiah(h.omset)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          revPct >= 100 ? "bg-green-500/20 text-green-400" :
+                          revPct >= 70  ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
+                        }`}>{revPct}%</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {wodPct !== null ? (
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            wodPct >= 100 ? "bg-green-500/20 text-green-400" :
+                            wodPct >= 70  ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
+                          }`}>{wodPct}%</span>
+                        ) : <span className="text-slate-700 text-xs">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-400 text-xs">{h.visits}/{h.visit_target}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </DashboardShell>

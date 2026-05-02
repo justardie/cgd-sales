@@ -184,12 +184,12 @@ export default function ActivitiesPage() {
               </div>
               {isAdmin && (
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Assign ke</label>
+                  <label className="text-xs text-slate-500 block mb-1">Hunter (Assign ke)</label>
                   <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <option value={user!.id}>Saya</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    <option value={user!.id}>Saya (Admin)</option>
+                    {users.filter(u => u.role !== "admin").map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
               )}

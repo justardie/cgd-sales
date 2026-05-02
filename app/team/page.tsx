@@ -4,9 +4,9 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, getMonthName, pct, spBadgeColor } from "@/lib/utils"
-import { TrendingUp, TrendingDown, Shield, ChevronLeft, ChevronRight } from "lucide-react"
+import { TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
 
-// Project definitions — SM = Sales Hunter (no SP), SL = Sales Leader (SP berlaku)
+// sm = Sales Hunter (no SP), sl = Sales Person (SP applies)
 const PROJECTS = [
   {
     key: "CH",
@@ -20,7 +20,7 @@ const PROJECTS = [
     label: "Central Tiban",
     color: "bg-green-500/10 border-green-500/30 text-green-400",
     sm: [],
-    sl: ["Andre"],
+    sl: ["Andriansyah (Andre)"],
   },
   {
     key: "CRBA",
@@ -34,7 +34,7 @@ const PROJECTS = [
     label: "MRD CLH",
     color: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
     sm: [],
-    sl: ["Asun"],
+    sl: ["Rika Sanusi (Asun)"],
   },
   {
     key: "CRTU",
@@ -57,7 +57,6 @@ interface MemberStatus {
   name: string
   role_type: "SM" | "SL"
   monthly_target: number
-  win_or_die_target: number
   omset: number
   sp_level: number
   sp_history_id: string | null
@@ -82,14 +81,13 @@ export default function TeamPage() {
     if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
   }
 
-  // Build a flat set of all member names from PROJECTS
   const allSM = new Set(PROJECTS.flatMap(p => p.sm))
   const allSL = new Set(PROJECTS.flatMap(p => p.sl))
 
   async function fetchData() {
     setLoading(true)
     const [usersRes, closingsRes, spRes] = await Promise.all([
-      supabase.from("users").select("id,name,monthly_target,win_or_die_target").eq("status", "active"),
+      supabase.from("users").select("id,name,monthly_target").eq("status", "active"),
       supabase.from("closings").select("user_id,closing_value").eq("month", month).eq("year", year),
       supabase.from("team_status_history").select("id,user_id,sp_level").eq("month", month).eq("year", year),
     ])
@@ -109,7 +107,6 @@ export default function TeamPage() {
         name: u.name,
         role_type: allSM.has(u.name) ? "SM" : "SL",
         monthly_target: u.monthly_target,
-        win_or_die_target: u.win_or_die_target,
         omset: omsetMap[u.id] || 0,
         sp_level: spMap[u.id]?.sp_level ?? 0,
         sp_history_id: spMap[u.id]?.id || null,
@@ -135,31 +132,6 @@ export default function TeamPage() {
         sp_level: newLevel,
         reason: delta > 0 ? "Manual increase" : "Manual decrease",
       })
-    }
-    setSaving(null)
-    fetchData()
-  }
-
-  async function runAutoCalc() {
-    if (!isAdmin) return
-    setSaving("auto")
-    // Auto-calc only applies to SL members
-    const slMembers = members.filter(m => m.role_type === "SL")
-    for (const h of slMembers) {
-      const hasClosing = h.omset > 0
-      const newSP = hasClosing ? Math.max(0, h.sp_level - 1) : Math.min(5, h.sp_level + 1)
-      if (h.sp_history_id) {
-        await supabase.from("team_status_history").update({
-          sp_level: newSP,
-          reason: hasClosing ? "Auto: ada closing bulan ini" : "Auto: tidak ada closing",
-        }).eq("id", h.sp_history_id)
-      } else {
-        await supabase.from("team_status_history").insert({
-          user_id: h.id, month, year,
-          sp_level: newSP,
-          reason: hasClosing ? "Auto: ada closing" : "Auto: tidak ada closing",
-        })
-      }
     }
     setSaving(null)
     fetchData()
@@ -191,28 +163,6 @@ export default function TeamPage() {
           </div>
         </div>
 
-        {/* SP Info + Auto Calc */}
-        <div className="rounded-xl p-4 flex items-center justify-between gap-4"
-          style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Shield size={14} className="text-blue-400" />
-              <span className="text-xs font-semibold text-slate-300">Aturan SP — hanya berlaku untuk Sales Leader (SL)</span>
-            </div>
-            <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-              <div className="flex items-center gap-1.5"><TrendingDown size={11} className="text-green-400" /> Ada closing → SP turun 1</div>
-              <div className="flex items-center gap-1.5"><TrendingUp size={11} className="text-red-400" /> Tidak ada closing → SP naik 1</div>
-              <div className="flex items-center gap-1.5"><span className="text-slate-600">SM (Sales Hunter) tidak dikenakan SP</span></div>
-            </div>
-          </div>
-          {isAdmin && (
-            <button onClick={runAutoCalc} disabled={saving === "auto"}
-              className="text-xs px-4 py-2 rounded-lg font-semibold text-white bg-purple-600 hover:bg-purple-500 disabled:opacity-50 transition flex-shrink-0">
-              {saving === "auto" ? "Menghitung..." : "Auto-Kalkulasi SP"}
-            </button>
-          )}
-        </div>
-
         {/* Projects Grid */}
         {loading ? (
           <div className="text-center py-12 text-slate-600 text-sm">Memuat data...</div>
@@ -222,8 +172,10 @@ export default function TeamPage() {
               const allNames = [...proj.sm, ...proj.sl]
               if (allNames.length === 0) return null
               return (
-                <div key={proj.key} className={`rounded-xl overflow-hidden border ${proj.color.split(" ")[1]}`}
+                <div key={proj.key}
+                  className={`rounded-xl overflow-hidden border ${proj.color.split(" ")[1]}`}
                   style={{ background: "var(--surface)" }}>
+
                   {/* Project Header */}
                   <div className={`px-4 py-3 flex items-center gap-2 border-b ${proj.color.split(" ")[1]}`}
                     style={{ background: "var(--surface2)" }}>
@@ -231,17 +183,19 @@ export default function TeamPage() {
                       {proj.key}
                     </span>
                     <span className="text-sm font-semibold text-white">{proj.label}</span>
-                    <span className="ml-auto text-xs text-slate-500">{allNames.length} anggota</span>
                   </div>
 
                   {/* Members */}
                   <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-                    {/* SM Members */}
+
+                    {/* Sales Hunters — no SP badge, no SP controls */}
                     {proj.sm.map(name => {
                       const m = getMember(name)
                       if (!m) return (
                         <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 text-slate-600 text-xs font-bold flex-shrink-0">SM</div>
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
+                            <span className="text-xs font-bold text-slate-500">SH</span>
+                          </div>
                           <div>
                             <div className="text-sm font-medium text-white">{name}</div>
                             <div className="text-xs text-slate-600">Data belum tersedia</div>
@@ -249,19 +203,15 @@ export default function TeamPage() {
                         </div>
                       )
                       const ach = pct(m.omset, m.monthly_target)
-                      const wod = m.win_or_die_target > 0 && m.omset < m.win_or_die_target
                       return (
                         <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          {/* SM badge — no SP */}
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800/80 flex-shrink-0">
-                            <span className="text-xs font-bold text-slate-400">SM</span>
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-500/10 flex-shrink-0">
+                            <span className="text-xs font-bold text-indigo-400">SH</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-semibold text-white">{m.name}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">Hunter</span>
-                              {wod && <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">Win-or-Die!</span>}
-                              {m.omset > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">Ada Closing</span>}
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400">Sales Hunter</span>
                             </div>
                             <div className="text-xs text-slate-500 mt-0.5">
                               {formatRupiah(m.omset)} / {formatRupiah(m.monthly_target)}
@@ -271,19 +221,21 @@ export default function TeamPage() {
                             </div>
                             <div className="mt-1.5 h-1 rounded-full bg-slate-800 w-full max-w-[160px]">
                               <div className="h-1 rounded-full transition-all"
-                                style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#3b82f6" }} />
+                                style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#6366f1" }} />
                             </div>
                           </div>
                         </div>
                       )
                     })}
 
-                    {/* SL Members */}
+                    {/* Sales Persons — SP badge + admin SP ±controls */}
                     {proj.sl.map(name => {
                       const m = getMember(name)
                       if (!m) return (
                         <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 text-slate-600 text-xs font-bold flex-shrink-0">SL</div>
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
+                            <span className="text-xs font-bold text-slate-500">SP</span>
+                          </div>
                           <div>
                             <div className="text-sm font-medium text-white">{name}</div>
                             <div className="text-xs text-slate-600">Data belum tersedia</div>
@@ -291,7 +243,6 @@ export default function TeamPage() {
                         </div>
                       )
                       const ach = pct(m.omset, m.monthly_target)
-                      const wod = m.win_or_die_target > 0 && m.omset < m.win_or_die_target
                       return (
                         <div key={name} className="px-4 py-3 flex items-center gap-3">
                           {/* SP Badge */}
@@ -301,9 +252,7 @@ export default function TeamPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-semibold text-white">{m.name}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Leader</span>
-                              {wod && <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">Win-or-Die!</span>}
-                              {m.omset > 0 && <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">Ada Closing</span>}
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
                             </div>
                             <div className="text-xs text-slate-500 mt-0.5">
                               {formatRupiah(m.omset)} / {formatRupiah(m.monthly_target)}
@@ -316,16 +265,18 @@ export default function TeamPage() {
                                 style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#3b82f6" }} />
                             </div>
                           </div>
-                          {/* SP Controls — admin only, SL only */}
+                          {/* SP Controls — admin only */}
                           {isAdmin && (
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <button onClick={() => adjustSP(m.id, -1, m.sp_level, m.sp_history_id)}
+                              <button
+                                onClick={() => adjustSP(m.id, -1, m.sp_level, m.sp_history_id)}
                                 disabled={m.sp_level <= 0 || saving === m.id}
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-green-400 hover:bg-green-500/10 disabled:opacity-30 transition"
                                 title="Turunkan SP">
                                 <TrendingDown size={13} />
                               </button>
-                              <button onClick={() => adjustSP(m.id, 1, m.sp_level, m.sp_history_id)}
+                              <button
+                                onClick={() => adjustSP(m.id, 1, m.sp_level, m.sp_history_id)}
                                 disabled={m.sp_level >= 5 || saving === m.id}
                                 className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/10 disabled:opacity-30 transition"
                                 title="Naikkan SP">

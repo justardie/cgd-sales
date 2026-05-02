@@ -32,7 +32,6 @@ export default function AdminPage() {
   const [form, setForm] = useState({
     name: "",
     role: "hunter",
-    monthly_target: "",
     win_or_die_target: "",
     visit_target: "40",
   })
@@ -51,7 +50,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", monthly_target: "", win_or_die_target: "", visit_target: "40" })
+    setForm({ name: "", role: "hunter", win_or_die_target: "", visit_target: "40" })
     setShowModal(true)
   }
 
@@ -60,7 +59,6 @@ export default function AdminPage() {
     setForm({
       name: u.name,
       role: u.role,
-      monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
       visit_target: u.visit_target.toString(),
     })
@@ -73,7 +71,7 @@ export default function AdminPage() {
     const payload = {
       name: form.name,
       role: form.role as "admin" | "hunter",
-      monthly_target: Number(form.monthly_target) || 0,
+      monthly_target: editing ? editing.monthly_target : 0,
       win_or_die_target: Number(form.win_or_die_target) || 0,
       visit_target: Number(form.visit_target) || 40,
     }
@@ -232,19 +230,11 @@ export default function AdminPage() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">Target Omset/bln (Rp)</label>
-                  <input type="number" value={form.monthly_target} onChange={e => setForm(f => ({ ...f, monthly_target: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">Win-or-Die (Rp)</label>
-                  <input type="number" value={form.win_or_die_target} onChange={e => setForm(f => ({ ...f, win_or_die_target: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-                </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Win-or-Die (Rp)</label>
+                <input type="number" value={form.win_or_die_target} onChange={e => setForm(f => ({ ...f, win_or_die_target: e.target.value }))}
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Target Visit/bln</label>
