@@ -1,11 +1,10 @@
-﻿"use client"
+"use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
-import { hashPin as hp } from "@/lib/auth"
 import { Shield, Plus, X, Edit2, UserX, UserCheck } from "lucide-react"
 import type { User } from "@/types"
 
@@ -32,7 +31,6 @@ export default function AdminPage() {
 
   const [form, setForm] = useState({
     name: "",
-    pin: "",
     role: "hunter",
     monthly_target: "",
     win_or_die_target: "",
@@ -53,7 +51,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", pin: "", role: "hunter", monthly_target: "", win_or_die_target: "", visit_target: "40" })
+    setForm({ name: "", role: "hunter", monthly_target: "", win_or_die_target: "", visit_target: "40" })
     setShowModal(true)
   }
 
@@ -61,7 +59,6 @@ export default function AdminPage() {
     setEditing(u)
     setForm({
       name: u.name,
-      pin: "",
       role: u.role,
       monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
@@ -73,19 +70,17 @@ export default function AdminPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const payload: Partial<User> & { pin_hash?: string } = {
+    const payload = {
       name: form.name,
       role: form.role as "admin" | "hunter",
       monthly_target: Number(form.monthly_target) || 0,
       win_or_die_target: Number(form.win_or_die_target) || 0,
       visit_target: Number(form.visit_target) || 40,
     }
-    if (form.pin) payload.pin_hash = hp(form.pin)
     if (editing) {
       await supabase.from("users").update(payload).eq("id", editing.id)
     } else {
-      if (!form.pin) { setSaving(false); return }
-      await supabase.from("users").insert({ ...payload, pin_hash: hp(form.pin), status: "active" })
+      await supabase.from("users").insert({ ...payload, pin_hash: "noop", status: "active" })
     }
     setSaving(false)
     setShowModal(false)
@@ -229,14 +224,6 @@ export default function AdminPage() {
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">PIN 4 Digit {editing ? "(kosongkan jika tidak ganti)" : ""}</label>
-                <input type="password" value={form.pin} onChange={e => setForm(f => ({ ...f, pin: e.target.value }))}
-                  maxLength={4} pattern="[0-9]{4}" placeholder="4 digit angka"
-                  required={!editing}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-              </div>
-              <div>
                 <label className="text-xs text-slate-500 block mb-1">Role</label>
                 <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -283,4 +270,3 @@ export default function AdminPage() {
     </DashboardShell>
   )
 }
-
