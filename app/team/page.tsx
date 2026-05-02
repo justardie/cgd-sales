@@ -6,56 +6,66 @@ import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, getMonthName, pct, spBadgeColor } from "@/lib/utils"
 import { TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
 
-// sm = Sales Hunter (no SP), sl = Sales Person (SP applies)
-const PROJECTS = [
+// Each Sales Hunter has their own Sales Persons.
+// Sales Hunters → no SP (Surat Peringatan).
+// Sales Persons → SP applies, tracked in team_status_history.
+const HUNTERS = [
   {
-    key: "CH",
-    label: "Central Hills",
+    name: "Lyndon Sumarli",
     color: "bg-blue-500/10 border-blue-500/30 text-blue-400",
-    sm: ["Lyndon Sumarli"],
-    sl: ["Aida (Rosmaida)", "Aldo (Rinaldo)", "Frans"],
+    sp: ["Heriyandi", "Riduan Hasudungan Hutabarat", "Tiar Riki Aryanto", "Mhd Sidiq Abdussalam"],
   },
   {
-    key: "CT",
-    label: "Central Tiban",
+    name: "Jimmy Darmadi",
     color: "bg-green-500/10 border-green-500/30 text-green-400",
-    sm: [],
-    sl: ["Andriansyah (Andre)"],
+    sp: [],
   },
   {
-    key: "CRBA",
-    label: "MRD CRBA+CBA",
+    name: "Firyal Badriyyah",
     color: "bg-orange-500/10 border-orange-500/30 text-orange-400",
-    sm: [],
-    sl: ["Ellen"],
+    sp: ["Adi Chandra"],
   },
   {
-    key: "CLH",
-    label: "MRD CLH",
+    name: "Aida (Rosmaida)",
     color: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
-    sm: [],
-    sl: ["Rika Sanusi (Asun)"],
+    sp: ["Achmad Rian", "M. Fadjri Saputra", "Lenni Natalia", "Seprita Rahma", "M. Fiqri", "Vio Wahyuda"],
   },
   {
-    key: "CRTU",
-    label: "MRD CRTU",
+    name: "Aldo (Rinaldo)",
     color: "bg-purple-500/10 border-purple-500/30 text-purple-400",
-    sm: [],
-    sl: ["Prediman"],
+    sp: ["Yossi Eka Nofrita", "Rosa Dwi Vanesa", "Abel Shevcenko", "Noer Roelloh", "Muhammad Rayyan", "Ela Magdalena Andrint"],
   },
   {
-    key: "SCC",
-    label: "SCC",
+    name: "Frans",
     color: "bg-pink-500/10 border-pink-500/30 text-pink-400",
-    sm: ["Jimmy Darmadi", "Firyal Badriyyah"],
-    sl: [],
+    sp: ["M. Amirullah", "Shinta Okvianti", "Nisa Nur fadhila"],
+  },
+  {
+    name: "Andriansyah (Andre)",
+    color: "bg-cyan-500/10 border-cyan-500/30 text-cyan-400",
+    sp: ["Riezkya Adella", "Risa Opiani", "Ari Kurnia Sandy", "Syarah Mustika", "Kanigia Lubis", "Salsabila Rahman", "Dea Alvony Agista"],
+  },
+  {
+    name: "Prediman",
+    color: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400",
+    sp: ["Crisna Ardhianysah", "Muhammad Rafie", "Maria Oktavaini", "Gallih Dwi Gumelar"],
+  },
+  {
+    name: "Ellen",
+    color: "bg-rose-500/10 border-rose-500/30 text-rose-400",
+    sp: ["Amos Marihot", "Ferdinan Bangun", "Nurlela", "Febry Nairi", "Tri Andy Kurniawan"],
+  },
+  {
+    name: "Rika Sanusi (Asun)",
+    color: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+    sp: ["Santoso", "Sentia Julika", "Rio Pratama", "Eka Vitria Lestari"],
   },
 ]
 
 interface MemberStatus {
   id: string
   name: string
-  role_type: "SM" | "SL"
+  role_type: "SH" | "SP"
   monthly_target: number
   omset: number
   sp_level: number
@@ -81,8 +91,8 @@ export default function TeamPage() {
     if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
   }
 
-  const allSM = new Set(PROJECTS.flatMap(p => p.sm))
-  const allSL = new Set(PROJECTS.flatMap(p => p.sl))
+  const allHunterNames = new Set(HUNTERS.map(h => h.name))
+  const allSPNames = new Set(HUNTERS.flatMap(h => h.sp))
 
   async function fetchData() {
     setLoading(true)
@@ -101,11 +111,11 @@ export default function TeamPage() {
     ;(spRes.data || []).forEach(s => { spMap[s.user_id] = { id: s.id, sp_level: s.sp_level } })
 
     const list: MemberStatus[] = (usersRes.data || [])
-      .filter(u => allSM.has(u.name) || allSL.has(u.name))
+      .filter(u => allHunterNames.has(u.name) || allSPNames.has(u.name))
       .map(u => ({
         id: u.id,
         name: u.name,
-        role_type: allSM.has(u.name) ? "SM" : "SL",
+        role_type: allHunterNames.has(u.name) ? "SH" : "SP",
         monthly_target: u.monthly_target,
         omset: omsetMap[u.id] || 0,
         sp_level: spMap[u.id]?.sp_level ?? 0,
@@ -137,6 +147,8 @@ export default function TeamPage() {
     fetchData()
   }
 
+  function borderColor(color: string) { return color.split(" ")[1] }
+
   return (
     <DashboardShell>
       <div className="space-y-6">
@@ -144,7 +156,7 @@ export default function TeamPage() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold text-white">Team Status</h1>
-            <p className="text-sm text-slate-500 mt-0.5">SP Level per Proyek · MASCOL Division</p>
+            <p className="text-sm text-slate-500 mt-0.5">SP Level per Sales Person · MASCOL Division</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={prevMonth}
@@ -163,89 +175,77 @@ export default function TeamPage() {
           </div>
         </div>
 
-        {/* Projects Grid */}
+        {/* Hunters Grid */}
         {loading ? (
           <div className="text-center py-12 text-slate-600 text-sm">Memuat data...</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {PROJECTS.map(proj => {
-              const allNames = [...proj.sm, ...proj.sl]
-              if (allNames.length === 0) return null
-              return (
-                <div key={proj.key}
-                  className={`rounded-xl overflow-hidden border ${proj.color.split(" ")[1]}`}
-                  style={{ background: "var(--surface)" }}>
+            {HUNTERS.map(hunter => (
+              <div key={hunter.name}
+                className={`rounded-xl overflow-hidden border ${borderColor(hunter.color)}`}
+                style={{ background: "var(--surface)" }}>
 
-                  {/* Project Header */}
-                  <div className={`px-4 py-3 flex items-center gap-2 border-b ${proj.color.split(" ")[1]}`}
-                    style={{ background: "var(--surface2)" }}>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${proj.color}`}>
-                      {proj.key}
+                {/* Hunter Header */}
+                <div className={`px-4 py-3 border-b ${borderColor(hunter.color)}`}
+                  style={{ background: "var(--surface2)" }}>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${hunter.color}`}>SH</span>
+                    <span className="text-sm font-semibold text-white">{hunter.name}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 ml-auto">
+                      Sales Hunter
                     </span>
-                    <span className="text-sm font-semibold text-white">{proj.label}</span>
                   </div>
-
-                  {/* Members */}
-                  <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-
-                    {/* Sales Hunters — no SP badge, no SP controls */}
-                    {proj.sm.map(name => {
-                      const m = getMember(name)
-                      if (!m) return (
-                        <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
-                            <span className="text-xs font-bold text-slate-500">SH</span>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-white">{name}</div>
-                            <div className="text-xs text-slate-600">Data belum tersedia</div>
-                          </div>
+                  {/* Hunter omset */}
+                  {(() => {
+                    const m = getMember(hunter.name)
+                    if (!m) return (
+                      <div className="text-xs text-slate-600 mt-1.5">Data belum tersedia</div>
+                    )
+                    const ach = pct(m.omset, m.monthly_target)
+                    return (
+                      <div className="mt-2">
+                        <div className="text-xs text-slate-500">
+                          {formatRupiah(m.omset)} / {formatRupiah(m.monthly_target)}
+                          <span className={`ml-2 font-bold ${ach >= 100 ? "text-green-400" : ach >= 70 ? "text-blue-400" : "text-red-400"}`}>
+                            {ach}%
+                          </span>
                         </div>
-                      )
-                      const ach = pct(m.omset, m.monthly_target)
-                      return (
-                        <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-500/10 flex-shrink-0">
-                            <span className="text-xs font-bold text-indigo-400">SH</span>
+                        <div className="mt-1.5 h-1 rounded-full bg-slate-800 w-full max-w-[200px]">
+                          <div className="h-1 rounded-full transition-all"
+                            style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#6366f1" }} />
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* Sales Persons */}
+                {hunter.sp.length === 0 ? (
+                  <div className="px-4 py-3 text-xs text-slate-600 italic">Tidak ada Sales Person</div>
+                ) : (
+                  <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+                    {hunter.sp.map(spName => {
+                      const m = getMember(spName)
+
+                      // SP not yet in users table
+                      if (!m) return (
+                        <div key={spName} className="px-4 py-3 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
+                            <span className="text-xs font-bold text-slate-500">OK</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-semibold text-white">{m.name}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400">Sales Hunter</span>
+                              <span className="text-sm font-medium text-white">{spName}</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
                             </div>
-                            <div className="text-xs text-slate-500 mt-0.5">
-                              {formatRupiah(m.omset)} / {formatRupiah(m.monthly_target)}
-                              <span className={`ml-2 font-bold ${ach >= 100 ? "text-green-400" : ach >= 70 ? "text-blue-400" : "text-red-400"}`}>
-                                {ach}%
-                              </span>
-                            </div>
-                            <div className="mt-1.5 h-1 rounded-full bg-slate-800 w-full max-w-[160px]">
-                              <div className="h-1 rounded-full transition-all"
-                                style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#6366f1" }} />
-                            </div>
+                            <div className="text-xs text-slate-600 mt-0.5">Belum terdaftar di sistem</div>
                           </div>
                         </div>
                       )
-                    })}
 
-                    {/* Sales Persons — SP badge + admin SP ±controls */}
-                    {proj.sl.map(name => {
-                      const m = getMember(name)
-                      if (!m) return (
-                        <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-800 flex-shrink-0">
-                            <span className="text-xs font-bold text-slate-500">SP</span>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-white">{name}</div>
-                            <div className="text-xs text-slate-600">Data belum tersedia</div>
-                          </div>
-                        </div>
-                      )
-                      const ach = pct(m.omset, m.monthly_target)
+                      // SP found in users table
                       return (
-                        <div key={name} className="px-4 py-3 flex items-center gap-3">
-                          {/* SP Badge */}
+                        <div key={spName} className="px-4 py-3 flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${spBadgeColor(m.sp_level)}`}>
                             <span className="text-xs font-bold">{m.sp_level > 0 ? `SP${m.sp_level}` : "OK"}</span>
                           </div>
@@ -254,18 +254,13 @@ export default function TeamPage() {
                               <span className="text-sm font-semibold text-white">{m.name}</span>
                               <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
                             </div>
-                            <div className="text-xs text-slate-500 mt-0.5">
-                              {formatRupiah(m.omset)} / {formatRupiah(m.monthly_target)}
-                              <span className={`ml-2 font-bold ${ach >= 100 ? "text-green-400" : ach >= 70 ? "text-blue-400" : "text-red-400"}`}>
-                                {ach}%
-                              </span>
-                            </div>
-                            <div className="mt-1.5 h-1 rounded-full bg-slate-800 w-full max-w-[160px]">
-                              <div className="h-1 rounded-full transition-all"
-                                style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#3b82f6" }} />
-                            </div>
+                            {m.sp_level > 0 && (
+                              <div className="text-xs text-slate-500 mt-0.5">
+                                Level SP: <span className="text-red-400 font-semibold">SP{m.sp_level}</span>
+                              </div>
+                            )}
                           </div>
-                          {/* SP Controls — admin only */}
+                          {/* SP ± Controls — admin only */}
                           {isAdmin && (
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <button
@@ -288,9 +283,9 @@ export default function TeamPage() {
                       )
                     })}
                   </div>
-                </div>
-              )
-            })}
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
