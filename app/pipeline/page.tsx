@@ -105,6 +105,7 @@ export default function PipelinePage() {
   const [filterStatus, setFilterStatus] = useState("all")
   const [saving, setSaving] = useState(false)
   const [savingClosing, setSavingClosing] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [closingForm, setClosingForm] = useState<ClosingForm>({
     pipeline_id: "", hunter_user_id: "", konsumen_name: "",
@@ -112,18 +113,26 @@ export default function PipelinePage() {
     closing_date: new Date().toISOString().slice(0, 10), salesname: "",
   })
 
-  useEffect(() => { if (user) fetchData() }, [user])
+  useEffect(() => { if (user) fetchData() }, [user, isAdmin])
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase.from("pipeline").select("*").order("ts", { ascending: false })
+    setFetchError(null)
+    const { data, error } = await supabase.from("pipeline").select("*").order("ts", { ascending: false })
+    if (error) {
+      console.error("Pipeline fetch error:", error)
+      setFetchError(error.message)
+      setLoading(false)
+      return
+    }
     const all = (data || []) as PipelineRow[]
     if (isAdmin) {
       setPipelines(all)
     } else {
+      const name = user!.name?.toLowerCase() || ""
       setPipelines(all.filter(p =>
         p.user_id === user!.id ||
-        p.slhunter?.toLowerCase() === user!.name?.toLowerCase()
+        (name && p.slhunter?.toLowerCase() === name)
       ))
     }
     setLoading(false)
@@ -299,6 +308,12 @@ export default function PipelinePage() {
             ))}
           </div>
         </div>
+
+        {fetchError && (
+          <div className="text-xs p-3 rounded-lg bg-red-500/10 text-red-400">
+            Gagal memuat data: {fetchError}
+          </div>
+        )}
 
         {/* Table */}
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
