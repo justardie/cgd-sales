@@ -216,7 +216,7 @@ export default function ReportHODPage() {
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
                     <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={v => `${v}M`} />
                     <Tooltip
-                      formatter={(v: number) => `Rp ${v.toFixed(1)}M`}
+                      formatter={(v) => `Rp ${Number(v).toFixed(1)}M`}
                       contentStyle={{ background: "#111827", border: "1px solid #1e2d45", fontSize: 11 }}
                     />
                     <Bar dataKey="Target" fill="#1e40af" radius={[3, 3, 0, 0]} />
@@ -276,7 +276,7 @@ export default function ReportHODPage() {
                   <BarChart data={konversiData} barCategoryGap="35%">
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} />
                     <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={v => `${v}%`} />
-                    <Tooltip formatter={(v: number) => `${v}%`} contentStyle={{ background: "#111827", border: "1px solid #1e2d45", fontSize: 11 }} />
+                    <Tooltip formatter={(v) => `${Number(v).toFixed(1)}%`} contentStyle={{ background: "#111827", border: "1px solid #1e2d45", fontSize: 11 }} />
                     <Bar dataKey="rate" radius={[3, 3, 0, 0]}>
                       {konversiData.map((entry, i) => (
                         <Cell key={i} fill={entry.rate >= 5 ? "#22c55e" : entry.rate >= 2 ? "#E84500" : "#ef4444"} />
