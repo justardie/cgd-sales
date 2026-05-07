@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { CheckSquare, Plus, X, AlertCircle, Clock, CheckCircle2, Circle } from "lucide-react"
+import { Plus, X, AlertCircle, Clock, CheckCircle2, Circle, Trash2 } from "lucide-react"
 import type { Activity, User } from "@/types"
 
 const PRIORITIES = [
@@ -54,11 +54,10 @@ export default function ActivitiesPage() {
     setLoading(true)
     const [actRes, usersRes] = await Promise.all([
       supabase.from("activities").select("*").order("deadline", { ascending: true }),
-      isAdmin ? supabase.from("users").select("id,name").eq("status", "active") : Promise.resolve({ data: [] }),
+      supabase.from("users").select("id,name").eq("status", "active"),
     ])
-    const all = actRes.data || []
-    setActivities(isAdmin ? all : all.filter(a => a.assigned_to === user!.id || a.created_by === user!.id))
-    if (isAdmin) setUsers(usersRes.data as User[] || [])
+    setActivities(actRes.data || [])
+    setUsers(usersRes.data as User[] || [])
     setLoading(false)
   }
 
@@ -85,6 +84,12 @@ export default function ActivitiesPage() {
     fetchData()
   }
 
+  async function deleteActivity(id: string) {
+    if (!confirm("Hapus task ini?")) return
+    await supabase.from("activities").delete().eq("id", id)
+    fetchData()
+  }
+
   const filtered = activities.filter(a => filterStatus === "all" || a.status === filterStatus)
   const counts = { all: activities.length, pending: 0, in_progress: 0, completed: 0, overdue: 0 }
   activities.forEach(a => { if (counts[a.status as keyof typeof counts] !== undefined) counts[a.status as keyof typeof counts]++ })
@@ -99,10 +104,13 @@ export default function ActivitiesPage() {
             <h1 className="text-xl font-bold text-white">Activities</h1>
             <p className="text-sm text-slate-500 mt-0.5">Tugas & target aktivitas</p>
           </div>
-          <button onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
-            <Plus size={14} /> Tambah Task
-          </button>
+          {isAdmin && (
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white transition"
+              style={{ background: "#E84500" }}>
+              <Plus size={14} /> Tambah Task
+            </button>
+          )}
         </div>
 
         {/* Status tabs */}
@@ -152,16 +160,24 @@ export default function ActivitiesPage() {
                     {a.description && <p className="text-xs text-slate-500 mt-0.5">{a.description}</p>}
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-600">
                       {a.deadline && <span>⏰ {a.deadline}</span>}
+                      {(() => { const assignee = users.find(u => u.id === a.assigned_to); return assignee ? <span>👤 {assignee.name}</span> : null })()}
                       <span>Dibuat: {new Date(a.created_at).toLocaleDateString("id-ID")}</span>
                     </div>
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 flex items-center gap-2">
                     <select value={a.status}
                       onChange={e => updateStatus(a.id, e.target.value)}
                       className="text-xs px-2 py-1 rounded-lg text-slate-300 outline-none"
                       style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                       {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
+                    {isAdmin && (
+                      <button onClick={() => deleteActivity(a.id)}
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
+                        title="Hapus task">
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               )

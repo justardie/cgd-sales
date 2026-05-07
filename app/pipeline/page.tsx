@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
+import { getSpOptions, HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Search } from "lucide-react"
 
 // Legacy pipeline table columns:
@@ -40,20 +41,12 @@ const PROJECTS = [
   "SCC",
 ]
 
-// Maps Sales Hunter name → their Sales Persons
-const HUNTER_SP_MAP: Record<string, string[]> = {
-  "Lyndon Sumarli": ["Aida (Rosmaida)", "Aldo (Rinaldo)", "Frans"],
-  "Roy Ferdinand H.": ["Aida (Rosmaida)", "Aldo (Rinaldo)", "Frans"],
-  "Jimmy Darmadi": [],
-  "Firyal Badriyyah": [],
-}
-
 const STATUSES = [
-  { value: "cold",       label: "Cold",     color: "bg-slate-500/20 text-slate-400" },
-  { value: "warm",       label: "Warm",     color: "bg-yellow-500/20 text-yellow-400" },
-  { value: "hot",        label: "Hot",      color: "bg-orange-500/20 text-orange-400" },
-  { value: "closing",    label: "Closing!", color: "bg-green-500/20 text-green-400" },
-  { value: "closed_lost", label: "Batal",  color: "bg-red-500/20 text-red-400" },
+  { value: "cold",        label: "Cold",     color: "bg-slate-500/20 text-slate-400" },
+  { value: "warm",        label: "Warm",     color: "bg-yellow-500/20 text-yellow-400" },
+  { value: "hot",         label: "Hot",      color: "bg-orange-500/20 text-orange-400" },
+  { value: "closing",     label: "Closing!", color: "bg-green-500/20 text-green-400" },
+  { value: "closed_lost", label: "Batal",    color: "bg-red-500/20 text-red-400" },
 ]
 
 const statusBadge = (s: string) =>
@@ -75,27 +68,48 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   )
 }
 
+const emptyForm = {
+  slhunter: "",
+  name: "",
+  salesname: "",
+  sales: "",
+  unit: "",
+  value: "",
+  source: "",
+  payment: "",
+  visitdate: "",
+  status: "cold",
+  note: "",
+}
+
+interface ClosingForm {
+  pipeline_id: string
+  hunter_user_id: string
+  konsumen_name: string
+  project: string
+  unit: string
+  closing_value: string
+  visit_date: string
+  closing_date: string
+  salesname: string
+}
+
 export default function PipelinePage() {
   const { user, isAdmin } = useAuth()
   const [pipelines, setPipelines] = useState<PipelineRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showClosingModal, setShowClosingModal] = useState(false)
   const [editing, setEditing] = useState<PipelineRow | null>(null)
   const [search, setSearch] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [saving, setSaving] = useState(false)
-
-  const [form, setForm] = useState({
-    name: "",         // konsumen
-    salesname: "",    // sales person
-    sales: "",        // project
-    unit: "",
-    value: "",
-    source: "",
-    payment: "",
-    visitdate: "",
-    status: "cold",
-    note: "",
+  const [savingClosing, setSavingClosing] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+  const [closingForm, setClosingForm] = useState<ClosingForm>({
+    pipeline_id: "", hunter_user_id: "", konsumen_name: "",
+    project: "", unit: "", closing_value: "", visit_date: "",
+    closing_date: new Date().toISOString().slice(0, 10), salesname: "",
   })
 
   useEffect(() => { if (user) fetchData() }, [user])
@@ -117,13 +131,14 @@ export default function PipelinePage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", salesname: "", sales: "", unit: "", value: "", source: "", payment: "", visitdate: "", status: "cold", note: "" })
+    setForm({ ...emptyForm })
     setShowModal(true)
   }
 
   function openEdit(p: PipelineRow) {
     setEditing(p)
     setForm({
+      slhunter: p.slhunter || "",
       name: p.name || "",
       salesname: p.salesname || "",
       sales: p.sales || "",
@@ -138,12 +153,55 @@ export default function PipelinePage() {
     setShowModal(true)
   }
 
+  async function handleClosingConfirm(e: React.FormEvent) {
+    e.preventDefault()
+    if (!closingForm.closing_value || Number(closingForm.closing_value) <= 0) return
+    setSavingClosing(true)
+    const d = new Date(closingForm.closing_date)
+    await supabase.from("closings").insert({
+      user_id: closingForm.hunter_user_id || user!.id,
+      pipeline_id: closingForm.pipeline_id,
+      konsumen_name: closingForm.konsumen_name,
+      project: closingForm.project || null,
+      unit: closingForm.unit || null,
+      closing_value: Number(closingForm.closing_value),
+      visit_date: closingForm.visit_date || null,
+      closing_date: closingForm.closing_date,
+      month: d.getMonth() + 1,
+      year: d.getFullYear(),
+      salesname: closingForm.salesname || null,
+    })
+    await supabase.from("pipeline").update({ status: "closed_won" }).eq("id", closingForm.pipeline_id)
+    setSavingClosing(false)
+    setShowClosingModal(false)
+    fetchData()
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+
+    // Intercept: closing status triggers migration modal
+    if (form.status === "closing" && editing) {
+      setClosingForm({
+        pipeline_id: editing.id,
+        hunter_user_id: editing.user_id || "",
+        konsumen_name: editing.name || "",
+        project: editing.sales || "",
+        unit: editing.unit || "",
+        closing_value: editing.value?.toString() || "",
+        visit_date: editing.visitdate || "",
+        closing_date: new Date().toISOString().slice(0, 10),
+        salesname: form.salesname || "",
+      })
+      setShowModal(false)
+      setShowClosingModal(true)
+      return
+    }
+
     setSaving(true)
     const payload = {
       name: form.name,
-      slhunter: user!.name,
+      slhunter: isAdmin ? form.slhunter : user!.name,
       salesname: form.salesname || null,
       sales: form.sales || null,
       unit: form.unit || null,
@@ -183,9 +241,10 @@ export default function PipelinePage() {
     totalValue: activePipes.reduce((s, p) => s + (Number(p.value) || 0), 0),
   }
 
-  // Sales persons available for the current user
-  const currentHunterName = user?.name || ""
-  const spOptions = HUNTER_SP_MAP[currentHunterName] || []
+  // SP options: for admin, cascade from selected hunter in form; for hunter, use their own SPs
+  const spOptions = isAdmin
+    ? getSpOptions(form.slhunter)
+    : getSpOptions(user?.name || "")
 
   return (
     <DashboardShell>
@@ -299,6 +358,86 @@ export default function PipelinePage() {
         </div>
       </div>
 
+      {showClosingModal && (
+        <Modal onClose={() => setShowClosingModal(false)}>
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-semibold">Closing!</span>
+              <h3 className="text-sm font-semibold text-white">Konfirmasi Data Closing</h3>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">Pipeline ini akan dipindahkan ke halaman Closing dan ditandai selesai.</p>
+            <form onSubmit={handleClosingConfirm} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Nama Konsumen</label>
+                <input type="text" value={closingForm.konsumen_name} required
+                  onChange={e => setClosingForm(f => ({ ...f, konsumen_name: e.target.value }))}
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Proyek</label>
+                  <input type="text" value={closingForm.project}
+                    onChange={e => setClosingForm(f => ({ ...f, project: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Cluster / Unit</label>
+                  <input type="text" value={closingForm.unit}
+                    onChange={e => setClosingForm(f => ({ ...f, unit: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
+                <input type="number" value={closingForm.closing_value} required
+                  onChange={e => setClosingForm(f => ({ ...f, closing_value: e.target.value }))}
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
+                <input type="text" value={closingForm.salesname}
+                  onChange={e => setClosingForm(f => ({ ...f, salesname: e.target.value }))}
+                  placeholder="Nama SP (opsional)"
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
+                  <input type="date" value={closingForm.visit_date}
+                    onChange={e => setClosingForm(f => ({ ...f, visit_date: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
+                  <input type="date" value={closingForm.closing_date} required
+                    onChange={e => setClosingForm(f => ({ ...f, closing_date: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowClosingModal(false)}
+                  className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  Batal
+                </button>
+                <button type="submit" disabled={savingClosing}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition"
+                  style={{ background: "#E84500" }}>
+                  {savingClosing ? "Menyimpan..." : "Konfirmasi Closing"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
           <div className="p-5">
@@ -307,29 +446,44 @@ export default function PipelinePage() {
             </h3>
             <form onSubmit={handleSave} className="space-y-3">
 
-              {/* Hunter Name — read-only */}
+              {/* Hunter — dropdown for admin, read-only for hunter */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Hunter</label>
-                <div className="w-full text-sm px-3 py-2 rounded-lg text-slate-400"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  {user?.name || "—"}
-                </div>
+                {isAdmin ? (
+                  <select
+                    value={form.slhunter}
+                    onChange={e => setForm(f => ({ ...f, slhunter: e.target.value, salesname: "" }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="">— Pilih Hunter —</option>
+                    {HUNTER_GROUPS.map(g => (
+                      <option key={g.dbName} value={g.dbName}>{g.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full text-sm px-3 py-2 rounded-lg text-slate-400"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    {user?.name || "—"}
+                  </div>
+                )}
               </div>
 
               {/* Sales Person dropdown */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
                 {spOptions.length > 0 ? (
-                  <select value={form.salesname}
+                  <select
+                    value={form.salesname}
                     onChange={e => setForm(f => ({ ...f, salesname: e.target.value }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                     <option value="">— Tidak ada / Langsung Hunter —</option>
                     {spOptions.map(sp => <option key={sp} value={sp}>{sp}</option>)}
-                    <option value="other">Lainnya</option>
                   </select>
                 ) : (
-                  <input type="text" value={form.salesname}
+                  <input
+                    type="text"
+                    value={form.salesname}
                     onChange={e => setForm(f => ({ ...f, salesname: e.target.value }))}
                     placeholder="Nama sales person (opsional)"
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -339,7 +493,9 @@ export default function PipelinePage() {
 
               {/* Consumer Name */}
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Nama Konsumen <span className="text-red-400">*</span></label>
+                <label className="text-xs text-slate-500 block mb-1">
+                  Nama Konsumen <span className="text-red-400">*</span>
+                </label>
                 <input type="text" value={form.name} required
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"

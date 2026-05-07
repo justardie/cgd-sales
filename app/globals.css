@@ -5,6 +5,7 @@
   --surface: #111827;
   --surface2: #1c2333;
   --border: #1e2d45;
+  --accent: #E84500;
 }
 
 body {
@@ -19,3 +20,26 @@ body {
 
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* ─── Light Mode ─── */
+html.light {
+  --bg: #F2EDE3;
+  --surface: #FFFFFF;
+  --surface2: #F5F0E8;
+  --border: #E5DDD0;
+}
+
+html.light body { background: var(--bg); color: #1e293b; }
+html.light .text-white    { color: #111827 !important; }
+html.light .text-slate-300 { color: #1f2937 !important; }
+html.light .text-slate-400 { color: #374151 !important; }
+html.light .text-slate-500 { color: #6B7280 !important; }
+html.light .text-slate-600 { color: #9CA3AF !important; }
+html.light input, html.light select, html.light textarea { color: #1e293b; }
+html.light ::-webkit-scrollbar-thumb { background: #E5DDD0; }
+
+/* ─── Print (Report HOD → PDF) ─── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: #111 !important; }
+}
