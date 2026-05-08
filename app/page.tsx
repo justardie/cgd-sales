@@ -202,11 +202,26 @@ export default function OverviewPage() {
     <DashboardShell>
       <div className="space-y-6">
 
-        {/* Header + Month Selector */}
+        {/* Greeting */}
+        <div className="greeting-block">
+          <h1 className="greeting-title">
+            {(() => {
+              const h = new Date().getHours()
+              const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"
+              return `${g}, ${user?.name?.split(" ")[0] ?? ""}!`
+            })()}
+          </h1>
+          <p className="greeting-sub">Pantau performa tim MASCOL Division dan raih target bulan ini.</p>
+          <div className="greeting-live">
+            <span className="live-dot" />
+            Live data · auto-refresh setiap kunjungan
+          </div>
+        </div>
+
+        {/* Month Selector */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold text-white">Overview</h1>
-            <p className="text-sm text-slate-500 mt-0.5">MASCOL Division · Sales Performance</p>
+            <p className="text-sm text-slate-500 mt-0.5" style={{ fontWeight: 500 }}>MASCOL Division · Sales Performance</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={prevMonth}

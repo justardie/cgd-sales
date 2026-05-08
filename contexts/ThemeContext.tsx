@@ -4,21 +4,24 @@ import { createContext, useContext, useEffect, useState } from "react"
 type Theme = "dark" | "light"
 
 const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({
-  theme: "dark",
+  theme: "light",
   toggle: () => {},
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark")
+  const [theme, setTheme] = useState<Theme>("light")
 
   useEffect(() => {
-    const saved = (localStorage.getItem("cgd-theme") as Theme) ?? "dark"
+    const saved = (localStorage.getItem("cgd-theme") as Theme) ?? "light"
     apply(saved)
   }, [])
 
   function apply(t: Theme) {
     setTheme(t)
-    document.documentElement.classList.toggle("light", t === "light")
+    // Default = light (no class). Dark adds html.dark
+    document.documentElement.classList.toggle("dark", t === "dark")
+    // Remove legacy class from old sessions
+    document.documentElement.classList.remove("light")
     localStorage.setItem("cgd-theme", t)
   }
 
