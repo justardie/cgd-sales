@@ -106,7 +106,7 @@ export default function OverviewPage() {
         supabase.from("closings").select("user_id,closing_value").eq("year", year).lte("month", month),
         supabase.from("closings").select("user_id,closing_value").eq("month", lastMonth).eq("year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
-        supabase.from("potensi_closing").select("user_id,value,status")
+        supabase.from("pipeline").select("user_id,value,status")
           .not("status", "eq", "closed_lost")
           .not("status", "eq", "closed_won"),
       ])

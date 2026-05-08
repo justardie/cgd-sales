@@ -234,7 +234,7 @@ export default function ClosingPage() {
         .select("id,user_id,konsumen_name,project,unit,closing_value,closing_date,visit_date,month,year,notes,salesname,pipeline_id")
         .eq("month", month).eq("year", year)
         .order("closing_date", { ascending: false }),
-      supabase.from("potensi_closing")
+      supabase.from("pipeline")
         .select("id,name,sales,unit,value,slhunter,status,user_id")
         .not("status", "eq", "closed_won")
         .not("status", "eq", "closed_lost"),
@@ -304,7 +304,7 @@ export default function ClosingPage() {
       salesname: form.salesname || null,
     })
     if (form.pipeline_id) {
-      await supabase.from("potensi_closing").update({ status: "closed_won" }).eq("id", form.pipeline_id)
+      await supabase.from("pipeline").update({ status: "closed_won" }).eq("id", form.pipeline_id)
     }
     setSaving(false)
     setShowModal(false)
