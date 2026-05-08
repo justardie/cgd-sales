@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName } from "@/lib/utils"
 import {
   TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
-  Users, Activity,
+  Users, Activity, ChevronDown, ChevronUp,
 } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -37,20 +37,94 @@ const PROJECT_LABELS: { key: string; match: RegExp }[] = [
   { key: "SCC-VS",   match: /SCC.?VS/i },
 ]
 
-function StatCard({ label, value, sub, icon: Icon, accent = false }: {
-  label: string; value: string; sub?: string; icon: React.ElementType; accent?: boolean
-}) {
+/* ─── Arc Gauge SVG ─────────────────────────────── */
+function ArcGauge({ pct: p, color }: { pct: number; color: string }) {
+  const r = 40, cx = 50, cy = 50
+  const clamped = Math.min(1, Math.max(0, p))
+  const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`
+  const angle = Math.PI - clamped * Math.PI
+  const ex = cx + r * Math.cos(angle)
+  const ey = cy - r * Math.sin(angle)
+  const valuePath = clamped > 0.01
+    ? `M ${cx - r} ${cy} A ${r} ${r} 0 ${clamped > 0.5 ? 1 : 0} 0 ${ex.toFixed(2)} ${ey.toFixed(2)}`
+    : ""
   return (
-    <div className="rounded-xl p-5 flex gap-4 items-start"
-      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ background: accent ? "rgba(232,69,0,0.15)" : "rgba(59,130,246,0.15)" }}>
-        <Icon size={18} style={{ color: accent ? "#E84500" : "#60a5fa" }} />
+    <svg width="100" height="54" viewBox="0 0 100 54" style={{ overflow: "visible" }}>
+      <defs>
+        <linearGradient id={`arc-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={color} />
+        </linearGradient>
+      </defs>
+      <path d={track} fill="none" stroke="rgba(0,0,0,0.09)" strokeWidth="7" strokeLinecap="round" />
+      {valuePath && (
+        <path d={valuePath} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+          style={{ filter: `drop-shadow(0 0 4px ${color}80)` }} />
+      )}
+    </svg>
+  )
+}
+
+/* ─── Gauge Card ────────────────────────────────── */
+function GaugeCard({ label, value, sub, achievement, icon: Icon, accentColor }: {
+  label: string; value: string; sub?: string; achievement: number
+  icon: React.ElementType; accentColor?: string
+}) {
+  const p = Math.min(1, Math.max(0, achievement))
+  const pctNum = Math.round(p * 100)
+  const col = accentColor ?? (p >= 1 ? "#22c55e" : p >= 0.7 ? "#FF6A3D" : "#ef4444")
+  return (
+    <div className="rounded-2xl p-5 flex flex-col" style={{
+      background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-md)",
+    }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+          {label}
+        </span>
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+          style={{ background: `${col}18`, border: `1px solid ${col}25` }}>
+          <Icon size={14} style={{ color: col }} />
+        </div>
+      </div>
+      <div className="flex flex-col items-center mt-2">
+        <ArcGauge pct={p} color={col} />
+        <div className="font-black text-2xl -mt-1" style={{ color: col, letterSpacing: "-1px" }}>
+          {pctNum}%
+        </div>
+      </div>
+      <div className="mt-3">
+        <div className="font-bold text-base" style={{ color: "var(--text-primary)", letterSpacing: "-0.3px" }}>
+          {value}
+        </div>
+        {sub && <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
+/* ─── Flat Stat Card ────────────────────────────── */
+function StatCard({ label, value, sub, icon: Icon, color }: {
+  label: string; value: string; sub?: string; icon: React.ElementType; color?: string
+}) {
+  const col = color ?? "var(--accent)"
+  return (
+    <div className="rounded-2xl p-5 flex gap-4 items-start" style={{
+      background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
+      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-md)",
+    }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: `${col}18`, border: `1px solid ${col}20` }}>
+        <Icon size={18} style={{ color: col }} />
       </div>
       <div>
-        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">{label}</div>
-        <div className="text-xl font-bold text-white mt-0.5">{value}</div>
-        {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
+        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+          {label}
+        </div>
+        <div className="text-xl font-bold mt-0.5" style={{ color: "var(--text-primary)" }}>{value}</div>
+        {sub && <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{sub}</div>}
       </div>
     </div>
   )
@@ -61,10 +135,14 @@ const ChartTooltip = ({ active, payload, label }: {
 }) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg p-3 text-xs" style={{ background: "#111827", border: "1px solid #1e2d45" }}>
-      <div className="font-semibold text-white mb-1">{label}</div>
+    <div className="rounded-xl p-3 text-xs" style={{
+      background: "var(--surface)",
+      border: "1px solid var(--border-medium)",
+      boxShadow: "var(--shadow-lg)",
+    }}>
+      <div className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>{label}</div>
       {payload.map(p => (
-        <div key={p.name} className="text-slate-300 flex items-center gap-1.5">
+        <div key={p.name} className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
           <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: p.fill || "#888" }} />
           {p.name}: {p.name === "Visit" || p.name === "Target Visit"
             ? p.value
@@ -76,21 +154,25 @@ const ChartTooltip = ({ active, payload, label }: {
 }
 
 const now = new Date()
+const ALL_SP_NAMES = new Set(
+  HUNTER_GROUPS.flatMap(g => g.spNames).map(n => n.toLowerCase().trim())
+)
+const TOTAL_SPS = HUNTER_GROUPS.reduce((s, g) => s + g.spNames.length, 0)
 
 export default function OverviewPage() {
   const { user } = useAuth()
   const [hunters, setHunters] = useState<HunterStat[]>([])
   const [totals, setTotals] = useState({
     omsetMtd: 0, omsetYtd: 0, omsetLast: 0,
-    visits: 0, pipeline: 0, pipelineVal: 0,
+    visits: 0, visitTarget: 0,
+    pipeline: 0, pipelineVal: 0,
+    spMenjual: 0,
   })
   const [projectTotals, setProjectTotals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
-
-  const prevMonth = () => { if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1) }
-  const nextMonth = () => { if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1) }
+  const [showCharts, setShowCharts] = useState(true)
 
   const lastMonth = month === 1 ? 12 : month - 1
   const lastYear  = month === 1 ? year - 1 : year
@@ -101,28 +183,28 @@ export default function OverviewPage() {
     setLoading(true)
     try {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes] = await Promise.all([
-        supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status").eq("status", "active"),
-        supabase.from("konsumen").select("user_id,nilai_hjr,project").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
+        supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role").eq("status", "active"),
+        supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
         supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
         supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]),
       ])
 
+      const allUsers = usersRes.data || []
       const nameToUser: Record<string, { id: string; monthly_target: number; win_or_die_target: number; visit_target: number }> = {}
-      ;(usersRes.data || []).forEach(u => {
+      allUsers.forEach(u => {
         nameToUser[u.name] = u
         nameToUser[u.name.toLowerCase()] = u
       })
 
-      // All roles see ALL hunters on Overview
       const list: HunterStat[] = HUNTER_GROUPS
         .map(group => {
           const hu = nameToUser[group.dbName]
             ?? nameToUser[group.dbName.toLowerCase()]
             ?? nameToUser[group.name]
             ?? nameToUser[group.name.toLowerCase()]
-            ?? (usersRes.data || []).find(u =>
+            ?? allUsers.find(u =>
                 u.name.toLowerCase().includes(group.dbName.toLowerCase()) ||
                 group.dbName.toLowerCase().includes(u.name.toLowerCase())
               )
@@ -159,6 +241,17 @@ export default function OverviewPage() {
         }
       }
 
+      // SP menjual: distinct sales_person values who closed this month
+      const spMenjual = new Set(
+        (closingsMtd.data || [])
+          .map(c => (c.sales_person || "").toLowerCase().trim())
+          .filter(n => n && ALL_SP_NAMES.has(n))
+      ).size
+
+      // Total visit (all users) and total visit target (all active users)
+      const totalVisits = (visitsRes.data || []).reduce((s, v) => s + (v.count || 0), 0)
+      const totalVisitTarget = allUsers.reduce((s, u) => s + (u.visit_target || 0), 0)
+
       const pipes = pipelineRes.data || []
       setHunters(list)
       setProjectTotals(projMap)
@@ -166,9 +259,11 @@ export default function OverviewPage() {
         omsetMtd:    list.reduce((s, h) => s + h.omset_mtd, 0),
         omsetYtd:    list.reduce((s, h) => s + h.omset_ytd, 0),
         omsetLast:   list.reduce((s, h) => s + h.omset_last, 0),
-        visits:      list.reduce((s, h) => s + h.visits, 0),
+        visits:      totalVisits,
+        visitTarget: totalVisitTarget,
         pipeline:    pipes.length,
         pipelineVal: pipes.reduce((s, p) => s + (p.potensi_closing || 0), 0),
+        spMenjual,
       })
     } finally { setLoading(false) }
   }
@@ -177,7 +272,6 @@ export default function OverviewPage() {
   const mtdGrowth   = totals.omsetLast > 0
     ? Math.round(((totals.omsetMtd - totals.omsetLast) / totals.omsetLast) * 100)
     : null
-  const menjual     = hunters.filter(h => h.omset_mtd > 0).length
   const warnHunters = hunters.filter(h => h.win_or_die_target > 0 && h.omset_mtd < h.win_or_die_target)
 
   const omsetChart = hunters.map(h => ({
@@ -193,11 +287,6 @@ export default function OverviewPage() {
     "Visit":        h.visits,
   }))
 
-  const pieData = [
-    { name: "Menjual", value: menjual,                          fill: "#E84500" },
-    { name: "Belum",   value: Math.max(0, hunters.length - menjual), fill: "#1e293b" },
-  ]
-
   return (
     <DashboardShell>
       <div className="space-y-6">
@@ -211,18 +300,18 @@ export default function OverviewPage() {
               return `${g}, ${user?.name?.split(" ")[0] ?? ""}!`
             })()}
           </h1>
-          <p className="greeting-sub">Pantau performa tim MASCOL Division dan raih target bulan ini.</p>
+          <p className="greeting-sub">Welcome to CGD Sales Command Center.</p>
           <div className="greeting-live">
             <span className="live-dot" />
-            Live data · auto-refresh setiap kunjungan
+            Live data
           </div>
         </div>
 
         {/* Month Selector */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <p className="text-sm text-slate-500 mt-0.5" style={{ fontWeight: 500 }}>MASCOL Division · Sales Performance</p>
-          </div>
+          <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+            MASCOL Division · Sales Performance
+          </p>
           <div className="flex items-center gap-2">
             <select
               value={month}
@@ -235,6 +324,7 @@ export default function OverviewPage() {
                 padding: "6px 14px",
                 color: "var(--text-primary)",
                 cursor: "pointer",
+                boxShadow: "var(--shadow-xs)",
               }}
             >
               {["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"].map((m, i) => (
@@ -252,6 +342,7 @@ export default function OverviewPage() {
                 padding: "6px 14px",
                 color: "var(--text-primary)",
                 cursor: "pointer",
+                boxShadow: "var(--shadow-xs)",
               }}
             >
               {[2024, 2025, 2026, 2027].map(y => (
@@ -263,117 +354,130 @@ export default function OverviewPage() {
 
         {/* Hero KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <GaugeCard
+            label="Omset MTD"
+            icon={DollarSign}
+            value={formatRupiah(totals.omsetMtd)}
+            sub={`Target ${formatRupiah(totalTarget)}`}
+            achievement={totalTarget > 0 ? totals.omsetMtd / totalTarget : 0}
+          />
+          <GaugeCard
+            label="Total Visit"
+            icon={MapPin}
+            value={`${totals.visits} visit`}
+            sub={`Target ${totals.visitTarget} · ${getMonthName(month)}`}
+            achievement={totals.visitTarget > 0 ? totals.visits / totals.visitTarget : 0}
+            accentColor="#3b82f6"
+          />
+          <GaugeCard
+            label="Sales Person Aktif"
+            icon={Users}
+            value={`${totals.spMenjual} / ${TOTAL_SPS}`}
+            sub="menjual bulan ini"
+            achievement={TOTAL_SPS > 0 ? totals.spMenjual / TOTAL_SPS : 0}
+            accentColor="#10b981"
+          />
           <StatCard
-            label="Total Omset YTD"
-            icon={DollarSign} accent
+            label="Omset YTD"
+            icon={TrendingUp}
             value={formatRupiah(totals.omsetYtd)}
             sub={`Jan–${getMonthName(month)} ${year}`}
+            color="#FF6A3D"
           />
           <StatCard
-            label={`Omset MTD — ${getMonthName(month)}`}
-            icon={TrendingUp}
-            value={formatRupiah(totals.omsetMtd)}
-            sub={mtdGrowth !== null
-              ? `${mtdGrowth >= 0 ? "+" : ""}${mtdGrowth}% vs ${getMonthName(lastMonth)}`
-              : `${pct(totals.omsetMtd, totalTarget)}% dari target`}
+            label="Pipeline Aktif"
+            icon={Activity}
+            value={totals.pipeline.toString()}
+            sub={formatRupiah(totals.pipelineVal)}
+            color="#8b5cf6"
           />
-          <div className="rounded-xl p-5 flex gap-4 items-start"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-500/15">
-              <TrendingUp size={18} className="text-purple-400" />
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Pipeline Aktif</div>
-              <div className="text-xl font-bold text-white mt-0.5">{totals.pipeline}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{formatRupiah(totals.pipelineVal)}</div>
-            </div>
-          </div>
-          <StatCard label="Total Visit" icon={MapPin} value={totals.visits.toString()} sub={getMonthName(month)} />
-          <div className="rounded-xl p-5 flex gap-4 items-start"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-green-500/15">
-              <Users size={18} className="text-green-400" />
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Sales Menjual</div>
-              <div className="text-xl font-bold text-white mt-0.5">{menjual} / {hunters.length}</div>
-              <div className="text-xs text-slate-500 mt-0.5">hunter aktif bulan ini</div>
-            </div>
-          </div>
-          {/* Mini Pie */}
-          <div className="rounded-xl p-4 flex items-center gap-4"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <PieChart width={64} height={64}>
-              <Pie data={pieData} cx={28} cy={28} innerRadius={18} outerRadius={30} dataKey="value" strokeWidth={0}>
-                {pieData.map((e, i) => <Cell key={i} fill={e.fill} />)}
-              </Pie>
-            </PieChart>
-            <div>
-              <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Rasio Penjualan</div>
-              <div className="text-xl font-bold text-white mt-0.5">
-                {hunters.length > 0 ? Math.round((menjual / hunters.length) * 100) : 0}%
-              </div>
-              <div className="flex gap-2 mt-1 flex-wrap">
-                <span className="text-xs flex items-center gap-1 text-slate-300">
-                  <span className="w-2 h-2 rounded-full inline-block" style={{ background: "#E84500" }} />{menjual} menjual
-                </span>
-                <span className="text-xs flex items-center gap-1 text-slate-500">
-                  <span className="w-2 h-2 rounded-full inline-block bg-slate-700" />{hunters.length - menjual} belum
-                </span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            label={`vs ${getMonthName(lastMonth)}`}
+            icon={TrendingUp}
+            value={mtdGrowth !== null
+              ? `${mtdGrowth >= 0 ? "+" : ""}${mtdGrowth}%`
+              : "—"}
+            sub={mtdGrowth !== null
+              ? `${mtdGrowth >= 0 ? "Naik" : "Turun"} dari bulan lalu`
+              : "Belum ada data bulan lalu"}
+            color={mtdGrowth !== null && mtdGrowth >= 0 ? "#22c55e" : "#ef4444"}
+          />
         </div>
 
         {/* Win-or-Die Alert */}
         {warnHunters.length > 0 && (
-          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(239,68,68,0.22)" }}>
-            {/* Header strip */}
-            <div className="flex items-center gap-3 px-5 py-3"
-              style={{ background: "rgba(239,68,68,0.10)", borderBottom: "1px solid rgba(239,68,68,0.14)" }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(239,68,68,0.18)" }}>
-                <AlertTriangle size={14} style={{ color: "var(--red)" }} />
+          <div className="rounded-2xl overflow-hidden relative" style={{
+            background: "linear-gradient(135deg, #0c0101 0%, #1c0404 50%, #120202 100%)",
+            border: "1px solid rgba(239,68,68,0.30)",
+            boxShadow: "0 0 48px rgba(239,68,68,0.08), 0 8px 32px rgba(0,0,0,0.50)",
+          }}>
+            {/* ambient glow */}
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0, height: "60%",
+              background: "radial-gradient(ellipse at 50% -30%, rgba(239,68,68,0.18) 0%, transparent 70%)",
+              pointerEvents: "none",
+            }} />
+            <div className="relative flex items-center justify-between px-6 pt-5 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.28)" }}>
+                  <AlertTriangle size={15} style={{ color: "#f87171" }} />
+                </div>
+                <div>
+                  <div className="text-sm font-black tracking-wide" style={{ color: "#f87171", letterSpacing: "0.05em" }}>
+                    WIN-OR-DIE ALERT
+                  </div>
+                  <div className="text-xs" style={{ color: "rgba(255,255,255,0.30)" }}>
+                    {getMonthName(month)} {year} · {warnHunters.length} hunter belum capai WoD
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-sm font-bold" style={{ color: "var(--red)" }}>
-                  Win-or-Die Alert
-                </span>
-                <span className="text-xs ml-2 font-medium" style={{ color: "var(--text-muted)" }}>
-                  {getMonthName(month)} {year} · {warnHunters.length} hunter di bawah target WoD
-                </span>
+              <div className="text-3xl font-black" style={{ color: "rgba(239,68,68,0.40)", letterSpacing: "-2px" }}>
+                {warnHunters.length}
               </div>
             </div>
-            {/* Hunter rows */}
-            <div className="px-5 py-4 grid gap-3" style={{ background: "var(--surface)" }}>
+            <div className="relative px-6 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
               {warnHunters.map(h => {
                 const progress = h.win_or_die_target > 0
                   ? Math.min(100, Math.round((h.omset_mtd / h.win_or_die_target) * 100))
                   : 0
+                const urgent = progress < 50
+                const glowColor = urgent ? "rgba(239,68,68,0.55)" : "rgba(245,158,11,0.50)"
+                const barColor = urgent
+                  ? "linear-gradient(90deg, #dc2626, #ef4444)"
+                  : "linear-gradient(90deg, #d97706, #f59e0b)"
                 return (
-                  <div key={h.id}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <div key={h.id} className="rounded-xl p-3.5" style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: `1px solid ${urgent ? "rgba(239,68,68,0.22)" : "rgba(245,158,11,0.20)"}`,
+                    backdropFilter: "blur(8px)",
+                  }}>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-sm font-bold" style={{ color: "#f1f0ee" }}>
                         {h.name.split(" ")[0]}
                       </span>
-                      <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-                        <span>{formatRupiah(h.omset_mtd)}</span>
-                        <span style={{ color: "var(--text-muted)" }}>/ WoD {formatRupiah(h.win_or_die_target)}</span>
-                        <span className="font-bold" style={{ color: progress < 50 ? "var(--red)" : "var(--amber)" }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          {formatRupiah(h.omset_mtd)}
+                        </span>
+                        <span className="text-sm font-black" style={{
+                          color: urgent ? "#f87171" : "#fbbf24",
+                          textShadow: `0 0 12px ${glowColor}`,
+                        }}>
                           {progress}%
                         </span>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(239,68,68,0.12)" }}>
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${progress}%`,
-                          background: progress < 50
-                            ? "var(--red)"
-                            : "linear-gradient(90deg, var(--amber), var(--red))",
-                        }}
-                      />
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <div className="h-full rounded-full" style={{
+                        width: `${progress}%`,
+                        background: barColor,
+                        boxShadow: `0 0 8px ${glowColor}`,
+                        transition: "width 0.6s ease",
+                      }} />
+                    </div>
+                    <div className="text-xs mt-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
+                      WoD target: {formatRupiah(h.win_or_die_target)}
                     </div>
                   </div>
                 )
@@ -382,136 +486,171 @@ export default function OverviewPage() {
           </div>
         )}
 
-        {/* Omset Chart */}
-        {omsetChart.length > 0 && (
-          <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-              <Activity size={14} style={{ color: "#E84500" }} />
-              Capaian Omset per Hunter — {getMonthName(month)} {year} (juta Rp)
-            </h2>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={omsetChart} barCategoryGap="25%" barGap={3}>
-                <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                  formatter={v => <span style={{ color: "#94a3b8" }}>{v}</span>} />
-                <Bar dataKey="Target"    fill="#1e3a5f" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Win/Die"   fill="#7c2d12" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Realisasi" radius={[3, 3, 0, 0]}>
-                  {omsetChart.map((e, i) => (
-                    <Cell key={i} fill={
-                      e["Realisasi"] >= e["Target"]  ? "#22c55e" :
-                      e["Realisasi"] >= e["Win/Die"] ? "#E84500" : "#ef4444"
-                    } />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        {/* Charts Section — collapsible */}
+        <div className="rounded-2xl overflow-hidden" style={{
+          background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
+          border: "1px solid var(--border)",
+          boxShadow: "var(--shadow-md)",
+        }}>
+          <button
+            className="w-full flex items-center justify-between px-5 py-4"
+            onClick={() => setShowCharts(v => !v)}
+          >
+            <div className="flex items-center gap-2">
+              <Activity size={14} style={{ color: "var(--accent)" }} />
+              <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                Grafik Performa — {getMonthName(month)} {year}
+              </span>
+            </div>
+            {showCharts
+              ? <ChevronUp size={16} style={{ color: "var(--text-muted)" }} />
+              : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
+          </button>
 
-        {/* Visit Chart */}
-        {visitChart.length > 0 && (
-          <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-              <MapPin size={14} className="text-green-400" />
-              Capaian Visit per Hunter — {getMonthName(month)} {year}
-            </h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={visitChart} barCategoryGap="30%" barGap={4}>
-                <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                  formatter={v => <span style={{ color: "#94a3b8" }}>{v}</span>} />
-                <Bar dataKey="Target Visit" fill="#1e3a5f" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Visit" radius={[3, 3, 0, 0]}>
-                  {visitChart.map((e, i) => (
-                    <Cell key={i} fill={e["Visit"] >= e["Target Visit"] ? "#22c55e" : "#E84500"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+          {showCharts && (
+            <div className="px-5 pb-5 space-y-6" style={{ borderTop: "1px solid var(--border)" }}>
+              {omsetChart.length > 0 && (
+                <div className="pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
+                    Capaian Omset per Hunter (juta Rp)
+                  </p>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={omsetChart} barCategoryGap="25%" barGap={3}>
+                      <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                        formatter={v => <span style={{ color: "var(--text-secondary)" }}>{v}</span>} />
+                      <Bar dataKey="Target"    fill="rgba(59,130,246,0.30)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Win/Die"   fill="rgba(239,68,68,0.30)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Realisasi" radius={[4, 4, 0, 0]}>
+                        {omsetChart.map((e, i) => (
+                          <Cell key={i} fill={
+                            e["Realisasi"] >= e["Target"]  ? "#22c55e" :
+                            e["Realisasi"] >= e["Win/Die"] ? "#FF6A3D" : "#ef4444"
+                          } />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
 
-        {/* Project Omset (MTD) */}
+              {visitChart.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
+                    Capaian Visit per Hunter
+                  </p>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={visitChart} barCategoryGap="30%" barGap={4}>
+                      <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                        formatter={v => <span style={{ color: "var(--text-secondary)" }}>{v}</span>} />
+                      <Bar dataKey="Target Visit" fill="rgba(59,130,246,0.30)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Visit" radius={[4, 4, 0, 0]}>
+                        {visitChart.map((e, i) => (
+                          <Cell key={i} fill={e["Visit"] >= e["Target Visit"] ? "#22c55e" : "#FF6A3D"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Project Omset */}
         {Object.keys(projectTotals).length > 0 && (
           <div>
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
               Omset per Proyek — {getMonthName(month)} {year}
-            </h2>
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
               {PROJECT_LABELS.map(({ key }) => (
-                <div key={key} className="rounded-xl p-4"
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                  <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">{key}</div>
-                  <div className="text-sm font-bold text-white mt-1">{formatRupiah(projectTotals[key] || 0)}</div>
+                <div key={key} className="rounded-2xl p-4" style={{
+                  background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-sm)",
+                }}>
+                  <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>{key}</div>
+                  <div className="text-sm font-bold mt-1" style={{ color: "var(--text-primary)" }}>
+                    {formatRupiah(projectTotals[key] || 0)}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Individual Ranking */}
-        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="px-5 py-4 flex items-center gap-2" style={{ background: "var(--surface)" }}>
-            <Trophy size={15} className="text-yellow-400" />
-            <h2 className="text-sm font-semibold text-white">Ranking Performa — {getMonthName(month)} {year}</h2>
+        {/* Ranking */}
+        <div className="rounded-2xl overflow-hidden" style={{
+          border: "1px solid var(--border)",
+          boxShadow: "var(--shadow-md)",
+        }}>
+          <div className="px-5 py-4 flex items-center gap-2" style={{
+            background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
+            borderBottom: "1px solid var(--border)",
+          }}>
+            <Trophy size={15} style={{ color: "#f59e0b" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Ranking Performa — {getMonthName(month)} {year}
+            </h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{ background: "var(--surface)" }}>
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium w-8">#</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Target</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Win/Die</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Realisasi</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Omset %</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">WoD %</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest w-8" style={{ color: "var(--text-muted)" }}>#</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Nama</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--text-muted)" }}>Target</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--text-muted)" }}>Win/Die</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Realisasi</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--text-muted)" }}>Omset %</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-widest whitespace-nowrap" style={{ color: "var(--text-muted)" }}>WoD %</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat data...</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Memuat data...</td></tr>
                 ) : hunters.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Belum ada data</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Belum ada data</td></tr>
                 ) : hunters.map(h => {
                   const revPct = pct(h.omset_mtd, h.monthly_target)
                   const wodPct = h.win_or_die_target > 0 ? pct(h.omset_mtd, h.win_or_die_target) : null
                   const wod    = h.win_or_die_target > 0 && h.omset_mtd < h.win_or_die_target
                   return (
-                    <tr key={h.id}
-                      style={{
-                        borderBottom: "1px solid var(--border)",
-                        background: wod ? "rgba(220,38,38,0.04)" : "transparent",
-                      }}
-                      className="hover:bg-white/[0.02]">
-                      <td className="px-4 py-3 text-slate-500 text-xs font-bold">{h.rank}</td>
-                      <td className="px-4 py-3 font-medium text-white text-xs">{h.name}</td>
-                      <td className="px-4 py-3 text-right text-slate-400 text-xs">{formatRupiah(h.monthly_target)}</td>
-                      <td className="px-4 py-3 text-right text-slate-500 text-xs">
+                    <tr key={h.id} style={{
+                      borderBottom: "1px solid var(--border)",
+                      background: wod ? "rgba(220,38,38,0.04)" : "transparent",
+                    }}>
+                      <td className="px-4 py-3 text-xs font-bold" style={{ color: "var(--text-muted)" }}>{h.rank}</td>
+                      <td className="px-4 py-3 font-semibold text-xs" style={{ color: "var(--text-primary)" }}>
+                        {h.name}
+                        {wod && (
+                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
+                            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>WoD</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>{formatRupiah(h.monthly_target)}</td>
+                      <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>
                         {h.win_or_die_target > 0 ? formatRupiah(h.win_or_die_target) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-xs"
-                        style={{ color: h.omset_mtd >= h.monthly_target ? "#22c55e" : "#f1f5f9" }}>
+                      <td className="px-4 py-3 text-right text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
                         {formatRupiah(h.omset_mtd)}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          revPct >= 100 ? "bg-green-500/20 text-green-400" :
-                          revPct >= 70  ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
-                        }`}>{revPct}%</span>
+                      <td className="px-4 py-3 text-right text-xs font-bold" style={{
+                        color: revPct >= 100 ? "#22c55e" : revPct >= 70 ? "#FF6A3D" : "#ef4444"
+                      }}>
+                        {revPct}%
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {wodPct !== null ? (
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            wodPct >= 100 ? "bg-green-500/20 text-green-400" :
-                            wodPct >= 70  ? "bg-orange-500/20 text-orange-400" : "bg-red-500/20 text-red-400"
-                          }`}>{wodPct}%</span>
-                        ) : <span className="text-slate-700 text-xs">—</span>}
+                      <td className="px-4 py-3 text-right text-xs font-bold" style={{
+                        color: wodPct === null ? "var(--text-muted)"
+                          : wodPct >= 100 ? "#22c55e" : wodPct >= 70 ? "#FF6A3D" : "#ef4444"
+                      }}>
+                        {wodPct !== null ? `${wodPct}%` : "—"}
                       </td>
                     </tr>
                   )

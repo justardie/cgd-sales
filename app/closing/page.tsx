@@ -6,7 +6,8 @@ import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import { formatRupiah, getMonthName } from "@/lib/utils"
 import { getSpOptions, HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from "lucide-react"
+import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2, ChevronDown } from "lucide-react"
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { User } from "@/types"
 
 interface KonsumenRow {
@@ -89,6 +90,10 @@ export default function ClosingPage() {
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
 
+  const [chartOpen,    setChartOpen]    = useState(true)
+  const [chartProject, setChartProject] = useState("")
+  const [chartData,    setChartData]    = useState<{ month: string; total: number }[]>([])
+
   const blankForm = {
     sales_hunter: isAdmin ? "" : (user?.name || ""),
     sales_person: "",
@@ -107,6 +112,31 @@ export default function ClosingPage() {
   function nextMonth() { if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1) }
 
   useEffect(() => { if (user) fetchData() }, [user, month, year])
+
+  useEffect(() => {
+    if (!user) return
+    const currentMonth = new Date().getMonth() + 1
+    supabase
+      .from("konsumen")
+      .select("nilai_hjr,project,closing_month,closing_year")
+      .eq("status", "closing")
+      .gte("closing_year", 2026)
+      .lte("closing_month", currentMonth)
+      .then(({ data }) => {
+        const rows = (data || []).filter((r: { closing_year: number }) => r.closing_year === 2026)
+        const MONTH_NAMES = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+        const result: { month: string; total: number }[] = []
+        for (let m = 1; m <= currentMonth; m++) {
+          const monthRows = rows.filter((r: { closing_month: number; project: string | null }) =>
+            r.closing_month === m &&
+            (!chartProject || r.project === chartProject)
+          )
+          const total = monthRows.reduce((s: number, r: { nilai_hjr: number }) => s + (r.nilai_hjr || 0), 0)
+          result.push({ month: MONTH_NAMES[m - 1], total })
+        }
+        setChartData(result)
+      })
+  }, [user, chartProject])
 
   async function fetchData() {
     setLoading(true)
@@ -415,6 +445,86 @@ export default function ClosingPage() {
               <Plus size={14} /> Input Closing
             </button>
           </div>
+        </div>
+
+        {/* Monthly Omset Chart */}
+        <div className="rounded-2xl overflow-hidden"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px" }}>
+          <div className="flex items-center justify-between px-4 py-3"
+            style={{ borderBottom: chartOpen ? "1px solid var(--border)" : "none" }}>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-white">Omset Bulanan 2026</span>
+              <select
+                value={chartProject}
+                onChange={e => setChartProject(e.target.value)}
+                className="text-xs px-2 py-1 rounded-lg text-slate-300 outline-none"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                <option value="">Semua Proyek</option>
+                {Array.from(new Set(closings.map(c => c.project).filter(Boolean))).map(p => (
+                  <option key={p as string} value={p as string}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => setChartOpen(o => !o)}
+              className="text-slate-400 hover:text-white transition"
+              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
+              <span>{chartOpen ? "Sembunyikan" : "Tampilkan"}</span>
+              <ChevronDown size={14} style={{ transform: chartOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+            </button>
+          </div>
+          {chartOpen && (
+            <div className="px-4 pt-4 pb-5">
+              {chartData.length === 0 ? (
+                <div className="flex items-center justify-center h-32 text-xs text-slate-600">Memuat data chart...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(v: number) => `Rp ${(v / 1_000_000).toFixed(1)}jt`}
+                      tick={{ fontSize: 10, fill: "#64748b" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={72}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload || payload.length === 0) return null
+                        const val = payload[0]?.value
+                        return (
+                          <div style={{
+                            background: "var(--surface2)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "10px",
+                            padding: "8px 12px",
+                          }}>
+                            <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "2px" }}>{label}</div>
+                            <div style={{ fontSize: "13px", fontWeight: 700, color: "#FF6A3D" }}>
+                              {typeof val === "number" ? formatRupiah(val) : "—"}
+                            </div>
+                          </div>
+                        )
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#FF6A3D"
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={{ r: 4, fill: "#FF6A3D", stroke: "none" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Hunter Summary Cards */}

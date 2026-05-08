@@ -70,9 +70,9 @@ export default function Header() {
         <Image
           src={theme === "light" ? "/logo-dark.png" : "/logo.png"}
           alt="CGD"
-          width={120}
-          height={44}
-          style={{ objectFit: "contain", height: "36px", width: "auto" }}
+          width={140}
+          height={52}
+          style={{ objectFit: "contain", height: "44px", width: "auto" }}
           priority
         />
       </div>
