@@ -293,7 +293,9 @@ html.dark .sidebar-float {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 40px;
+  /* extend full viewport width — compensate for app-main padding-left: 80px */
+  margin-left: -80px;
+  padding: 18px 40px 18px 96px;
   background: var(--header-bg);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
@@ -601,7 +603,7 @@ html.dark .greeting-title {
 @media (max-width: 900px) {
   .app-main    { padding-left: 0; }
   .app-content { padding: 20px 16px 100px; }
-  .app-header  { padding: 10px 16px; }
+  .app-header  { margin-left: 0; padding: 10px 16px; }
   .header-nav  { display: none; }
   .greeting-title { font-size: 26px; letter-spacing: -1px; }
 

@@ -351,12 +351,26 @@ export default function OverviewPage() {
 
         {/* Hero KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatCard
+            label="Omset YTD"
+            icon={TrendingUp}
+            value={formatRupiah(totals.omsetYtd)}
+            sub={`Jan–${getMonthName(month)} ${year}`}
+            color="#FF6A3D"
+          />
           <GaugeCard
             label="Omset MTD"
             icon={DollarSign}
             value={formatRupiah(totals.omsetMtd)}
             sub={`Target ${formatRupiah(totalTarget)}`}
             achievement={totalTarget > 0 ? totals.omsetMtd / totalTarget : 0}
+          />
+          <StatCard
+            label="Pipeline Aktif"
+            icon={Activity}
+            value={totals.pipeline.toString()}
+            sub={formatRupiah(totals.pipelineVal)}
+            color="#8b5cf6"
           />
           <GaugeCard
             label="Total Visit"
@@ -373,20 +387,6 @@ export default function OverviewPage() {
             sub="menjual bulan ini"
             achievement={TOTAL_SPS > 0 ? totals.spMenjual / TOTAL_SPS : 0}
             accentColor="#10b981"
-          />
-          <StatCard
-            label="Omset YTD"
-            icon={TrendingUp}
-            value={formatRupiah(totals.omsetYtd)}
-            sub={`Jan–${getMonthName(month)} ${year}`}
-            color="#FF6A3D"
-          />
-          <StatCard
-            label="Pipeline Aktif"
-            icon={Activity}
-            value={totals.pipeline.toString()}
-            sub={formatRupiah(totals.pipelineVal)}
-            color="#8b5cf6"
           />
           <StatCard
             label={`vs ${getMonthName(lastMonth)}`}
