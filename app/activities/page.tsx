@@ -62,6 +62,7 @@ export default function ActivitiesPage() {
     deadline: "",
     priority: "medium",
     status: "pending",
+    notes: "",
   })
 
   useEffect(() => { if (user) fetchData() }, [user])
@@ -110,7 +111,8 @@ export default function ActivitiesPage() {
       assigned_to: a.assigned_to || "",
       deadline: a.deadline || "",
       priority: a.priority,
-      status: a.status,
+      status: a.status === "overdue" ? "pending" : a.status,
+      notes: (a as Activity & { notes?: string }).notes || "",
     })
   }
 
@@ -130,16 +132,12 @@ export default function ActivitiesPage() {
         }
       : {
           status: editForm.status,
+          notes: editForm.notes || null,
           updated_at: new Date().toISOString(),
         }
     await supabase.from("tasks").update(payload).eq("id", editingTask.id)
     setSaving(false)
     setEditingTask(null)
-    fetchData()
-  }
-
-  async function updateStatus(id: string, status: string) {
-    await supabase.from("tasks").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
     fetchData()
   }
 
@@ -258,28 +256,29 @@ export default function ActivitiesPage() {
                     )}
                   </div>
 
-                  {/* Progress Update buttons */}
-                  <div className="flex gap-2 flex-wrap">
-                    {(["pending", "in_progress", "completed"] as const).map(s => {
-                      const active = a.status === s
-                      const label = s === "pending" ? "Pending" : s === "in_progress" ? "In Progress" : "Selesai"
+                  {/* Status badge */}
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const effectiveStatus = overdue ? "overdue" : a.status
+                      const st = STATUSES.find(s => s.value === effectiveStatus) || STATUSES[0]
+                      const Icon = st.icon
+                      const bg =
+                        effectiveStatus === "completed"   ? "bg-green-500/15 text-green-400 border-green-500/30" :
+                        effectiveStatus === "in_progress" ? "bg-blue-500/15 text-blue-400 border-blue-500/30" :
+                        effectiveStatus === "overdue"     ? "bg-red-500/15 text-red-400 border-red-500/30" :
+                                                           "bg-slate-500/15 text-slate-400 border-slate-500/30"
                       return (
-                        <button key={s} type="button"
-                          onClick={() => updateStatus(a.id, s)}
-                          className={`text-xs px-3 py-1.5 rounded-full border transition ${
-                            active ? "text-white border-transparent" : "text-slate-400 border-slate-700 hover:text-white hover:border-slate-500"
-                          }`}
-                          style={{
-                            background: active
-                              ? s === "completed"   ? "#16a34a"
-                              : s === "in_progress" ? "#2563eb"
-                              :                      "#475569"
-                              : "var(--surface2)",
-                          }}>
-                          {label}
-                        </button>
+                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${bg}`}>
+                          <Icon size={11} />
+                          {st.label}
+                        </span>
                       )
-                    })}
+                    })()}
+                    {(a as Activity & { notes?: string }).notes && (
+                      <span className="text-xs text-slate-500 italic truncate max-w-[160px]">
+                        &ldquo;{(a as Activity & { notes?: string }).notes}&rdquo;
+                      </span>
+                    )}
                   </div>
                 </div>
               )
@@ -451,11 +450,11 @@ export default function ActivitiesPage() {
                 </>
               )}
 
-              {/* Status — visible for both admin and assignee */}
+              {/* Status — visible for both admin and assignee, overdue excluded */}
               <div>
                 <label className="text-xs text-slate-500 block mb-2">Status</label>
                 <div className="flex flex-wrap gap-2">
-                  {STATUSES.map(s => {
+                  {STATUSES.filter(s => s.value !== "overdue").map(s => {
                     const selected = editForm.status === s.value
                     return (
                       <button key={s.value} type="button"
@@ -467,7 +466,6 @@ export default function ActivitiesPage() {
                           background: selected
                             ? s.value === "completed"   ? "#16a34a"
                             : s.value === "in_progress" ? "#2563eb"
-                            : s.value === "overdue"     ? "#dc2626"
                             :                            "#475569"
                             : "var(--surface2)",
                         }}>
@@ -477,6 +475,17 @@ export default function ActivitiesPage() {
                   })}
                 </div>
               </div>
+
+              {/* Notes — hunter/assignee only */}
+              {!isAdmin && (
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Notes / Update</label>
+                  <textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                    rows={3} placeholder="Tambahkan catatan progress..."
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+              )}
 
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setEditingTask(null)}
