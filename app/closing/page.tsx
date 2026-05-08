@@ -28,10 +28,10 @@ interface ClosingRow {
 interface PipelineRow {
   id: string
   name: string
-  sales: string
+  sales_person: string
   unit: string
   value: number
-  slhunter: string
+  sales_hunter: string
   status: string
   user_id?: string
 }
@@ -116,7 +116,7 @@ export default function ClosingPage() {
         .eq("month", month).eq("year", year)
         .order("closing_date", { ascending: false }),
       supabase.from("pipeline")
-        .select("id,name,sales,unit,value,slhunter,status,user_id")
+        .select("id,name,sales_person,unit,value,sales_hunter,status,user_id")
         .not("status", "eq", "closed_won")
         .not("status", "eq", "closed_lost"),
       supabase.from("users")
@@ -128,14 +128,14 @@ export default function ClosingPage() {
     setClosings((closingsRes.data || []) as ClosingRow[])
     const allPipes = (pipeRes.data || []) as PipelineRow[]
     setPipelines(isAdmin ? allPipes : allPipes.filter(p =>
-      p.user_id === user!.id || (p.slhunter || "").toLowerCase() === (user?.name || "").toLowerCase()
+      p.user_id === user!.id || (p.sales_hunter || "").toLowerCase() === (user?.name || "").toLowerCase()
     ))
     setLoading(false)
   }
 
   function onPipelineSelect(id: string) {
     const p = pipelines.find(x => x.id === id)
-    if (p) setForm(f => ({ ...f, pipeline_id: id, konsumen_name: p.name || "", project: p.sales || "", unit: p.unit || "", closing_value: p.value?.toString() || "", user_id: p.user_id || f.user_id }))
+    if (p) setForm(f => ({ ...f, pipeline_id: id, konsumen_name: p.name || "", project: p.sales_person || "", unit: p.unit || "", closing_value: p.value?.toString() || "", user_id: p.user_id || f.user_id }))
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -292,7 +292,7 @@ export default function ClosingPage() {
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <option value="">— Manual (tanpa pipeline) —</option>
-              {pipelines.map(p => <option key={p.id} value={p.id}>{p.name} · {p.sales}</option>)}
+              {pipelines.map(p => <option key={p.id} value={p.id}>{p.name} · {p.sales_person}</option>)}
             </select>
           </div>
           <div>

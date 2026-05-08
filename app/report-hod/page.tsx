@@ -46,9 +46,9 @@ export default function ReportHODPage() {
     const [usersRes, closingsMtdRes, closingsYtdRes, visitsRes] = await Promise.all([
       supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,role,status")
         .eq("role", "hunter").eq("status", "active"),
-      supabase.from("closings").select("user_id,closing_value")
+      supabase.from("Closing").select("user_id,closing_value")
         .eq("month", month).eq("year", year),
-      supabase.from("closings").select("user_id,closing_value")
+      supabase.from("Closing").select("user_id,closing_value")
         .eq("year", year).lte("month", month),
       supabase.from("visit_logs").select("user_id,count")
         .eq("month", month).eq("year", year),

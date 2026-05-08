@@ -59,7 +59,7 @@ export default function TeamPage() {
     setLoading(true)
     const [usersRes, closingsRes] = await Promise.all([
       supabase.from("users").select("id,name,monthly_target,sp_level").eq("status", "active"),
-      supabase.from("closings").select("user_id,closing_value,salesname,notes").eq("month", month).eq("year", year),
+      supabase.from("Closing").select("user_id,closing_value,salesname,notes").eq("month", month).eq("year", year),
     ])
 
     const omsetMap: Record<string, number> = {}

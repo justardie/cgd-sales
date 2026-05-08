@@ -102,9 +102,9 @@ export default function OverviewPage() {
     try {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status").eq("status", "active"),
-        supabase.from("closings").select("user_id,closing_value,project").eq("month", month).eq("year", year),
-        supabase.from("closings").select("user_id,closing_value").eq("year", year).lte("month", month),
-        supabase.from("closings").select("user_id,closing_value").eq("month", lastMonth).eq("year", lastYear),
+        supabase.from("Closing").select("user_id,closing_value,project").eq("month", month).eq("year", year),
+        supabase.from("Closing").select("user_id,closing_value").eq("year", year).lte("month", month),
+        supabase.from("Closing").select("user_id,closing_value").eq("month", lastMonth).eq("year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("pipeline").select("user_id,value,status")
           .not("status", "eq", "closed_lost")

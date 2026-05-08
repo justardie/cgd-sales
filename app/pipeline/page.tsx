@@ -7,18 +7,16 @@ import { formatRupiah } from "@/lib/utils"
 import { getSpOptions, HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Search } from "lucide-react"
 
-// Legacy pipeline table columns:
-// id (text), name (konsumen), slhunter (hunter name), sales (project),
-// unit, payment, value (numeric), bf, source, status,
-// visitdate, dateadded, note, ts (bigint), user_id (UUID)
-// + salesname (TEXT, added via migration 005)
+// Pipeline table columns:
+// id, name (konsumen), sales_hunter, salesname, sales_person (project),
+// unit, payment, value, bf, source, status, visitdate, dateadded, note, ts, user_id
 
 interface PipelineRow {
   id: string
-  name: string        // konsumen
-  slhunter: string    // hunter name
-  salesname: string   // sales person name
-  sales: string       // project
+  name: string
+  sales_hunter: string
+  salesname: string
+  sales_person: string  // project
   unit: string
   payment: string
   value: number
@@ -69,10 +67,10 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 }
 
 const emptyForm = {
-  slhunter: "",
+  sales_hunter: "",
   name: "",
   salesname: "",
-  sales: "",
+  sales_person: "",
   unit: "",
   value: "",
   source: "",
@@ -132,7 +130,7 @@ export default function PipelinePage() {
       const name = user!.name?.toLowerCase() || ""
       setPipelines(all.filter(p =>
         p.user_id === user!.id ||
-        (name && p.slhunter?.toLowerCase() === name)
+        (name && p.sales_hunter?.toLowerCase() === name)
       ))
     }
     setLoading(false)
@@ -147,10 +145,10 @@ export default function PipelinePage() {
   function openEdit(p: PipelineRow) {
     setEditing(p)
     setForm({
-      slhunter: p.slhunter || "",
+      sales_hunter: p.sales_hunter || "",
       name: p.name || "",
       salesname: p.salesname || "",
-      sales: p.sales || "",
+      sales_person: p.sales_person || "",
       unit: p.unit || "",
       value: p.value?.toString() || "",
       source: p.source || "",
@@ -167,7 +165,7 @@ export default function PipelinePage() {
     if (!closingForm.closing_value || Number(closingForm.closing_value) <= 0) return
     setSavingClosing(true)
     const d = new Date(closingForm.closing_date)
-    await supabase.from("closings").insert({
+    await supabase.from("Closing").insert({
       user_id: closingForm.hunter_user_id || user!.id,
       pipeline_id: closingForm.pipeline_id,
       konsumen_name: closingForm.konsumen_name,
@@ -189,13 +187,12 @@ export default function PipelinePage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
 
-    // Intercept: closing status triggers migration modal
     if (form.status === "closing" && editing) {
       setClosingForm({
         pipeline_id: editing.id,
         hunter_user_id: editing.user_id || "",
         konsumen_name: editing.name || "",
-        project: editing.sales || "",
+        project: editing.sales_person || "",
         unit: editing.unit || "",
         closing_value: editing.value?.toString() || "",
         visit_date: editing.visitdate || "",
@@ -210,9 +207,9 @@ export default function PipelinePage() {
     setSaving(true)
     const payload = {
       name: form.name,
-      slhunter: isAdmin ? form.slhunter : user!.name,
+      sales_hunter: isAdmin ? form.sales_hunter : user!.name,
       salesname: form.salesname || null,
-      sales: form.sales || null,
+      sales_person: form.sales_person || null,
       unit: form.unit || null,
       value: form.value ? Number(form.value) : null,
       source: form.source || null,
@@ -237,8 +234,8 @@ export default function PipelinePage() {
   const filtered = pipelines.filter(p => {
     const matchSearch = !search ||
       (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.sales || "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.slhunter || "").toLowerCase().includes(search.toLowerCase())
+      (p.sales_person || "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.sales_hunter || "").toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === "all" || p.status === filterStatus
     return matchSearch && matchStatus
   })
@@ -250,9 +247,8 @@ export default function PipelinePage() {
     totalValue: activePipes.reduce((s, p) => s + (Number(p.value) || 0), 0),
   }
 
-  // SP options: for admin, cascade from selected hunter in form; for hunter, use their own SPs
   const spOptions = isAdmin
-    ? getSpOptions(form.slhunter)
+    ? getSpOptions(form.sales_hunter)
     : getSpOptions(user?.name || "")
 
   return (
@@ -271,7 +267,6 @@ export default function PipelinePage() {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Aktif", val: stats.total, color: "text-blue-400" },
@@ -286,7 +281,6 @@ export default function PipelinePage() {
           ))}
         </div>
 
-        {/* Filters */}
         <div className="flex gap-3 flex-wrap">
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -315,7 +309,6 @@ export default function PipelinePage() {
           </div>
         )}
 
-        {/* Table */}
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -342,12 +335,12 @@ export default function PipelinePage() {
                     <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}
                       className="hover:bg-white/[0.02]">
                       {isAdmin && (
-                        <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{p.slhunter || "—"}</td>
+                        <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{p.sales_hunter || "—"}</td>
                       )}
                       <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{p.salesname || "—"}</td>
                       <td className="px-4 py-3 font-medium text-white text-xs">{p.name || "—"}</td>
                       <td className="px-4 py-3 text-xs text-slate-400">
-                        {p.sales}{p.unit ? ` · ${p.unit}` : ""}
+                        {p.sales_person}{p.unit ? ` · ${p.unit}` : ""}
                       </td>
                       <td className="px-4 py-3 text-right text-slate-300 text-xs whitespace-nowrap">
                         {p.value ? formatRupiah(Number(p.value)) : "—"}
@@ -460,14 +453,11 @@ export default function PipelinePage() {
               {editing ? "Edit Pipeline" : "Tambah Pipeline"}
             </h3>
             <form onSubmit={handleSave} className="space-y-3">
-
-              {/* Hunter — dropdown for admin, read-only for hunter */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Hunter</label>
                 {isAdmin ? (
-                  <select
-                    value={form.slhunter}
-                    onChange={e => setForm(f => ({ ...f, slhunter: e.target.value, salesname: "" }))}
+                  <select value={form.sales_hunter}
+                    onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, salesname: "" }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                     <option value="">— Pilih Hunter —</option>
@@ -482,13 +472,10 @@ export default function PipelinePage() {
                   </div>
                 )}
               </div>
-
-              {/* Sales Person dropdown */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
                 {spOptions.length > 0 ? (
-                  <select
-                    value={form.salesname}
+                  <select value={form.salesname}
                     onChange={e => setForm(f => ({ ...f, salesname: e.target.value }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -496,17 +483,13 @@ export default function PipelinePage() {
                     {spOptions.map(sp => <option key={sp} value={sp}>{sp}</option>)}
                   </select>
                 ) : (
-                  <input
-                    type="text"
-                    value={form.salesname}
+                  <input type="text" value={form.salesname}
                     onChange={e => setForm(f => ({ ...f, salesname: e.target.value }))}
                     placeholder="Nama sales person (opsional)"
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
                 )}
               </div>
-
-              {/* Consumer Name */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">
                   Nama Konsumen <span className="text-red-400">*</span>
@@ -516,20 +499,16 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
-              {/* Project dropdown */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Proyek</label>
-                <select value={form.sales}
-                  onChange={e => setForm(f => ({ ...f, sales: e.target.value }))}
+                <select value={form.sales_person}
+                  onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="">— Pilih Proyek —</option>
                   {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
-
-              {/* Cluster/Unit */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Klaster / Unit</label>
                 <input type="text" value={form.unit}
@@ -538,8 +517,6 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
-              {/* Potential Value */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Potensi Closing (Rp)</label>
                 <input type="number" value={form.value}
@@ -547,8 +524,6 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
-              {/* Lead Source */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Sumber Lead</label>
                 <input type="text" value={form.source}
@@ -557,8 +532,6 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
-              {/* Payment Method */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>
                 <input type="text" value={form.payment}
@@ -567,8 +540,6 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
-              {/* Visit Date */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
                 <input type="date" value={form.visitdate}
@@ -576,8 +547,6 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
-              {/* Status */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Status</label>
                 <select value={form.status}
@@ -587,8 +556,6 @@ export default function PipelinePage() {
                   {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
-
-              {/* Notes */}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Catatan</label>
                 <textarea value={form.note}
@@ -597,7 +564,6 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
