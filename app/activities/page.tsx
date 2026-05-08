@@ -57,7 +57,7 @@ export default function ActivitiesPage() {
     setLoading(true)
     setTaskError(null)
     const [actRes, wigRes, usersRes] = await Promise.all([
-      supabase.from("task").select("*").order("deadline", { ascending: true }),
+      supabase.from("tasks").select("*").order("deadline", { ascending: true }),
       supabase.from("wig").select("*").order("created_at", { ascending: false }),
       supabase.from("users").select("id,name").eq("status", "active"),
     ])
@@ -71,7 +71,7 @@ export default function ActivitiesPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from("task").insert({
+    await supabase.from("tasks").insert({
       title: form.title,
       description: form.description || null,
       assigned_to: form.assigned_to || user!.id,
@@ -87,13 +87,13 @@ export default function ActivitiesPage() {
   }
 
   async function updateStatus(id: string, status: string) {
-    await supabase.from("task").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
+    await supabase.from("tasks").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
     fetchData()
   }
 
   async function deleteActivity(id: string) {
     if (!confirm("Hapus task ini?")) return
-    await supabase.from("task").delete().eq("id", id)
+    await supabase.from("tasks").delete().eq("id", id)
     fetchData()
   }
 
