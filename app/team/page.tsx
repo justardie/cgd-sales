@@ -46,6 +46,7 @@ export default function TeamPage() {
   const [members, setMembers] = useState<MemberStatus[]>([])
   const [spOmsetMap, setSpOmsetMap] = useState<SpOmsetMap>({})
   const [spClosingsMap, setSpClosingsMap] = useState<SpClosingsMap>({})
+  const [hunterClosingsMap, setHunterClosingsMap] = useState<SpClosingsMap>({})
   const [expandedSP, setExpandedSP] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -75,22 +76,32 @@ export default function TeamPage() {
     const omsetMap: Record<string, number> = {}
     const newSpOmsetMap: SpOmsetMap = {}
     const newSpClosingsMap: SpClosingsMap = {}
+    const userIdClosingsMap: SpClosingsMap = {}
     ;(closingsRes.data || []).forEach(c => {
       omsetMap[c.user_id] = (omsetMap[c.user_id] || 0) + (c.nilai_hjr || 0)
+      if (!userIdClosingsMap[c.user_id]) userIdClosingsMap[c.user_id] = []
+      userIdClosingsMap[c.user_id].push({
+        name: c.name, project: c.project ?? null, unit: c.unit ?? null, nilai_hjr: c.nilai_hjr || 0,
+      })
       const spName = c.sales_person
       if (spName) {
         newSpOmsetMap[spName] = (newSpOmsetMap[spName] || 0) + (c.nilai_hjr || 0)
         if (!newSpClosingsMap[spName]) newSpClosingsMap[spName] = []
         newSpClosingsMap[spName].push({
-          name: c.name,
-          project: c.project ?? null,
-          unit: c.unit ?? null,
-          nilai_hjr: c.nilai_hjr || 0,
+          name: c.name, project: c.project ?? null, unit: c.unit ?? null, nilai_hjr: c.nilai_hjr || 0,
         })
+      }
+    })
+    const newHunterClosingsMap: SpClosingsMap = {}
+    ;(usersRes.data || []).forEach(u => {
+      const hunterDef = HUNTER_GROUPS.find(h => h.dbName === u.name && h.spNames.length === 0)
+      if (hunterDef && userIdClosingsMap[u.id]) {
+        newHunterClosingsMap[hunterDef.name] = userIdClosingsMap[u.id]
       }
     })
     setSpOmsetMap(newSpOmsetMap)
     setSpClosingsMap(newSpClosingsMap)
+    setHunterClosingsMap(newHunterClosingsMap)
 
     const list: MemberStatus[] = (usersRes.data || [])
       .filter(u => allDbNames.has(u.name))
@@ -199,11 +210,55 @@ export default function TeamPage() {
                     )}
                   </div>
 
-                  {/* Sales Persons */}
+                  {/* Sales Persons / Solo Hunter */}
                   <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-                    {hunter.spNames.length === 0 && (
-                      <div className="px-4 py-3 text-xs text-slate-600 italic">Solo hunter — no SP</div>
-                    )}
+                    {hunter.spNames.length === 0 && (() => {
+                      const isExpanded = expandedSP === hunter.name
+                      const closings = hunterClosingsMap[hunter.name] || []
+                      return (
+                        <div>
+                          <div
+                            className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition"
+                            onClick={() => setExpandedSP(isExpanded ? null : hunter.name)}>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-white">{hunter.name}</span>
+                              {m && m.omset > 0 && (
+                                <div className="text-xs text-slate-400 mt-0.5">{formatRupiah(m.omset)}</div>
+                              )}
+                            </div>
+                            <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                          </div>
+                          {isExpanded && (
+                            <div className="px-4 py-3" style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                              {closings.length === 0 ? (
+                                <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
+                              ) : (
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-slate-500">
+                                      <th className="text-left pb-2 font-medium">Konsumen</th>
+                                      <th className="text-left pb-2 font-medium">Project</th>
+                                      <th className="text-left pb-2 font-medium">Unit</th>
+                                      <th className="text-right pb-2 font-medium">Omset</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {closings.map((d, i) => (
+                                      <tr key={i} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                        <td className="py-1.5 text-white pr-3">{d.name}</td>
+                                        <td className="py-1.5 text-slate-400 pr-3">{d.project || "—"}</td>
+                                        <td className="py-1.5 text-slate-400 pr-3">{d.unit || "—"}</td>
+                                        <td className="py-1.5 text-right text-green-400 font-semibold">{formatRupiah(d.nilai_hjr)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                     {hunter.spNames.map(spName => {
                       const sp = getMember(spName)
                       const spOmset = spOmsetMap[spName] || 0
