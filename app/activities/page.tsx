@@ -204,58 +204,82 @@ export default function ActivitiesPage() {
         ) : filtered.length === 0 && !taskError ? (
           <div className="text-center py-12 text-slate-600 text-sm">Tidak ada task</div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {filtered.map(a => {
               const prio = PRIORITIES.find(p => p.value === a.priority) || PRIORITIES[1]
               const overdue = isOverdue(a)
               const isAssignee = a.assigned_to === user?.id
               const canEdit = isAdmin || isAssignee
+              const assignee = users.find(u => u.id === a.assigned_to)
               return (
-                <div key={a.id}
-                  className="rounded-xl p-4 flex gap-4 items-start"
+                <div key={a.id} className="rounded-xl p-4 space-y-3"
                   style={{ background: "var(--surface)", border: `1px solid ${overdue ? "#7f1d1d" : "var(--border)"}` }}>
-                  <div className="mt-0.5">
-                    {a.status === "completed"   ? <CheckCircle2 size={16} className="text-green-400" /> :
-                     a.status === "in_progress" ? <Clock size={16} className="text-blue-400" /> :
-                     overdue                    ? <AlertCircle size={16} className="text-red-400" /> :
-                                                  <Circle size={16} className="text-slate-600" />}
+
+                  {/* Title row */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-semibold text-sm ${a.status === "completed" ? "text-slate-500 line-through" : "text-white"}`}>
+                          {a.title}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${prio.color}`}>{prio.label}</span>
+                      </div>
+                      {a.description && (
+                        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed whitespace-pre-wrap">{a.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {canEdit && (
+                        <button onClick={() => openEdit(a)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition"
+                          title="Edit task">
+                          <Edit2 size={13} />
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button onClick={() => deleteActivity(a.id)}
+                          className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
+                          title="Hapus task">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`font-medium text-sm ${a.status === "completed" ? "text-slate-500 line-through" : "text-white"}`}>
-                        {a.title}
+
+                  {/* Meta: assignee + deadline */}
+                  <div className="flex items-center gap-4 text-xs flex-wrap">
+                    {assignee && (
+                      <span className="text-slate-500">👤 {assignee.name}</span>
+                    )}
+                    {a.deadline && (
+                      <span className={overdue ? "text-red-400 font-semibold" : "text-slate-500"}>
+                        ⏰ {a.deadline}{overdue ? " — Terlambat!" : ""}
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${prio.color}`}>{prio.label}</span>
-                      {overdue && <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Overdue</span>}
-                    </div>
-                    {a.description && <p className="text-xs text-slate-500 mt-0.5">{a.description}</p>}
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-600">
-                      {a.deadline && <span>⏰ {a.deadline}</span>}
-                      {(() => { const assignee = users.find(u => u.id === a.assigned_to); return assignee ? <span>👤 {assignee.name}</span> : null })()}
-                      <span>Dibuat: {new Date(a.created_at).toLocaleDateString("id-ID")}</span>
-                    </div>
+                    )}
                   </div>
-                  <div className="flex-shrink-0 flex items-center gap-2">
-                    <select value={a.status}
-                      onChange={e => updateStatus(a.id, e.target.value)}
-                      className="text-xs px-2 py-1 rounded-lg text-slate-300 outline-none"
-                      style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                      {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                    {canEdit && (
-                      <button onClick={() => openEdit(a)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition"
-                        title="Edit task">
-                        <Edit2 size={13} />
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button onClick={() => deleteActivity(a.id)}
-                        className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
-                        title="Hapus task">
-                        <Trash2 size={13} />
-                      </button>
-                    )}
+
+                  {/* Progress Update buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    {(["pending", "in_progress", "completed"] as const).map(s => {
+                      const active = a.status === s
+                      const label = s === "pending" ? "Pending" : s === "in_progress" ? "In Progress" : "Selesai"
+                      return (
+                        <button key={s} type="button"
+                          onClick={() => updateStatus(a.id, s)}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                            active ? "text-white border-transparent" : "text-slate-400 border-slate-700 hover:text-white hover:border-slate-500"
+                          }`}
+                          style={{
+                            background: active
+                              ? s === "completed"   ? "#16a34a"
+                              : s === "in_progress" ? "#2563eb"
+                              :                      "#475569"
+                              : "var(--surface2)",
+                          }}>
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -341,7 +365,7 @@ export default function ActivitiesPage() {
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Deskripsi</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  rows={2} className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
+                  rows={5} className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div className="grid grid-cols-2 gap-3">
