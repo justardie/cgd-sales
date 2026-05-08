@@ -12,6 +12,7 @@ const BASE_NAV = [
   { href: "/",           label: "Overview"    },
   { href: "/visit",      label: "Visit"       },
   { href: "/pipeline",   label: "Pipeline"    },
+  { href: "/potensi",    label: "Potensi"     },
   { href: "/closing",    label: "Closing"     },
   { href: "/activities", label: "Activities"  },
   { href: "/team",       label: "Team Status" },
