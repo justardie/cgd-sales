@@ -460,8 +460,8 @@ export default function ClosingPage() {
                 className="text-xs px-2 py-1 rounded-lg text-slate-300 outline-none"
                 style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                 <option value="">Semua Proyek</option>
-                {Array.from(new Set(closings.map(c => c.project).filter(Boolean))).map(p => (
-                  <option key={p as string} value={p as string}>{p}</option>
+                {PROJECTS.map(p => (
+                  <option key={p} value={p}>{p}</option>
                 ))}
               </select>
             </div>

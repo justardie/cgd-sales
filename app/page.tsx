@@ -37,38 +37,22 @@ const PROJECT_LABELS: { key: string; match: RegExp }[] = [
   { key: "SCC-VS",   match: /SCC.?VS/i },
 ]
 
-/* ─── Speedometer SVG ───────────────────────────── */
-function Speedometer({ pct: p, color }: { pct: number; color: string }) {
-  const r = 38, cx = 52, cy = 50, sw = 10
-  const clamped = Math.min(0.999, Math.max(0.001, p))
-  // Track: full semicircle CCW (sweep=0) left→top→right
-  const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`
-  // Value arc endpoint: angle goes from π (0%) down to 0 (100%)
-  const angle = Math.PI * (1 - clamped)
-  const ex = (cx + r * Math.cos(angle)).toFixed(2)
-  const ey = (cy - r * Math.sin(angle)).toFixed(2)
-  // large-arc ALWAYS 0 (arc ≤ 180°), sweep ALWAYS 0 (CCW = through top)
-  const valuePath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}`
-  // Tick marks at 0%, 50%, 100%
-  const ticks = [0, 0.5, 1.0].map(t => {
-    const ta = Math.PI * (1 - Math.min(0.999, t))
-    return {
-      x1: (cx + (r - 8) * Math.cos(ta)).toFixed(1),
-      y1: (cy - (r - 8) * Math.sin(ta)).toFixed(1),
-      x2: (cx + r * Math.cos(ta)).toFixed(1),
-      y2: (cy - r * Math.sin(ta)).toFixed(1),
-    }
-  })
+/* ─── Circular Ring Gauge ───────────────────────── */
+function CircleRing({ pct: p, color }: { pct: number; color: string }) {
+  const r = 30, size = 76
+  const cx = size / 2, cy = size / 2
+  const circumference = 2 * Math.PI * r
+  const clamped = Math.min(1, Math.max(0, p))
+  const offset = circumference * (1 - clamped)
   return (
-    <svg width="104" height="58" viewBox="0 0 104 58" style={{ overflow: "visible" }}>
-      <path d={track} fill="none" stroke={`${color}18`} strokeWidth={sw} strokeLinecap="round" />
-      <path d={valuePath} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 5px ${color}60)` }} />
-      {ticks.map((t, i) => (
-        <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-          stroke={color} strokeWidth="2" strokeLinecap="round"
-          opacity={i === 1 ? 0.35 : 0.55} />
-      ))}
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={`${color}18`} strokeWidth="9" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="9"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        style={{ filter: `drop-shadow(0 0 5px ${color}55)`, transition: "stroke-dashoffset 0.6s ease" }}
+      />
     </svg>
   )
 }
@@ -82,28 +66,34 @@ function GaugeCard({ label, value, sub, achievement, icon: Icon, accentColor }: 
   const pctNum = Math.round(p * 100)
   const col = accentColor ?? (p >= 1 ? "#22c55e" : p >= 0.7 ? "#FF6A3D" : "#ef4444")
   return (
-    <div className="rounded-2xl p-5 flex flex-col" style={{
+    <div className="rounded-2xl p-5 flex gap-4 items-center" style={{
       background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-md)",
     }}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
-          {label}
-        </span>
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{ background: `${col}18`, border: `1px solid ${col}25` }}>
-          <Icon size={14} style={{ color: col }} />
+      {/* Ring with % centered */}
+      <div style={{ position: "relative", width: 76, height: 76, flexShrink: 0 }}>
+        <CircleRing pct={p} color={col} />
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+        }}>
+          <span style={{ fontSize: "16px", fontWeight: 900, color: col, lineHeight: 1 }}>{pctNum}%</span>
         </div>
       </div>
-      <div className="flex flex-col items-center mt-2">
-        <Speedometer pct={p} color={col} />
-        <div className="font-black text-2xl -mt-1" style={{ color: col, letterSpacing: "-1px" }}>
-          {pctNum}%
+      {/* Text */}
+      <div className="flex flex-col min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: `${col}18`, border: `1px solid ${col}25` }}>
+            <Icon size={12} style={{ color: col }} />
+          </div>
+          <span className="text-xs font-semibold uppercase tracking-widest truncate" style={{ color: "var(--text-muted)" }}>
+            {label}
+          </span>
         </div>
-      </div>
-      <div className="mt-3">
-        <div className="font-bold text-base" style={{ color: "var(--text-primary)", letterSpacing: "-0.3px" }}>
+        <div className="font-bold text-base truncate" style={{ color: "var(--text-primary)", letterSpacing: "-0.3px" }}>
           {value}
         </div>
         {sub && <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{sub}</div>}
