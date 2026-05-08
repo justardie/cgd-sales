@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
+import ConfirmModal from "@/components/ConfirmModal"
 import { formatRupiah, getMonthName } from "@/lib/utils"
 import { getSpOptions, HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2 } from "lucide-react"
@@ -83,6 +84,7 @@ export default function ClosingPage() {
   const [showInputModal,  setShowInputModal]  = useState(false)
   const [showEditModal,   setShowEditModal]   = useState(false)
   const [showTargetModal, setShowTargetModal] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [editingClosing,  setEditingClosing]  = useState<KonsumenRow | null>(null)
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
@@ -203,7 +205,6 @@ export default function ClosingPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Hapus data closing ini? Record akan dikembalikan ke status 'tidak_potensial'.")) return
     await supabase.from("konsumen").update({
       status:        "tidak_potensial",
       nilai_hjr:     null,
@@ -604,7 +605,11 @@ export default function ClosingPage() {
                         : <span className="text-xs text-slate-600">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center text-xs text-slate-400 whitespace-nowrap">{c.closing_date}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[120px] truncate">{c.notes || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {c.notes
+                        ? <span className="notes-cell" data-tooltip={c.notes}>{c.notes}</span>
+                        : "—"}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => openEdit(c)}
@@ -612,7 +617,7 @@ export default function ClosingPage() {
                           <Edit2 size={13} />
                         </button>
                         {isAdmin && (
-                          <button onClick={() => handleDelete(c.id)}
+                          <button onClick={() => setConfirmDeleteId(c.id)}
                             className="text-slate-600 hover:text-red-400 transition" title="Batalkan Closing">
                             <Trash2 size={13} />
                           </button>
@@ -671,6 +676,15 @@ export default function ClosingPage() {
             </form>
           </div>
         </Modal>
+      )}
+      {confirmDeleteId && (
+        <ConfirmModal
+          title="Batalkan Closing?"
+          message="Data closing akan dihapus dan konsumen dikembalikan ke status 'tidak_potensial'."
+          confirmLabel="Hapus"
+          onConfirm={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null) }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </DashboardShell>
   )

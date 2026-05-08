@@ -1,9 +1,12 @@
 "use client"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { Search, Bell } from "lucide-react"
+import { useTheme } from "@/contexts/ThemeContext"
+import { Bell, Sun, Moon, LogOut } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 const BASE_NAV = [
   { href: "/",           label: "Overview"    },
@@ -22,7 +25,13 @@ const ADMIN_NAV = [
 
 export default function Header() {
   const pathname = usePathname()
-  const { user, isAdmin } = useAuth()
+  const router = useRouter()
+  const { user, isAdmin, logout } = useAuth()
+  const { theme, toggle } = useTheme()
+
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [taskCount, setTaskCount] = useState(0)
+  const profileRef = useRef<HTMLDivElement>(null)
 
   const navItems = [...BASE_NAV, ...(isAdmin ? ADMIN_NAV : [])]
   const initials = user?.name
@@ -32,15 +41,38 @@ export default function Header() {
     .join("")
     .toUpperCase() ?? "?"
 
+  useEffect(() => {
+    if (!user) return
+    async function fetchTaskCount() {
+      const { count } = await supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_to", user!.id)
+        .neq("status", "completed")
+      setTaskCount(count ?? 0)
+    }
+    fetchTaskCount()
+  }, [user])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false)
+      }
+    }
+    if (profileOpen) document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [profileOpen])
+
   return (
     <header className="app-header">
       <div className="header-logo">
         <Image
-          src="/logo.png"
+          src={theme === "light" ? "/logo-dark.png" : "/logo.png"}
           alt="CGD"
-          width={90}
-          height={32}
-          style={{ objectFit: "contain", height: "28px", width: "auto" }}
+          width={120}
+          height={44}
+          style={{ objectFit: "contain", height: "36px", width: "auto" }}
           priority
         />
       </div>
@@ -58,18 +90,49 @@ export default function Header() {
       </nav>
 
       <div className="header-right">
-        <button className="header-icon-btn" aria-label="Cari">
-          <Search size={15} />
-        </button>
-        <button className="header-icon-btn" aria-label="Notifikasi">
+        <button
+          className="header-icon-btn"
+          aria-label="Notifikasi task"
+          onClick={() => router.push("/activities")}
+          style={{ position: "relative" }}
+        >
           <Bell size={15} />
+          {taskCount > 0 && (
+            <span className="bell-badge">{taskCount > 9 ? "9+" : taskCount}</span>
+          )}
         </button>
-        <div className="user-profile-btn">
-          <div className="user-profile-text">
-            <span className="user-name">{user?.name}</span>
-            <span className="user-role">{user?.role} · CGD</span>
-          </div>
-          <div className="user-avatar">{initials}</div>
+
+        <div className="user-profile-wrap" ref={profileRef}>
+          <button
+            className="user-profile-btn"
+            onClick={() => setProfileOpen(v => !v)}
+          >
+            <div className="user-profile-text">
+              <span className="user-name">{user?.name}</span>
+              <span className="user-role">{user?.role} · CGD</span>
+            </div>
+            <div className="user-avatar">{initials}</div>
+          </button>
+
+          {profileOpen && (
+            <div className="profile-dropdown">
+              <button
+                className="profile-dropdown-item"
+                onClick={() => { toggle(); setProfileOpen(false) }}
+              >
+                {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+                <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+              </button>
+              <div className="profile-dropdown-divider" />
+              <button
+                className="profile-dropdown-item profile-dropdown-item--danger"
+                onClick={logout}
+              >
+                <LogOut size={14} />
+                <span>Keluar</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

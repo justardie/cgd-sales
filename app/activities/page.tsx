@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
+import ConfirmModal from "@/components/ConfirmModal"
 import { Plus, X, AlertCircle, Clock, CheckCircle2, Circle, Trash2, Target, Edit2 } from "lucide-react"
 import type { Activity, User } from "@/types"
 
@@ -46,6 +47,7 @@ export default function ActivitiesPage() {
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
   const [taskError, setTaskError] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: "",
@@ -142,7 +144,6 @@ export default function ActivitiesPage() {
   }
 
   async function deleteActivity(id: string) {
-    if (!confirm("Hapus task ini?")) return
     await supabase.from("tasks").delete().eq("id", id)
     fetchData()
   }
@@ -235,7 +236,7 @@ export default function ActivitiesPage() {
                         </button>
                       )}
                       {isAdmin && (
-                        <button onClick={() => deleteActivity(a.id)}
+                        <button onClick={() => setConfirmDeleteId(a.id)}
                           className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
                           title="Hapus task">
                           <Trash2 size={13} />
@@ -501,6 +502,15 @@ export default function ActivitiesPage() {
             </form>
           </div>
         </Modal>
+      )}
+      {confirmDeleteId && (
+        <ConfirmModal
+          title="Hapus Task?"
+          message="Task ini akan dihapus permanen dan tidak bisa dikembalikan."
+          confirmLabel="Hapus"
+          onConfirm={() => { deleteActivity(confirmDeleteId); setConfirmDeleteId(null) }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </DashboardShell>
   )

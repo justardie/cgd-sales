@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName } from "@/lib/utils"
 import {
   TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
-  ChevronLeft, ChevronRight, Users, Activity,
+  Users, Activity,
 } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -224,19 +224,40 @@ export default function OverviewPage() {
             <p className="text-sm text-slate-500 mt-0.5" style={{ fontWeight: 500 }}>MASCOL Division · Sales Performance</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={prevMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronLeft size={14} />
-            </button>
-            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
-              {getMonthName(month)} {year}
-            </div>
-            <button onClick={nextMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronRight size={14} />
-            </button>
+            <select
+              value={month}
+              onChange={e => setMonth(Number(e.target.value))}
+              className="text-sm font-semibold outline-none"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-medium)",
+                borderRadius: "20px",
+                padding: "6px 14px",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+              }}
+            >
+              {["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"].map((m, i) => (
+                <option key={i + 1} value={i + 1}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={e => setYear(Number(e.target.value))}
+              className="text-sm font-semibold outline-none"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-medium)",
+                borderRadius: "20px",
+                padding: "6px 14px",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+              }}
+            >
+              {[2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -306,17 +327,57 @@ export default function OverviewPage() {
 
         {/* Win-or-Die Alert */}
         {warnHunters.length > 0 && (
-          <div className="rounded-xl p-4" style={{ background: "#1a0f0f", border: "1px solid #7f1d1d" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle size={16} className="text-red-400" />
-              <span className="text-sm font-semibold text-red-400">Win-or-Die Alert — {getMonthName(month)}</span>
+          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(239,68,68,0.22)" }}>
+            {/* Header strip */}
+            <div className="flex items-center gap-3 px-5 py-3"
+              style={{ background: "rgba(239,68,68,0.10)", borderBottom: "1px solid rgba(239,68,68,0.14)" }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(239,68,68,0.18)" }}>
+                <AlertTriangle size={14} style={{ color: "var(--red)" }} />
+              </div>
+              <div>
+                <span className="text-sm font-bold" style={{ color: "var(--red)" }}>
+                  Win-or-Die Alert
+                </span>
+                <span className="text-xs ml-2 font-medium" style={{ color: "var(--text-muted)" }}>
+                  {getMonthName(month)} {year} · {warnHunters.length} hunter di bawah target WoD
+                </span>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {warnHunters.map(h => (
-                <div key={h.id} className="text-xs px-3 py-1.5 rounded-full bg-red-500/10 text-red-400 border border-red-900">
-                  {h.name.split(" ")[0]} — {formatRupiah(h.omset_mtd)} / WoD {formatRupiah(h.win_or_die_target)}
-                </div>
-              ))}
+            {/* Hunter rows */}
+            <div className="px-5 py-4 grid gap-3" style={{ background: "var(--surface)" }}>
+              {warnHunters.map(h => {
+                const progress = h.win_or_die_target > 0
+                  ? Math.min(100, Math.round((h.omset_mtd / h.win_or_die_target) * 100))
+                  : 0
+                return (
+                  <div key={h.id}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {h.name.split(" ")[0]}
+                      </span>
+                      <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+                        <span>{formatRupiah(h.omset_mtd)}</span>
+                        <span style={{ color: "var(--text-muted)" }}>/ WoD {formatRupiah(h.win_or_die_target)}</span>
+                        <span className="font-bold" style={{ color: progress < 50 ? "var(--red)" : "var(--amber)" }}>
+                          {progress}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(239,68,68,0.12)" }}>
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${progress}%`,
+                          background: progress < 50
+                            ? "var(--red)"
+                            : "linear-gradient(90deg, var(--amber), var(--red))",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

@@ -4,11 +4,11 @@
    DESIGN TOKENS — Light (default) / Dark
 ═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg:        #F5F3EF;
-  --bg-warm:   #EDE9E3;
-  --surface:   #FFFFFF;
-  --surface2:  #F4F2EE;
-  --surface3:  #ECEAE6;
+  --bg:        #E8E5DE;
+  --bg-warm:   #E0DDD6;
+  --surface:   #F2EFE8;
+  --surface2:  #E9E6DF;
+  --surface3:  #E2DFD8;
 
   --accent:        #FF6A3D;
   --accent-start:  #FF8A5B;
@@ -16,13 +16,13 @@
   --accent-soft:   rgba(255,106,61,0.10);
   --accent-medium: rgba(255,106,61,0.18);
 
-  --text-primary:   #121212;
-  --text-secondary: #7A7A7A;
-  --text-muted:     #BABABA;
+  --text-primary:   #1A1816;
+  --text-secondary: #6A6762;
+  --text-muted:     #A8A49E;
 
-  --border:        rgba(0,0,0,0.07);
-  --border-medium: rgba(0,0,0,0.12);
-  --border-strong: rgba(0,0,0,0.20);
+  --border:        rgba(0,0,0,0.09);
+  --border-medium: rgba(0,0,0,0.15);
+  --border-strong: rgba(0,0,0,0.24);
 
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.05);
@@ -35,9 +35,9 @@
   --r-lg: 24px;
   --r-xl: 32px;
 
-  --sidebar-bg:      rgba(255,255,255,0.92);
-  --sidebar-border:  rgba(0,0,0,0.07);
-  --header-bg:       rgba(245,243,239,0.90);
+  --sidebar-bg:      rgba(242,239,232,0.94);
+  --sidebar-border:  rgba(0,0,0,0.09);
+  --header-bg:       rgba(232,229,222,0.92);
   --nav-active-bg:   #121212;
   --nav-active-text: #FFFFFF;
   --toggle-bg:       #EEECEA;
@@ -268,7 +268,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 32px;
+  padding: 16px 32px;
   background: var(--header-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -347,6 +347,10 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   transform: scale(1.06);
 }
 
+.user-profile-wrap {
+  position: relative;
+}
+
 .user-profile-btn {
   display: flex;
   align-items: center;
@@ -355,7 +359,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 50px;
-  cursor: default;
+  cursor: pointer;
   box-shadow: var(--shadow-xs);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -393,6 +397,103 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   font-weight: 700;
   flex-shrink: 0;
 }
+
+/* Bell badge */
+.bell-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Profile dropdown */
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border-medium);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  animation: fadeUp 0.15s ease;
+}
+
+.profile-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: left;
+}
+.profile-dropdown-item:hover {
+  background: var(--surface2);
+}
+.profile-dropdown-item--danger { color: var(--red); }
+.profile-dropdown-item--danger:hover { background: var(--red-soft); }
+
+.profile-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Notes tooltip */
+.notes-cell {
+  position: relative;
+  display: inline-block;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+.notes-cell::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary);
+  color: var(--bg);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  max-width: 260px;
+  width: max-content;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+  word-break: break-word;
+}
+.notes-cell:hover::after { opacity: 1; }
 
 /* ═══════════════════════════════════════════════════════════════
    GREETING (Overview only)
@@ -450,6 +551,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   .app-main    { padding-left: 0; }
   .app-content { padding: 20px 16px 100px; }
   .app-header  { padding: 10px 16px; }
+  .header-nav  { display: none; }
   .greeting-title { font-size: 26px; letter-spacing: -1px; }
 
   .sidebar-float {

@@ -299,8 +299,10 @@ export default function PipelinePage() {
                     <td className="px-4 py-3 text-center text-slate-500 text-xs whitespace-nowrap">
                       {r.visit_date || "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[150px] truncate">
-                      {r.notes || "—"}
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {r.notes
+                        ? <span className="notes-cell" data-tooltip={r.notes}>{r.notes}</span>
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-3">
