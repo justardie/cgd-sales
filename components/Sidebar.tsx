@@ -1,5 +1,6 @@
 "use client"
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -33,12 +34,10 @@ export default function Sidebar() {
       style={{ background: '#111827', borderRight: '1px solid #1e2d45' }}
     >
       {/* Logo */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: '#1e2d45' }}>
-        <div className="text-[10px] font-bold tracking-widest uppercase" style={{ color: '#E84500' }}>
-          PT Central Group Dev
-        </div>
-        <div className="text-sm font-bold text-white mt-0.5">MASCOL Division</div>
-        <div className="mt-2 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400">
+      <div className="px-4 py-4 border-b" style={{ borderColor: '#1e2d45' }}>
+        <Image src="/logo.png" alt="Central Group" width={160} height={60} style={{ objectFit: 'contain' }} priority />
+        <div className="mt-2 text-xs text-slate-400 font-medium">MASCOL Division</div>
+        <div className="mt-1 inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400">
           CRM Sales
         </div>
       </div>

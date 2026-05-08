@@ -231,6 +231,11 @@ export default function ClosingPage() {
     fetchData()
   }
 
+  const isHunterLogin = !isAdmin && user?.role === "hunter"
+  const currentHunterGroup = isHunterLogin
+    ? HUNTER_GROUPS.find(g => g.dbName === user?.name || g.name === user?.name)
+    : null
+
   const displayHunters = isAdmin
     ? HUNTER_GROUPS
         .map(g => hunters.find(h => h.name === g.dbName || h.name === g.name))
@@ -413,37 +418,114 @@ export default function ClosingPage() {
 
         {/* Hunter Summary Cards */}
         {!loading && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {displayHunters.map(hunter => {
-              const hunterClosings = closings.filter(c =>
-                c.user_id === hunter.id ||
-                (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
-              )
-              const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-              const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
-              const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
-              return (
-                <div key={hunter.id} className="rounded-xl p-3 relative group"
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                  {isAdmin && (
-                    <button onClick={() => openTargetEdit(hunter)}
-                      className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition text-slate-500 hover:text-white">
-                      <Edit2 size={11} />
-                    </button>
-                  )}
-                  <div className="text-xs text-slate-400 font-medium truncate pr-4">{hunter.name}</div>
-                  <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
-                  <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
-                  <div className="mt-2 h-1 rounded-full" style={{ background: "var(--surface2)" }}>
-                    <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
+          <>
+            {/* Admin: all hunters grid */}
+            {isAdmin && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {displayHunters.map(hunter => {
+                  const hunterClosings = closings.filter(c =>
+                    c.user_id === hunter.id ||
+                    (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
+                  )
+                  const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                  const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                  const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
+                  return (
+                    <div key={hunter.id} className="rounded-xl p-3 relative group"
+                      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                      <button onClick={() => openTargetEdit(hunter)}
+                        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition text-slate-500 hover:text-white">
+                        <Edit2 size={11} />
+                      </button>
+                      <div className="text-xs text-slate-400 font-medium truncate pr-4">{hunter.name}</div>
+                      <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
+                      <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
+                      <div className="mt-2 h-1 rounded-full" style={{ background: "var(--surface2)" }}>
+                        <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
+                      </div>
+                      <div className={`text-xs font-bold mt-1 ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
+                        {pct}%
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Hunter login: aggregate card + SP breakdown */}
+            {isHunterLogin && (
+              <div className="space-y-3">
+                {displayHunters.map(hunter => {
+                  const total = closings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                  const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                  const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
+                  return (
+                    <div key={hunter.id} className="rounded-xl p-4"
+                      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className="text-xs text-slate-500">Tim {hunter.name}</div>
+                          <div className="text-lg font-black text-white">{formatRupiah(total)}</div>
+                        </div>
+                        <div className={`text-xl font-black ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
+                          {pct}%
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-600 mb-2">Target: {formatRupiah(hunter.monthly_target)}</div>
+                      <div className="h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
+                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
+                      </div>
+                    </div>
+                  )
+                })}
+                {currentHunterGroup && currentHunterGroup.spNames.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {currentHunterGroup.spNames.map(spName => {
+                      const spOmset = filtered.filter(c => (c.sales_person || "").toLowerCase() === spName.toLowerCase())
+                        .reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                      return (
+                        <div key={spName} className="rounded-xl p-3"
+                          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                          <div className="text-xs text-slate-400 font-medium truncate">{spName}</div>
+                          <div className="text-base font-black text-white mt-1">{formatRupiah(spOmset)}</div>
+                          <div className="text-xs text-slate-600 mt-0.5">Sales Person</div>
+                        </div>
+                      )
+                    })}
                   </div>
-                  <div className={`text-xs font-bold mt-1 ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
-                    {pct}%
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                )}
+              </div>
+            )}
+
+            {/* SP login: show hunter card only */}
+            {!isAdmin && !isHunterLogin && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {displayHunters.map(hunter => {
+                  const hunterClosings = closings.filter(c =>
+                    c.user_id === hunter.id ||
+                    (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
+                  )
+                  const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                  const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                  const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
+                  return (
+                    <div key={hunter.id} className="rounded-xl p-3"
+                      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                      <div className="text-xs text-slate-400 font-medium truncate">{hunter.name}</div>
+                      <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
+                      <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
+                      <div className="mt-2 h-1 rounded-full" style={{ background: "var(--surface2)" }}>
+                        <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
+                      </div>
+                      <div className={`text-xs font-bold mt-1 ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
+                        {pct}%
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Filters */}
@@ -482,37 +564,38 @@ export default function ClosingPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Konsumen</th>
-                  {isAdmin && <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Hunter</th>}
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Sales Person</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Project</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Unit</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Nilai HJR</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Cara Bayar</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Tgl Closing</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Aksi</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Hunter</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Sales</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Konsumen</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Project</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Unit</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Nilai Omset</th>
+                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Cara Bayar</th>
+                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Closing</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Catatan</th>
+                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-600 text-xs">
+                  <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">
                     Belum ada closing {getMonthName(month)} {year}
                   </td></tr>
                 ) : filtered.map(c => (
                   <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}
                     className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.sales_hunter || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.sales_person || "—"}</td>
                     <td className="px-4 py-3 font-medium text-white text-xs">{c.name}</td>
-                    {isAdmin && <td className="px-4 py-3 text-xs text-slate-400">{c.sales_hunter || "—"}</td>}
-                    <td className="px-4 py-3 text-xs text-slate-400">{c.sales_person || "—"}</td>
                     <td className="px-4 py-3">
                       {c.project
                         ? <span className={`text-xs px-2 py-0.5 rounded-full ${projColor(c.project)}`}>{c.project}</span>
                         : <span className="text-xs text-slate-600">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{c.unit || "—"}</td>
-                    <td className="px-4 py-3 text-right text-xs font-semibold text-green-400">
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.unit || "—"}</td>
+                    <td className="px-4 py-3 text-right text-xs font-semibold text-green-400 whitespace-nowrap">
                       {formatRupiah(c.nilai_hjr || 0)}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -520,7 +603,8 @@ export default function ClosingPage() {
                         ? <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">{c.cara_bayar}</span>
                         : <span className="text-xs text-slate-600">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-center text-xs text-slate-400">{c.closing_date}</td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-400 whitespace-nowrap">{c.closing_date}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[120px] truncate">{c.notes || "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => openEdit(c)}

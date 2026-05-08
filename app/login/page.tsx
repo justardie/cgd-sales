@@ -1,12 +1,12 @@
 "use client"
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { loginUser, saveSession } from '@/lib/auth'
 import { useAuth } from '@/contexts/AuthContext'
 
 const TEAM_MEMBERS = [
   'Ardie',
-  'Roy Ferdinand H.',
   'Lyndon Sumarli',
   'Jimmy Darmadi',
   'Firyal Badriyyah',
@@ -16,7 +16,7 @@ const TEAM_MEMBERS = [
   'Andre',
   'Prediman',
   'Ellen',
-  'Asun',
+  'Rika Sanusi',
 ]
 
 export default function LoginPage() {
@@ -47,9 +47,11 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-xs font-semibold tracking-widest text-blue-400 uppercase mb-1">PT Central Group Development</div>
-          <h1 className="text-2xl font-bold text-white">MASCOL Division</h1>
-          <div className="text-sm text-slate-500 mt-1">Weekly Report Dashboard</div>
+          <div className="flex justify-center mb-4">
+            <Image src="/logo.png" alt="Central Group" width={220} height={82} style={{ objectFit: 'contain' }} priority />
+          </div>
+          <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest">MASCOL Division</div>
+          <div className="text-xs text-slate-500 mt-1">Weekly Report Dashboard</div>
         </div>
 
         {/* Card */}

@@ -265,64 +265,57 @@ export default function PipelinePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                  {isAdmin && <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Hunter</th>}
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">SP</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Hunter</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Sales</th>
                   <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Konsumen</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Proyek / Unit</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Potensi</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Project</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Unit</th>
+                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Nilai Potensi</th>
                   <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Cara Bayar</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Tgl Visit</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Visit</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Catatan</th>
                   <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
-                ) : filtered.slice(0, 100).map(r => {
-                  const badge = statusBadge(r.status)
-                  return (
-                    <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}
-                      className="hover:bg-white/[0.02]">
-                      {isAdmin && (
-                        <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_hunter || "—"}</td>
-                      )}
-                      <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_person || "—"}</td>
-                      <td className="px-4 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
-                        {r.project}{r.unit ? ` · ${r.unit}` : ""}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-300 text-xs whitespace-nowrap">
-                        {r.potensi_closing ? formatRupiah(Number(r.potensi_closing)) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-center text-xs text-slate-400 whitespace-nowrap">
-                        {r.cara_bayar || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-center text-slate-500 text-xs whitespace-nowrap">
-                        {r.visit_date || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${badge.color}`}>
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => openEdit(r)}
-                            className="text-xs text-blue-400 hover:text-blue-300 transition">
-                            Edit
-                          </button>
-                          <button onClick={() => openClosingConfirm(r)}
-                            className="text-xs text-green-400 hover:text-green-300 transition whitespace-nowrap">
-                            Closing
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
+                ) : filtered.slice(0, 100).map(r => (
+                  <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}
+                    className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_hunter || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_person || "—"}</td>
+                    <td className="px-4 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.project || "—"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.unit || "—"}</td>
+                    <td className="px-4 py-3 text-right text-slate-300 text-xs whitespace-nowrap">
+                      {r.potensi_closing ? formatRupiah(Number(r.potensi_closing)) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-400 whitespace-nowrap">
+                      {r.cara_bayar || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center text-slate-500 text-xs whitespace-nowrap">
+                      {r.visit_date || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500 max-w-[150px] truncate">
+                      {r.notes || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <button onClick={() => openEdit(r)}
+                          className="text-xs text-blue-400 hover:text-blue-300 transition">
+                          Edit
+                        </button>
+                        <button onClick={() => openClosingConfirm(r)}
+                          className="text-xs text-green-400 hover:text-green-300 transition whitespace-nowrap">
+                          Closing
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

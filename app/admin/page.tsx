@@ -12,7 +12,7 @@ import { HUNTER_GROUPS } from "@/lib/hunters"
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-md rounded-xl relative" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <div className="w-full max-w-md rounded-xl relative max-h-[90vh] overflow-y-auto" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={16} /></button>
         {children}
       </div>
@@ -31,12 +31,12 @@ export default function AdminPage() {
   const [transferTarget, setTransferTarget] = useState<User | null>(null)
   const [transferHunter, setTransferHunter] = useState("")
   const [saving, setSaving] = useState(false)
-  const [tab, setTab] = useState<"users" | "targets">("users")
 
   const [form, setForm] = useState({
     name: "",
     role: "hunter",
     hunter_name: "",
+    monthly_target: "",
     win_or_die_target: "",
     visit_target: "40",
   })
@@ -55,7 +55,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", hunter_name: "", win_or_die_target: "", visit_target: "40" })
+    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", visit_target: "40" })
     setShowModal(true)
   }
 
@@ -66,6 +66,7 @@ export default function AdminPage() {
       role: u.role,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       hunter_name: (u as any).hunter_name || "",
+      monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
       visit_target: u.visit_target.toString(),
     })
@@ -82,11 +83,12 @@ export default function AdminPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    const isHunterRole = form.role === "hunter"
     const payload: Record<string, unknown> = {
       name: form.name,
       role: form.role as Role,
-      monthly_target: editing ? editing.monthly_target : 0,
-      win_or_die_target: Number(form.win_or_die_target) || 0,
+      monthly_target: isHunterRole ? (Number(form.monthly_target) || 0) : (editing ? editing.monthly_target : 0),
+      win_or_die_target: isHunterRole ? (Number(form.win_or_die_target) || 0) : 0,
       visit_target: Number(form.visit_target) || 40,
     }
     if (form.role === "sales_person") {
@@ -135,144 +137,73 @@ export default function AdminPage() {
             </h1>
             <p className="text-sm text-slate-500 mt-0.5">Manajemen user & target</p>
           </div>
-          {tab === "users" && (
-            <button onClick={openNew}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
-              <Plus size={14} /> Tambah User
-            </button>
-          )}
+          <button onClick={openNew}
+            className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
+            <Plus size={14} /> Tambah User
+          </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2">
-          {[
-            { key: "users", label: "User Management" },
-            { key: "targets", label: "Target Bulanan" },
-          ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key as "users" | "targets")}
-              className={`text-xs px-4 py-2 rounded-lg transition ${tab === t.key ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
-              style={tab !== t.key ? { background: "var(--surface)", border: "1px solid var(--border)" } : {}}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Users Table */}
-        {tab === "users" && (
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Role</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Hunter</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">WoD</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Status</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Aksi</th>
+        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+                <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
+                <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Role</th>
+                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Omset</th>
+                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">WoD</th>
+                <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Status</th>
+                <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+              ) : users.map(u => (
+                <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 font-medium text-white">{u.name}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      u.role === "admin"        ? "bg-purple-500/20 text-purple-400" :
+                      u.role === "hunter"       ? "bg-blue-500/20 text-blue-400" :
+                      u.role === "sales_person" ? "bg-green-500/20 text-green-400" :
+                                                  "bg-slate-500/20 text-slate-400"
+                    }`}>
+                      {u.role === "hunter" ? "Sales Hunter" : u.role === "sales_person" ? "Sales Person" : u.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-slate-400">
+                    {u.role === "hunter" ? formatRupiah(u.monthly_target) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-slate-400">
+                    {u.role === "hunter" ? formatRupiah(u.win_or_die_target) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${u.status === "active" ? "bg-green-500/20 text-green-400" : "bg-slate-500/20 text-slate-400"}`}>
+                      {u.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => openEdit(u)} className="text-blue-400 hover:text-blue-300 transition" title="Edit">
+                        <Edit2 size={13} />
+                      </button>
+                      {u.role === "sales_person" && (
+                        <button onClick={() => openTransfer(u)} className="text-orange-400 hover:text-orange-300 transition" title="Pindah Tim">
+                          <ArrowRightLeft size={13} />
+                        </button>
+                      )}
+                      <button onClick={() => toggleStatus(u)}
+                        className={`transition ${u.status === "active" ? "text-slate-500 hover:text-red-400" : "text-slate-500 hover:text-green-400"}`}
+                        title={u.status === "active" ? "Nonaktifkan" : "Aktifkan"}>
+                        {u.status === "active" ? <UserX size={13} /> : <UserCheck size={13} />}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
-                ) : users.map(u => (
-                  <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 font-medium text-white">{u.name}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        u.role === "admin"        ? "bg-purple-500/20 text-purple-400" :
-                        u.role === "hunter"       ? "bg-blue-500/20 text-blue-400" :
-                        u.role === "sales_person" ? "bg-green-500/20 text-green-400" :
-                                                    "bg-slate-500/20 text-slate-400"
-                      }`}>
-                        {u.role === "hunter" ? "Sales Hunter" : u.role === "sales_person" ? "Sales Person" : u.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {u.role === "sales_person" ? ((u as any).hunter_name || "—") : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs text-slate-400">{formatRupiah(u.monthly_target)}</td>
-                    <td className="px-4 py-3 text-right text-xs text-slate-400">{formatRupiah(u.win_or_die_target)}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${u.status === "active" ? "bg-green-500/20 text-green-400" : "bg-slate-500/20 text-slate-400"}`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openEdit(u)} className="text-blue-400 hover:text-blue-300 transition" title="Edit">
-                          <Edit2 size={13} />
-                        </button>
-                        {u.role === "sales_person" && (
-                          <button onClick={() => openTransfer(u)} className="text-orange-400 hover:text-orange-300 transition" title="Pindah Tim">
-                            <ArrowRightLeft size={13} />
-                          </button>
-                        )}
-                        <button onClick={() => toggleStatus(u)}
-                          className={`transition ${u.status === "active" ? "text-slate-500 hover:text-red-400" : "text-slate-500 hover:text-green-400"}`}
-                          title={u.status === "active" ? "Nonaktifkan" : "Aktifkan"}>
-                          {u.status === "active" ? <UserX size={13} /> : <UserCheck size={13} />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Targets Tab */}
-        {tab === "targets" && (
-          <div className="space-y-3">
-            <p className="text-xs text-slate-500">Target individu diedit langsung di data user. Klik Edit di tab User Management.</p>
-            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                    <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Hunter</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Omset/bln</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Win-or-Die</th>
-                    <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Visit/bln</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.filter(u => u.status === "active").map(u => (
-                    <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
-                      <td className="px-4 py-3 font-medium text-white">{u.name}</td>
-                      <td className="px-4 py-3 text-right text-slate-300">{formatRupiah(u.monthly_target)}</td>
-                      <td className="px-4 py-3 text-right text-slate-300">{formatRupiah(u.win_or_die_target)}</td>
-                      <td className="px-4 py-3 text-right text-slate-300">{u.visit_target}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  {(() => {
-                    const active = users.filter(u => u.status === "active")
-                    const totalVisit = active.reduce((s, u) => s + (u.visit_target || 0), 0)
-                    return (
-                      <tr style={{ background: "var(--surface2)", borderTop: "1px solid var(--border)" }}>
-                        <td className="px-4 py-2.5 text-xs font-semibold text-slate-400">
-                          Total Tim ({active.length} orang)
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-white">
-                          {formatRupiah(active.reduce((s, u) => s + u.monthly_target, 0))}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-white">
-                          {formatRupiah(active.reduce((s, u) => s + u.win_or_die_target, 0))}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-white">
-                          {totalVisit} visit
-                        </td>
-                      </tr>
-                    )
-                  })()}
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add/Edit User Modal */}
@@ -299,7 +230,7 @@ export default function AdminPage() {
               </div>
               {form.role === "sales_person" && (
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Masuk ke Tim Hunter</label>
+                  <label className="text-xs text-slate-500 block mb-1">Tim Hunter</label>
                   <select value={form.hunter_name} onChange={e => setForm(f => ({ ...f, hunter_name: e.target.value }))} required
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -310,14 +241,24 @@ export default function AdminPage() {
                   </select>
                 </div>
               )}
+              {form.role === "hunter" && (
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Target Omset/bulan (Rp)</label>
+                  <input type="number" value={form.monthly_target} onChange={e => setForm(f => ({ ...f, monthly_target: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+              )}
+              {form.role === "hunter" && (
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Win-or-Die (Rp)</label>
+                  <input type="number" value={form.win_or_die_target} onChange={e => setForm(f => ({ ...f, win_or_die_target: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+              )}
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Win-or-Die (Rp)</label>
-                <input type="number" value={form.win_or_die_target} onChange={e => setForm(f => ({ ...f, win_or_die_target: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Target Visit/bln</label>
+                <label className="text-xs text-slate-500 block mb-1">Target Visit/bulan</label>
                 <input type="number" value={form.visit_target} onChange={e => setForm(f => ({ ...f, visit_target: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />

@@ -101,8 +101,8 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     ],
   },
   {
-    name: "Rika Sanusi (Asun)",
-    dbName: "Asun",
+    name: "Rika Sanusi",
+    dbName: "Rika Sanusi",
     hasAgent: false,
     spNames: ["Santoso", "Sentia Julika", "Rio Pratama", "Eka Vitria Lestari"],
   },

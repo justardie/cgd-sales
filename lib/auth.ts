@@ -1,16 +1,23 @@
 ﻿import { supabase } from './supabase'
 import { AuthUser } from '@/types'
 
-export async function loginUser(name: string): Promise<AuthUser | null> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, name, role, status')
-    .ilike('name', name.trim())
-    .eq('status', 'active')
-    .single()
+// Fallback aliases for renamed users — tries each variant until one matches the DB
+const NAME_ALIASES: Record<string, string[]> = {
+  'Rika Sanusi': ['Rika Sanusi', 'Asun', 'Rika Sanusi (Asun)'],
+}
 
-  if (error || !data) return null
-  return { id: data.id, name: data.name, role: data.role, status: data.status }
+export async function loginUser(name: string): Promise<AuthUser | null> {
+  const namesToTry = NAME_ALIASES[name] ?? [name]
+  for (const n of namesToTry) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, role, status')
+      .ilike('name', n.trim())
+      .eq('status', 'active')
+      .single()
+    if (!error && data) return { id: data.id, name: data.name, role: data.role, status: data.status }
+  }
+  return null
 }
 
 export function saveSession(user: AuthUser) {
