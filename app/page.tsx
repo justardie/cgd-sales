@@ -110,12 +110,22 @@ export default function OverviewPage() {
       ])
 
       const nameToUser: Record<string, { id: string; monthly_target: number; win_or_die_target: number; visit_target: number }> = {}
-      ;(usersRes.data || []).forEach(u => { nameToUser[u.name] = u })
+      ;(usersRes.data || []).forEach(u => {
+        nameToUser[u.name] = u
+        nameToUser[u.name.toLowerCase()] = u
+      })
 
       // All roles see ALL hunters on Overview
       const list: HunterStat[] = HUNTER_GROUPS
         .map(group => {
           const hu = nameToUser[group.dbName]
+            ?? nameToUser[group.dbName.toLowerCase()]
+            ?? nameToUser[group.name]
+            ?? nameToUser[group.name.toLowerCase()]
+            ?? (usersRes.data || []).find(u =>
+                u.name.toLowerCase().includes(group.dbName.toLowerCase()) ||
+                group.dbName.toLowerCase().includes(u.name.toLowerCase())
+              )
           if (!hu) return null
 
           const omset_mtd  = (closingsMtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)

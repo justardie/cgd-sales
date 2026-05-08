@@ -46,12 +46,12 @@ export default function ActivitiesPage() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    assigned_to: user?.id || "",
+    assignedHunters: [] as string[],
     deadline: "",
     priority: "medium",
   })
 
-  useEffect(() => { if (user) { setForm(f => ({ ...f, assigned_to: user.id })); fetchData() } }, [user])
+  useEffect(() => { if (user) fetchData() }, [user])
 
   async function fetchData() {
     setLoading(true)
@@ -71,18 +71,21 @@ export default function ActivitiesPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from("tasks").insert({
-      title: form.title,
-      description: form.description || null,
-      assigned_to: form.assigned_to || user!.id,
-      created_by: user!.id,
-      deadline: form.deadline || null,
-      priority: form.priority,
-      status: "pending",
-    })
+    const targets = form.assignedHunters.length > 0 ? form.assignedHunters : [user!.id]
+    await supabase.from("tasks").insert(
+      targets.map(id => ({
+        title: form.title,
+        description: form.description || null,
+        assigned_to: id,
+        created_by: user!.id,
+        deadline: form.deadline || null,
+        priority: form.priority,
+        status: "pending",
+      }))
+    )
     setSaving(false)
     setShowModal(false)
-    setForm(f => ({ ...f, title: "", description: "", deadline: "" }))
+    setForm(f => ({ ...f, title: "", description: "", assignedHunters: [], deadline: "" }))
     fetchData()
   }
 
@@ -239,13 +242,31 @@ export default function ActivitiesPage() {
               </div>
               {isAdmin && (
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Hunter (Assign ke)</label>
-                  <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  <label className="text-xs text-slate-500 block mb-1">
+                    Assign ke Sales Hunter
+                    {form.assignedHunters.length > 0 && (
+                      <span className="ml-2 text-blue-400">({form.assignedHunters.length} dipilih)</span>
+                    )}
+                  </label>
+                  <div className="rounded-lg p-2 space-y-1 max-h-40 overflow-y-auto"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <option value={user!.id}>Saya (Admin)</option>
-                    {users.filter(u => u.role !== "admin").map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
+                    {users.filter(u => u.role === "hunter").map(u => (
+                      <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-white/5 transition">
+                        <input
+                          type="checkbox"
+                          checked={form.assignedHunters.includes(u.id)}
+                          onChange={e => setForm(f => ({
+                            ...f,
+                            assignedHunters: e.target.checked
+                              ? [...f.assignedHunters, u.id]
+                              : f.assignedHunters.filter(id => id !== u.id),
+                          }))}
+                          className="accent-blue-500"
+                        />
+                        <span className="text-sm text-white">{u.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
               <div>
