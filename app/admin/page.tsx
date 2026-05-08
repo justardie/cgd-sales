@@ -5,8 +5,9 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
-import { Shield, Plus, X, Edit2, UserX, UserCheck } from "lucide-react"
-import type { User } from "@/types"
+import { Shield, Plus, X, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide-react"
+import type { User, Role } from "@/types"
+import { HUNTER_GROUPS } from "@/lib/hunters"
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
@@ -25,13 +26,17 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
   const [editing, setEditing] = useState<User | null>(null)
+  const [transferTarget, setTransferTarget] = useState<User | null>(null)
+  const [transferHunter, setTransferHunter] = useState("")
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<"users" | "targets">("users")
 
   const [form, setForm] = useState({
     name: "",
     role: "hunter",
+    hunter_name: "",
     win_or_die_target: "",
     visit_target: "40",
   })
@@ -50,7 +55,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", win_or_die_target: "", visit_target: "40" })
+    setForm({ name: "", role: "hunter", hunter_name: "", win_or_die_target: "", visit_target: "40" })
     setShowModal(true)
   }
 
@@ -59,21 +64,33 @@ export default function AdminPage() {
     setForm({
       name: u.name,
       role: u.role,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      hunter_name: (u as any).hunter_name || "",
       win_or_die_target: u.win_or_die_target.toString(),
       visit_target: u.visit_target.toString(),
     })
     setShowModal(true)
   }
 
+  function openTransfer(u: User) {
+    setTransferTarget(u)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setTransferHunter((u as any).hunter_name || "")
+    setShowTransferModal(true)
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: form.name,
-      role: form.role as "admin" | "hunter",
+      role: form.role as Role,
       monthly_target: editing ? editing.monthly_target : 0,
       win_or_die_target: Number(form.win_or_die_target) || 0,
       visit_target: Number(form.visit_target) || 40,
+    }
+    if (form.role === "sales_person") {
+      payload.hunter_name = form.hunter_name
     }
     if (editing) {
       await supabase.from("users").update(payload).eq("id", editing.id)
@@ -82,6 +99,17 @@ export default function AdminPage() {
     }
     setSaving(false)
     setShowModal(false)
+    fetchData()
+  }
+
+  async function handleTransfer(e: React.FormEvent) {
+    e.preventDefault()
+    if (!transferTarget) return
+    setSaving(true)
+    await supabase.from("users").update({ hunter_name: transferHunter }).eq("id", transferTarget.id)
+    setSaving(false)
+    setShowTransferModal(false)
+    setTransferTarget(null)
     fetchData()
   }
 
@@ -110,7 +138,7 @@ export default function AdminPage() {
           {tab === "users" && (
             <button onClick={openNew}
               className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
-              <Plus size={14} /> Tambah Hunter
+              <Plus size={14} /> Tambah User
             </button>
           )}
         </div>
@@ -137,6 +165,7 @@ export default function AdminPage() {
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                   <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
                   <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Role</th>
+                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Hunter</th>
                   <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target</th>
                   <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">WoD</th>
                   <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Status</th>
@@ -145,14 +174,23 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : users.map(u => (
                   <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                     <td className="px-4 py-3 font-medium text-white">{u.name}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${u.role === "admin" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}`}>
-                        {u.role}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        u.role === "admin"        ? "bg-purple-500/20 text-purple-400" :
+                        u.role === "hunter"       ? "bg-blue-500/20 text-blue-400" :
+                        u.role === "sales_person" ? "bg-green-500/20 text-green-400" :
+                                                    "bg-slate-500/20 text-slate-400"
+                      }`}>
+                        {u.role === "hunter" ? "Sales Hunter" : u.role === "sales_person" ? "Sales Person" : u.role}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {u.role === "sales_person" ? ((u as any).hunter_name || "—") : "—"}
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-slate-400">{formatRupiah(u.monthly_target)}</td>
                     <td className="px-4 py-3 text-right text-xs text-slate-400">{formatRupiah(u.win_or_die_target)}</td>
@@ -166,6 +204,11 @@ export default function AdminPage() {
                         <button onClick={() => openEdit(u)} className="text-blue-400 hover:text-blue-300 transition" title="Edit">
                           <Edit2 size={13} />
                         </button>
+                        {u.role === "sales_person" && (
+                          <button onClick={() => openTransfer(u)} className="text-orange-400 hover:text-orange-300 transition" title="Pindah Tim">
+                            <ArrowRightLeft size={13} />
+                          </button>
+                        )}
                         <button onClick={() => toggleStatus(u)}
                           className={`transition ${u.status === "active" ? "text-slate-500 hover:text-red-400" : "text-slate-500 hover:text-green-400"}`}
                           title={u.status === "active" ? "Nonaktifkan" : "Aktifkan"}>
@@ -210,10 +253,11 @@ export default function AdminPage() {
         )}
       </div>
 
+      {/* Add/Edit User Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
           <div className="p-5">
-            <h3 className="text-sm font-semibold text-white mb-4">{editing ? `Edit: ${editing.name}` : "Tambah Hunter Baru"}</h3>
+            <h3 className="text-sm font-semibold text-white mb-4">{editing ? `Edit: ${editing.name}` : "Tambah User Baru"}</h3>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Nama Lengkap</label>
@@ -227,9 +271,23 @@ export default function AdminPage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="hunter">Sales Hunter</option>
+                  <option value="sales_person">Sales Person</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
+              {form.role === "sales_person" && (
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Masuk ke Tim Hunter</label>
+                  <select value={form.hunter_name} onChange={e => setForm(f => ({ ...f, hunter_name: e.target.value }))} required
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="">— Pilih Hunter —</option>
+                    {HUNTER_GROUPS.map(h => (
+                      <option key={h.dbName} value={h.dbName}>{h.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Win-or-Die (Rp)</label>
                 <input type="number" value={form.win_or_die_target} onChange={e => setForm(f => ({ ...f, win_or_die_target: e.target.value }))}
@@ -251,6 +309,43 @@ export default function AdminPage() {
                 <button type="submit" disabled={saving}
                   className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
                   {saving ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+
+      {/* Transfer SP Modal */}
+      {showTransferModal && transferTarget && (
+        <Modal onClose={() => { setShowTransferModal(false); setTransferTarget(null) }}>
+          <div className="p-5">
+            <h3 className="text-sm font-semibold text-white mb-1">Pindah Tim</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Pindahkan <span className="text-white font-medium">{transferTarget.name}</span> ke tim hunter lain
+            </p>
+            <form onSubmit={handleTransfer} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Tim Hunter Tujuan</label>
+                <select value={transferHunter} onChange={e => setTransferHunter(e.target.value)} required
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <option value="">— Pilih Hunter —</option>
+                  {HUNTER_GROUPS.map(h => (
+                    <option key={h.dbName} value={h.dbName}>{h.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => { setShowTransferModal(false); setTransferTarget(null) }}
+                  className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  Batal
+                </button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white transition"
+                  style={{ background: "#E84500" }}>
+                  {saving ? "Memindahkan..." : "Pindahkan"}
                 </button>
               </div>
             </form>

@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { Plus, X, AlertCircle, Clock, CheckCircle2, Circle, Trash2 } from "lucide-react"
+import { Plus, X, AlertCircle, Clock, CheckCircle2, Circle, Trash2, Target } from "lucide-react"
 import type { Activity, User } from "@/types"
 
 const PRIORITIES = [
@@ -34,11 +34,14 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 export default function ActivitiesPage() {
   const { user, isAdmin } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [wigs, setWigs] = useState<any[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
+  const [taskError, setTaskError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: "",
@@ -52,11 +55,15 @@ export default function ActivitiesPage() {
 
   async function fetchData() {
     setLoading(true)
-    const [actRes, usersRes] = await Promise.all([
-      supabase.from("activities").select("*").order("deadline", { ascending: true }),
+    setTaskError(null)
+    const [actRes, wigRes, usersRes] = await Promise.all([
+      supabase.from("task").select("*").order("deadline", { ascending: true }),
+      supabase.from("wig").select("*").order("created_at", { ascending: false }),
       supabase.from("users").select("id,name").eq("status", "active"),
     ])
-    setActivities(actRes.data || [])
+    if (actRes.error) setTaskError(actRes.error.message)
+    setActivities((actRes.data || []) as Activity[])
+    setWigs(wigRes.data || [])
     setUsers(usersRes.data as User[] || [])
     setLoading(false)
   }
@@ -64,7 +71,7 @@ export default function ActivitiesPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from("activities").insert({
+    await supabase.from("task").insert({
       title: form.title,
       description: form.description || null,
       assigned_to: form.assigned_to || user!.id,
@@ -80,13 +87,13 @@ export default function ActivitiesPage() {
   }
 
   async function updateStatus(id: string, status: string) {
-    await supabase.from("activities").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
+    await supabase.from("task").update({ status, updated_at: new Date().toISOString() }).eq("id", id)
     fetchData()
   }
 
   async function deleteActivity(id: string) {
     if (!confirm("Hapus task ini?")) return
-    await supabase.from("activities").delete().eq("id", id)
+    await supabase.from("task").delete().eq("id", id)
     fetchData()
   }
 
@@ -113,6 +120,12 @@ export default function ActivitiesPage() {
           )}
         </div>
 
+        {taskError && (
+          <div className="text-xs p-3 rounded-lg bg-red-500/10 text-red-400">
+            Gagal memuat task: {taskError}
+          </div>
+        )}
+
         {/* Status tabs */}
         <div className="flex gap-2 flex-wrap">
           {[
@@ -130,10 +143,10 @@ export default function ActivitiesPage() {
           ))}
         </div>
 
-        {/* Activity Cards */}
+        {/* Task Cards */}
         {loading ? (
           <div className="text-center py-8 text-slate-600 text-sm">Memuat...</div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && !taskError ? (
           <div className="text-center py-12 text-slate-600 text-sm">Tidak ada task</div>
         ) : (
           <div className="space-y-2">
@@ -182,6 +195,32 @@ export default function ActivitiesPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* WIG Section */}
+        {wigs.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Target size={14} style={{ color: "#E84500" }} />
+              <h2 className="text-sm font-semibold text-white">WIG — Wildly Important Goals</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {wigs.map((w, i) => {
+                const keys = Object.keys(w).filter(k => !["id", "created_at", "updated_at"].includes(k))
+                return (
+                  <div key={w.id || i} className="rounded-xl p-4"
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    {keys.map(k => (
+                      <div key={k} className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs text-slate-500 capitalize">{k.replace(/_/g, " ")}</span>
+                        <span className="text-xs font-medium text-white">{String(w[k] ?? "—")}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

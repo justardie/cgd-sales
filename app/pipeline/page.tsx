@@ -118,7 +118,7 @@ export default function PipelinePage() {
   async function fetchData() {
     setLoading(true)
     setFetchError(null)
-    const { data, error } = await supabase.from("pipeline").select("*").order("ts", { ascending: false })
+    const { data, error } = await supabase.from("potensi_closing").select("*").order("ts", { ascending: false })
     if (error) {
       console.error("Pipeline fetch error:", error)
       setFetchError(error.message)
@@ -180,7 +180,7 @@ export default function PipelinePage() {
       year: d.getFullYear(),
       salesname: closingForm.salesname || null,
     })
-    await supabase.from("pipeline").update({ status: "closed_won" }).eq("id", closingForm.pipeline_id)
+    await supabase.from("potensi_closing").update({ status: "closed_won" }).eq("id", closingForm.pipeline_id)
     setSavingClosing(false)
     setShowClosingModal(false)
     fetchData()
@@ -225,9 +225,9 @@ export default function PipelinePage() {
       dateadded: new Date().toISOString().slice(0, 10),
     }
     if (editing) {
-      await supabase.from("pipeline").update(payload).eq("id", editing.id)
+      await supabase.from("potensi_closing").update(payload).eq("id", editing.id)
     } else {
-      await supabase.from("pipeline").insert(payload)
+      await supabase.from("potensi_closing").insert(payload)
     }
     setSaving(false)
     setShowModal(false)

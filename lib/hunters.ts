@@ -38,7 +38,6 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     dbName: "Aida (Rosmaida)",
     hasAgent: false,
     spNames: [
-      "Achmad Rian",
       "M. Fadjri Saputra",
       "Lenni Natalia",
       "Seprita Rahma",
@@ -55,7 +54,6 @@ export const HUNTER_GROUPS: HunterGroup[] = [
       "Rosa Dwi Vanesa",
       "Abel Shevcenko",
       "Noer Roelloh",
-      "Muhammad Rayyan",
       "Ela Magdalena Andrint",
     ],
   },
