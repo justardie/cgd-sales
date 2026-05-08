@@ -37,30 +37,38 @@ const PROJECT_LABELS: { key: string; match: RegExp }[] = [
   { key: "SCC-VS",   match: /SCC.?VS/i },
 ]
 
-/* ─── Arc Gauge SVG ─────────────────────────────── */
-function ArcGauge({ pct: p, color }: { pct: number; color: string }) {
-  const r = 40, cx = 50, cy = 50
-  const clamped = Math.min(1, Math.max(0, p))
+/* ─── Speedometer SVG ───────────────────────────── */
+function Speedometer({ pct: p, color }: { pct: number; color: string }) {
+  const r = 38, cx = 52, cy = 50, sw = 10
+  const clamped = Math.min(0.999, Math.max(0.001, p))
+  // Track: full semicircle CCW (sweep=0) left→top→right
   const track = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`
-  const angle = Math.PI - clamped * Math.PI
-  const ex = cx + r * Math.cos(angle)
-  const ey = cy - r * Math.sin(angle)
-  const valuePath = clamped > 0.01
-    ? `M ${cx - r} ${cy} A ${r} ${r} 0 ${clamped > 0.5 ? 1 : 0} 0 ${ex.toFixed(2)} ${ey.toFixed(2)}`
-    : ""
+  // Value arc endpoint: angle goes from π (0%) down to 0 (100%)
+  const angle = Math.PI * (1 - clamped)
+  const ex = (cx + r * Math.cos(angle)).toFixed(2)
+  const ey = (cy - r * Math.sin(angle)).toFixed(2)
+  // large-arc ALWAYS 0 (arc ≤ 180°), sweep ALWAYS 0 (CCW = through top)
+  const valuePath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}`
+  // Tick marks at 0%, 50%, 100%
+  const ticks = [0, 0.5, 1.0].map(t => {
+    const ta = Math.PI * (1 - Math.min(0.999, t))
+    return {
+      x1: (cx + (r - 8) * Math.cos(ta)).toFixed(1),
+      y1: (cy - (r - 8) * Math.sin(ta)).toFixed(1),
+      x2: (cx + r * Math.cos(ta)).toFixed(1),
+      y2: (cy - r * Math.sin(ta)).toFixed(1),
+    }
+  })
   return (
-    <svg width="100" height="54" viewBox="0 0 100 54" style={{ overflow: "visible" }}>
-      <defs>
-        <linearGradient id={`arc-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={color} stopOpacity="0.7" />
-          <stop offset="100%" stopColor={color} />
-        </linearGradient>
-      </defs>
-      <path d={track} fill="none" stroke="rgba(0,0,0,0.09)" strokeWidth="7" strokeLinecap="round" />
-      {valuePath && (
-        <path d={valuePath} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
-          style={{ filter: `drop-shadow(0 0 4px ${color}80)` }} />
-      )}
+    <svg width="104" height="58" viewBox="0 0 104 58" style={{ overflow: "visible" }}>
+      <path d={track} fill="none" stroke={`${color}18`} strokeWidth={sw} strokeLinecap="round" />
+      <path d={valuePath} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
+        style={{ filter: `drop-shadow(0 0 5px ${color}60)` }} />
+      {ticks.map((t, i) => (
+        <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+          stroke={color} strokeWidth="2" strokeLinecap="round"
+          opacity={i === 1 ? 0.35 : 0.55} />
+      ))}
     </svg>
   )
 }
@@ -89,7 +97,7 @@ function GaugeCard({ label, value, sub, achievement, icon: Icon, accentColor }: 
         </div>
       </div>
       <div className="flex flex-col items-center mt-2">
-        <ArcGauge pct={p} color={col} />
+        <Speedometer pct={p} color={col} />
         <div className="font-black text-2xl -mt-1" style={{ color: col, letterSpacing: "-1px" }}>
           {pctNum}%
         </div>
@@ -277,7 +285,6 @@ export default function OverviewPage() {
   const omsetChart = hunters.map(h => ({
     name: h.name.split(" ")[0],
     "Target":    Math.round(h.monthly_target / 1_000_000),
-    "Win/Die":   Math.round(h.win_or_die_target / 1_000_000),
     "Realisasi": Math.round(h.omset_mtd / 1_000_000),
   }))
 
@@ -522,12 +529,11 @@ export default function OverviewPage() {
                       <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
                         formatter={v => <span style={{ color: "var(--text-secondary)" }}>{v}</span>} />
                       <Bar dataKey="Target"    fill="rgba(59,130,246,0.30)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Win/Die"   fill="rgba(239,68,68,0.30)" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Realisasi" radius={[4, 4, 0, 0]}>
                         {omsetChart.map((e, i) => (
                           <Cell key={i} fill={
-                            e["Realisasi"] >= e["Target"]  ? "#22c55e" :
-                            e["Realisasi"] >= e["Win/Die"] ? "#FF6A3D" : "#ef4444"
+                            e["Realisasi"] >= e["Target"] ? "#22c55e" :
+                            e["Realisasi"] >= e["Target"] * 0.7 ? "#FF6A3D" : "#ef4444"
                           } />
                         ))}
                       </Bar>
