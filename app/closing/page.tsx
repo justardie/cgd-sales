@@ -111,7 +111,7 @@ export default function ClosingPage() {
   async function fetchData() {
     setLoading(true)
     const [closingsRes, pipeRes, usersRes] = await Promise.all([
-      supabase.from("closings")
+      supabase.from("Closing")
         .select("id,user_id,konsumen_name,project,unit,closing_value,closing_date,visit_date,month,year,notes,salesname,pipeline_id,cara_bayar")
         .eq("month", month).eq("year", year)
         .order("closing_date", { ascending: false }),
@@ -143,7 +143,7 @@ export default function ClosingPage() {
     if (!form.closing_value || Number(form.closing_value) <= 0) return
     setSaving(true)
     const d = new Date(form.closing_date)
-    await supabase.from("closings").insert({
+    await supabase.from("Closing").insert({
       user_id: form.user_id || user!.id,
       pipeline_id: form.pipeline_id || null,
       konsumen_name: form.konsumen_name,
@@ -171,7 +171,7 @@ export default function ClosingPage() {
     e.preventDefault()
     if (!editingClosing) return
     setSaving(true)
-    await supabase.from("closings").update({
+    await supabase.from("Closing").update({
       konsumen_name: form.konsumen_name,
       project: form.project || null,
       unit: form.unit || null,
@@ -208,7 +208,7 @@ export default function ClosingPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Hapus data closing ini?")) return
-    await supabase.from("closings").delete().eq("id", id)
+    await supabase.from("Closing").delete().eq("id", id)
     fetchData()
   }
 

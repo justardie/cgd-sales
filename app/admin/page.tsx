@@ -247,6 +247,28 @@ export default function AdminPage() {
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  {(() => {
+                    const active = users.filter(u => u.status === "active")
+                    const totalVisit = active.reduce((s, u) => s + (u.visit_target || 0), 0)
+                    return (
+                      <tr style={{ background: "var(--surface2)", borderTop: "1px solid var(--border)" }}>
+                        <td className="px-4 py-2.5 text-xs font-semibold text-slate-400">
+                          Total Tim ({active.length} orang)
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-white">
+                          {formatRupiah(active.reduce((s, u) => s + u.monthly_target, 0))}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-white">
+                          {formatRupiah(active.reduce((s, u) => s + u.win_or_die_target, 0))}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs font-semibold text-white">
+                          {totalVisit} visit
+                        </td>
+                      </tr>
+                    )
+                  })()}
+                </tfoot>
               </table>
             </div>
           </div>

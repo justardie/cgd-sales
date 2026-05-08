@@ -4,17 +4,10 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { getMonthName, getWeekNumber } from "@/lib/utils"
-import { Upload, ChevronLeft, ChevronRight, Users } from "lucide-react"
+import { Upload, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Visit } from "@/types"
 import * as XLSX from "xlsx"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-
-const TEAM_MONTHLY_TARGET = 720
-const SP_MONTHLY_TARGET = 50
-
-const now = new Date()
-const currentWeek = getWeekNumber(now)
-const currentYear = now.getFullYear()
 
 function barColor(pct: number) {
   if (pct >= 100) return "#22c55e"
@@ -22,76 +15,87 @@ function barColor(pct: number) {
   return "#ef4444"
 }
 
-interface SpCardProps {
+interface PersonCardProps {
   name: string
   total: number
-  weekTotal: number
-  isCurrentMonth: boolean
+  target: number
+  isHunter?: boolean
 }
 
-function SpCard({ name, total, weekTotal, isCurrentMonth }: SpCardProps) {
-  const pct = Math.min(Math.round((total / SP_MONTHLY_TARGET) * 100), 100)
-  const weekPct = Math.min(Math.round((weekTotal / Math.round(SP_MONTHLY_TARGET / 4)) * 100), 100)
+function PersonCard({ name, total, target, isHunter }: PersonCardProps) {
+  const pct = target > 0 ? Math.min(Math.round((total / target) * 100), 100) : 0
   return (
-    <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-      <div className="text-xs font-semibold text-white mb-2 truncate" title={name}>{name}</div>
+    <div className="rounded-xl p-4"
+      style={{ background: "var(--surface)", border: `1px solid ${isHunter ? "rgba(234,92,0,0.35)" : "var(--border)"}` }}>
+      {isHunter ? (
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-orange-500/10 text-orange-400">SH</span>
+          <span className="text-xs font-semibold text-white truncate" title={name}>{name}</span>
+        </div>
+      ) : (
+        <div className="text-xs font-semibold text-white mb-2 truncate" title={name}>{name}</div>
+      )}
       <div className="flex items-end gap-1 mb-1">
         <span className="text-xl font-bold text-white">{total}</span>
-        <span className="text-xs text-slate-500 mb-0.5">/ {SP_MONTHLY_TARGET} visit</span>
+        <span className="text-xs text-slate-500 mb-0.5">/ {target} visit</span>
       </div>
       <div className="h-1.5 rounded-full mb-2" style={{ background: "var(--surface2)" }}>
         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: barColor(pct) }} />
       </div>
-      <div className="text-xs text-slate-500">{pct}% bulanan</div>
-      {isCurrentMonth && (
-        <div className="text-xs text-slate-600 mt-0.5">Minggu ini: {weekTotal} visit ({weekPct}%)</div>
-      )}
+      <div className={`text-xs font-semibold ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
+        {pct}% bulanan
+      </div>
     </div>
   )
 }
 
 interface HunterSectionProps {
-  hunterName: string
-  spNames: string[]
+  hunter: { name: string; dbName: string; spNames: string[] }
   visits: Visit[]
-  userMap: Record<string, string>
-  isCurrentMonth: boolean
+  userIdMap: Record<string, string>
+  userTargetMap: Record<string, number>
 }
 
-function HunterSection({ hunterName, spNames, visits, userMap, isCurrentMonth }: HunterSectionProps) {
-  const reverseMap: Record<string, string> = {}
-  for (const [id, name] of Object.entries(userMap)) reverseMap[name] = id
-
-  const hunterTotal = visits.reduce((s, v) => s + (v.count || 0), 0)
+function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSectionProps) {
+  const hunterId = userIdMap[hunter.dbName]
+  const hunterVisits = hunterId
+    ? visits.filter(v => v.user_id === hunterId).reduce((s, v) => s + (v.count || 0), 0)
+    : 0
+  const hunterTarget = hunterId ? (userTargetMap[hunterId] || 60) : 60
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Users size={14} style={{ color: "#E84500" }} />
-        <h2 className="text-sm font-semibold text-white">{hunterName}</h2>
-        <span className="text-xs text-slate-500 ml-1">{hunterTotal} visit tim bulan ini</span>
-      </div>
+      {/* Hunter card */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {spNames.map(spName => {
-          const userId = reverseMap[spName]
-          const spVisits = userId ? visits.filter(v => v.user_id === userId) : []
-          const total = spVisits.reduce((s, v) => s + (v.count || 0), 0)
-          const weekTotal = isCurrentMonth
-            ? spVisits.filter(v => v.week_number === currentWeek && v.year === currentYear).reduce((s, v) => s + (v.count || 0), 0)
-            : 0
-          return (
-            <SpCard key={spName} name={spName} total={total} weekTotal={weekTotal} isCurrentMonth={isCurrentMonth} />
-          )
-        })}
+        <PersonCard name={hunter.name} total={hunterVisits} target={hunterTarget} isHunter />
       </div>
+
+      {/* SP cards indented under hunter */}
+      {hunter.spNames.length > 0 && (
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+          style={{ paddingLeft: "1rem", borderLeft: "2px solid var(--border)" }}>
+          {hunter.spNames.map(spName => {
+            const spId = userIdMap[spName]
+            const total = spId
+              ? visits.filter(v => v.user_id === spId).reduce((s, v) => s + (v.count || 0), 0)
+              : 0
+            const target = spId ? (userTargetMap[spId] || 40) : 40
+            return <PersonCard key={spName} name={spName} total={total} target={target} />
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
+const now = new Date()
+
 export default function VisitPage() {
   const { user, isAdmin } = useAuth()
   const [visits, setVisits] = useState<Visit[]>([])
-  const [userMap, setUserMap] = useState<Record<string, string>>({})
+  const [userIdMap, setUserIdMap] = useState<Record<string, string>>({})
+  const [userTargetMap, setUserTargetMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -114,73 +118,78 @@ export default function VisitPage() {
         .select("*")
         .eq("month", month).eq("year", year)
         .order("visit_date", { ascending: false }),
-      supabase.from("users").select("id,name").eq("status", "active"),
+      supabase.from("users").select("id,name,visit_target").eq("status", "active"),
     ])
-    const allVisits = visitRes.data || []
+    const allVisits = (visitRes.data || []) as Visit[]
     setVisits(isAdmin ? allVisits : allVisits.filter(v => v.user_id === user!.id))
-    const map: Record<string, string> = {}
-    for (const u of (userRes.data || [])) map[u.id] = u.name
-    setUserMap(map)
+
+    const idMap: Record<string, string> = {}
+    const targetMap: Record<string, number> = {}
+    for (const u of (userRes.data || [])) {
+      idMap[u.name] = u.id
+      targetMap[u.id] = u.visit_target || 40
+    }
+    setUserIdMap(idMap)
+    setUserTargetMap(targetMap)
     setLoading(false)
   }
 
   async function handleExcel(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setMsg(null)
     const data = await file.arrayBuffer()
     const wb = XLSX.read(data)
-    const rows = XLSX.utils.sheet_to_json<{ tanggal?: string; tipe?: string; jumlah?: number; catatan?: string }>(
-      wb.Sheets[wb.SheetNames[0]]
-    )
-    const inserts = rows.map(r => {
-      const d = new Date(r.tanggal || Date.now())
-      return {
-        user_id: user!.id,
-        visit_date: d.toISOString().slice(0, 10),
-        visit_type: r.tipe || "konsumen",
-        count: Number(r.jumlah) || 1,
-        notes: r.catatan || null,
-        week_number: getWeekNumber(d),
-        month: d.getMonth() + 1,
-        year: d.getFullYear(),
-      }
-    })
-    const { error } = await supabase.from("visit_logs").insert(inserts)
-    if (error) setMsg({ type: "err", text: error.message })
-    else { setMsg({ type: "ok", text: `${inserts.length} visit diimport!` }); fetchData() }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = XLSX.utils.sheet_to_json<any>(wb.Sheets[wb.SheetNames[0]])
+
+    // Replace all existing records for this user + selected month/year
+    await supabase.from("visit_logs")
+      .delete()
+      .eq("user_id", user!.id)
+      .eq("month", month)
+      .eq("year", year)
+
+    const inserts = rows
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((r: Record<string, any>) => {
+        const d = new Date(r.tanggal ?? r.Tanggal ?? Date.now())
+        // VISIT = Visit Konsumen + Visit Lokasi
+        const vk = Number(r["visit_konsumen"] ?? r["Visit Konsumen"] ?? r["VISIT KONSUMEN"] ?? 0)
+        const vl = Number(r["visit_lokasi"]   ?? r["Visit Lokasi"]   ?? r["VISIT LOKASI"]   ?? 0)
+        const count = vk + vl > 0
+          ? vk + vl
+          : Number(r.jumlah ?? r.VISIT ?? r.visit ?? r.total ?? 1)
+        return {
+          user_id: user!.id,
+          visit_date: d.toISOString().slice(0, 10),
+          visit_type: "konsumen" as const,
+          count,
+          notes: (r.catatan ?? r.notes ?? null) as string | null,
+          week_number: getWeekNumber(d),
+          month: d.getMonth() + 1,
+          year: d.getFullYear(),
+        }
+      })
+      .filter((r: { count: number }) => r.count > 0)
+
+    if (inserts.length === 0) {
+      setMsg({ type: "err", text: "Tidak ada data valid di file Excel" })
+    } else {
+      const { error } = await supabase.from("visit_logs").insert(inserts)
+      if (error) setMsg({ type: "err", text: error.message })
+      else { setMsg({ type: "ok", text: `${inserts.length} baris diimport — data lama diganti` }); fetchData() }
+    }
     if (fileRef.current) fileRef.current.value = ""
   }
 
-  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
-  const monthTarget = isAdmin ? TEAM_MONTHLY_TARGET : SP_MONTHLY_TARGET
-  const weekTarget = Math.round(monthTarget / 4)
-
   const totalMonth = visits.reduce((s, v) => s + (v.count || 0), 0)
-  const totalWeek = visits.filter(v => {
-    if (!isCurrentMonth) return false
-    return v.week_number === currentWeek && v.year === currentYear
-  }).reduce((s, v) => s + (v.count || 0), 0)
-
-  const pctMonth = monthTarget > 0 ? Math.round((totalMonth / monthTarget) * 100) : 0
-  const pctWeek = weekTarget > 0 ? Math.round((totalWeek / weekTarget) * 100) : 0
+  const myTarget = user ? (userTargetMap[user.id] || 40) : 40
+  const pctMonth = myTarget > 0 ? Math.round((totalMonth / myTarget) * 100) : 0
 
   const kpiCards = [
-    { label: "Visit Bulan Ini", value: totalMonth, unit: "visit", sub: `Target ${monthTarget.toLocaleString("id-ID")}`, pct: pctMonth },
-    { label: "% Bulan", value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${monthTarget} visit`, pct: pctMonth },
-    {
-      label: "Visit Minggu Ini",
-      value: isCurrentMonth ? totalWeek : "—",
-      unit: isCurrentMonth ? "visit" : "",
-      sub: isCurrentMonth ? `Target ${weekTarget}/minggu` : "Pilih bulan saat ini",
-      pct: isCurrentMonth ? pctWeek : 0,
-    },
-    {
-      label: "% Minggu",
-      value: isCurrentMonth ? `${pctWeek}%` : "—",
-      unit: "",
-      sub: isCurrentMonth ? `${totalWeek} dari ${weekTarget} visit` : "Pilih bulan saat ini",
-      pct: isCurrentMonth ? pctWeek : 0,
-    },
+    { label: "Visit Bulan Ini", value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
+    { label: "% Bulanan", value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
   ]
 
   const hunterGroups = isAdmin
@@ -227,8 +236,8 @@ export default function VisitPage() {
           </div>
         )}
 
-        {/* 4 KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 2 KPI Cards */}
+        <div className="grid grid-cols-2 gap-4">
           {kpiCards.map((c, i) => (
             <div key={i} className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="text-xs text-slate-500 mb-1">{c.label}</div>
@@ -247,7 +256,7 @@ export default function VisitPage() {
           ))}
         </div>
 
-        {/* Per-SP Cards grouped by Hunter */}
+        {/* Per-Hunter + SP cards */}
         {loading ? (
           <div className="text-center py-8 text-slate-600 text-sm">Memuat...</div>
         ) : (
@@ -257,11 +266,10 @@ export default function VisitPage() {
             ) : hunterGroups.map(hunter => (
               <HunterSection
                 key={hunter.dbName}
-                hunterName={hunter.name}
-                spNames={hunter.spNames}
+                hunter={hunter}
                 visits={visits}
-                userMap={userMap}
-                isCurrentMonth={isCurrentMonth}
+                userIdMap={userIdMap}
+                userTargetMap={userTargetMap}
               />
             ))}
           </div>
