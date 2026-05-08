@@ -3,28 +3,31 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { Plus, X, AlertCircle, Clock, CheckCircle2, Circle, Trash2, Target } from "lucide-react"
+import { Plus, X, AlertCircle, Clock, CheckCircle2, Circle, Trash2, Target, Edit2 } from "lucide-react"
 import type { Activity, User } from "@/types"
 
 const PRIORITIES = [
-  { value: "low", label: "Low", color: "bg-slate-500/20 text-slate-400" },
-  { value: "medium", label: "Medium", color: "bg-blue-500/20 text-blue-400" },
-  { value: "high", label: "High", color: "bg-orange-500/20 text-orange-400" },
+  { value: "low",      label: "Low",      color: "bg-slate-500/20 text-slate-400" },
+  { value: "medium",   label: "Medium",   color: "bg-blue-500/20 text-blue-400" },
+  { value: "high",     label: "High",     color: "bg-orange-500/20 text-orange-400" },
   { value: "critical", label: "Critical", color: "bg-red-500/20 text-red-400" },
 ]
 
 const STATUSES = [
-  { value: "pending", label: "Pending", icon: Circle, color: "text-slate-400" },
-  { value: "in_progress", label: "In Progress", icon: Clock, color: "text-blue-400" },
-  { value: "completed", label: "Selesai", icon: CheckCircle2, color: "text-green-400" },
-  { value: "overdue", label: "Overdue", icon: AlertCircle, color: "text-red-400" },
+  { value: "pending",     label: "Pending",     icon: Circle,       color: "text-slate-400" },
+  { value: "in_progress", label: "In Progress", icon: Clock,        color: "text-blue-400" },
+  { value: "completed",   label: "Selesai",     icon: CheckCircle2, color: "text-green-400" },
+  { value: "overdue",     label: "Overdue",     icon: AlertCircle,  color: "text-red-400" },
 ]
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-md rounded-xl relative" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={16} /></button>
+      <div className="w-full max-w-md rounded-xl relative max-h-[90vh] overflow-y-auto"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
+          <X size={16} />
+        </button>
         {children}
       </div>
     </div>
@@ -39,6 +42,7 @@ export default function ActivitiesPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<Activity | null>(null)
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
   const [taskError, setTaskError] = useState<string | null>(null)
@@ -51,6 +55,15 @@ export default function ActivitiesPage() {
     priority: "medium",
   })
 
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    assigned_to: "",
+    deadline: "",
+    priority: "medium",
+    status: "pending",
+  })
+
   useEffect(() => { if (user) fetchData() }, [user])
 
   async function fetchData() {
@@ -59,7 +72,7 @@ export default function ActivitiesPage() {
     const [actRes, wigRes, usersRes] = await Promise.all([
       supabase.from("tasks").select("*").order("deadline", { ascending: true }),
       supabase.from("wig").select("*").order("created_at", { ascending: false }),
-      supabase.from("users").select("id,name").eq("status", "active"),
+      supabase.from("users").select("id,name,role").eq("status", "active"),
     ])
     if (actRes.error) setTaskError(actRes.error.message)
     setActivities((actRes.data || []) as Activity[])
@@ -85,7 +98,43 @@ export default function ActivitiesPage() {
     )
     setSaving(false)
     setShowModal(false)
-    setForm(f => ({ ...f, title: "", description: "", assignedHunters: [], deadline: "" }))
+    setForm({ title: "", description: "", assignedHunters: [], deadline: "", priority: "medium" })
+    fetchData()
+  }
+
+  function openEdit(a: Activity) {
+    setEditingTask(a)
+    setEditForm({
+      title: a.title,
+      description: a.description || "",
+      assigned_to: a.assigned_to || "",
+      deadline: a.deadline || "",
+      priority: a.priority,
+      status: a.status,
+    })
+  }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingTask) return
+    setSaving(true)
+    const payload = isAdmin
+      ? {
+          title: editForm.title,
+          description: editForm.description || null,
+          assigned_to: editForm.assigned_to || null,
+          deadline: editForm.deadline || null,
+          priority: editForm.priority,
+          status: editForm.status,
+          updated_at: new Date().toISOString(),
+        }
+      : {
+          status: editForm.status,
+          updated_at: new Date().toISOString(),
+        }
+    await supabase.from("tasks").update(payload).eq("id", editingTask.id)
+    setSaving(false)
+    setEditingTask(null)
     fetchData()
   }
 
@@ -100,10 +149,13 @@ export default function ActivitiesPage() {
     fetchData()
   }
 
+  const hunters = users.filter(u => u.role === "hunter")
   const filtered = activities.filter(a => filterStatus === "all" || a.status === filterStatus)
   const counts = { all: activities.length, pending: 0, in_progress: 0, completed: 0, overdue: 0 }
-  activities.forEach(a => { if (counts[a.status as keyof typeof counts] !== undefined) counts[a.status as keyof typeof counts]++ })
-
+  activities.forEach(a => {
+    if (counts[a.status as keyof typeof counts] !== undefined)
+      counts[a.status as keyof typeof counts]++
+  })
   const isOverdue = (a: Activity) => a.deadline && new Date(a.deadline) < new Date() && a.status !== "completed"
 
   return (
@@ -132,11 +184,11 @@ export default function ActivitiesPage() {
         {/* Status tabs */}
         <div className="flex gap-2 flex-wrap">
           {[
-            { value: "all", label: `Semua (${counts.all})` },
-            { value: "pending", label: `Pending (${counts.pending})` },
+            { value: "all",         label: `Semua (${counts.all})` },
+            { value: "pending",     label: `Pending (${counts.pending})` },
             { value: "in_progress", label: `In Progress (${counts.in_progress})` },
-            { value: "overdue", label: `Overdue (${counts.overdue})` },
-            { value: "completed", label: `Selesai (${counts.completed})` },
+            { value: "overdue",     label: `Overdue (${counts.overdue})` },
+            { value: "completed",   label: `Selesai (${counts.completed})` },
           ].map(s => (
             <button key={s.value} onClick={() => setFilterStatus(s.value)}
               className={`text-xs px-3 py-1.5 rounded-lg transition ${filterStatus === s.value ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
@@ -156,14 +208,17 @@ export default function ActivitiesPage() {
             {filtered.map(a => {
               const prio = PRIORITIES.find(p => p.value === a.priority) || PRIORITIES[1]
               const overdue = isOverdue(a)
+              const isAssignee = a.assigned_to === user?.id
+              const canEdit = isAdmin || isAssignee
               return (
-                <div key={a.id} className={`rounded-xl p-4 flex gap-4 items-start ${overdue ? "border-red-900/50" : ""}`}
+                <div key={a.id}
+                  className="rounded-xl p-4 flex gap-4 items-start"
                   style={{ background: "var(--surface)", border: `1px solid ${overdue ? "#7f1d1d" : "var(--border)"}` }}>
                   <div className="mt-0.5">
-                    {a.status === "completed" ? <CheckCircle2 size={16} className="text-green-400" /> :
-                      a.status === "in_progress" ? <Clock size={16} className="text-blue-400" /> :
-                      overdue ? <AlertCircle size={16} className="text-red-400" /> :
-                      <Circle size={16} className="text-slate-600" />}
+                    {a.status === "completed"   ? <CheckCircle2 size={16} className="text-green-400" /> :
+                     a.status === "in_progress" ? <Clock size={16} className="text-blue-400" /> :
+                     overdue                    ? <AlertCircle size={16} className="text-red-400" /> :
+                                                  <Circle size={16} className="text-slate-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -187,6 +242,13 @@ export default function ActivitiesPage() {
                       style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                       {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
+                    {canEdit && (
+                      <button onClick={() => openEdit(a)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition"
+                        title="Edit task">
+                        <Edit2 size={13} />
+                      </button>
+                    )}
                     {isAdmin && (
                       <button onClick={() => deleteActivity(a.id)}
                         className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition"
@@ -228,6 +290,7 @@ export default function ActivitiesPage() {
         )}
       </div>
 
+      {/* Tambah Task Modal */}
       {showModal && (
         <Modal onClose={() => setShowModal(false)}>
           <div className="p-5">
@@ -240,35 +303,41 @@ export default function ActivitiesPage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-              {isAdmin && (
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">
-                    Assign ke Sales Hunter
-                    {form.assignedHunters.length > 0 && (
-                      <span className="ml-2 text-blue-400">({form.assignedHunters.length} dipilih)</span>
-                    )}
-                  </label>
-                  <div className="rounded-lg p-2 space-y-1 max-h-40 overflow-y-auto"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    {users.filter(u => u.role === "hunter").map(u => (
-                      <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-white/5 transition">
-                        <input
-                          type="checkbox"
-                          checked={form.assignedHunters.includes(u.id)}
-                          onChange={e => setForm(f => ({
-                            ...f,
-                            assignedHunters: e.target.checked
-                              ? [...f.assignedHunters, u.id]
-                              : f.assignedHunters.filter(id => id !== u.id),
-                          }))}
-                          className="accent-blue-500"
-                        />
-                        <span className="text-sm text-white">{u.name}</span>
-                      </label>
-                    ))}
-                  </div>
+
+              {/* Hunter toggle buttons */}
+              <div>
+                <label className="text-xs text-slate-500 block mb-2">
+                  Assign ke Sales Hunter
+                  {form.assignedHunters.length > 0 && (
+                    <span className="ml-2 text-blue-400 font-medium">({form.assignedHunters.length} dipilih)</span>
+                  )}
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {hunters.length === 0 ? (
+                    <span className="text-xs text-slate-600 italic">Tidak ada hunter aktif</span>
+                  ) : hunters.map(u => {
+                    const selected = form.assignedHunters.includes(u.id)
+                    return (
+                      <button key={u.id} type="button"
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          assignedHunters: selected
+                            ? f.assignedHunters.filter(id => id !== u.id)
+                            : [...f.assignedHunters, u.id],
+                        }))}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                          selected
+                            ? "text-white border-blue-500"
+                            : "text-slate-400 hover:text-white hover:border-slate-500 border-slate-700"
+                        }`}
+                        style={selected ? { background: "#2563eb" } : { background: "var(--surface2)" }}>
+                        {u.name.split(" ")[0]}
+                      </button>
+                    )
+                  })}
                 </div>
-              )}
+              </div>
+
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Deskripsi</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -293,6 +362,100 @@ export default function ActivitiesPage() {
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
+                  className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  Batal
+                </button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
+                  {saving ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <Modal onClose={() => setEditingTask(null)}>
+          <div className="p-5">
+            <h3 className="text-sm font-semibold text-white mb-1">Edit Task</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              {isAdmin ? "Edit semua detail task" : "Update status task kamu"}
+            </p>
+            <form onSubmit={handleEditSave} className="space-y-3">
+              {isAdmin && (
+                <>
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Judul Task</label>
+                    <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                      required className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                      style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Deskripsi</label>
+                    <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                      rows={2} className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
+                      style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 block mb-1">Assign ke Hunter</label>
+                    <select value={editForm.assigned_to} onChange={e => setEditForm(f => ({ ...f, assigned_to: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                      style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                      <option value="">— Tidak di-assign —</option>
+                      {hunters.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-500 block mb-1">Deadline</label>
+                      <input type="date" value={editForm.deadline} onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                        style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500 block mb-1">Prioritas</label>
+                      <select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                        style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                        {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Status — visible for both admin and assignee */}
+              <div>
+                <label className="text-xs text-slate-500 block mb-2">Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {STATUSES.map(s => {
+                    const selected = editForm.status === s.value
+                    return (
+                      <button key={s.value} type="button"
+                        onClick={() => setEditForm(f => ({ ...f, status: s.value }))}
+                        className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                          selected ? "text-white border-transparent" : "text-slate-400 hover:text-white border-slate-700"
+                        }`}
+                        style={{
+                          background: selected
+                            ? s.value === "completed"   ? "#16a34a"
+                            : s.value === "in_progress" ? "#2563eb"
+                            : s.value === "overdue"     ? "#dc2626"
+                            :                            "#475569"
+                            : "var(--surface2)",
+                        }}>
+                        {s.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setEditingTask(null)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   Batal
