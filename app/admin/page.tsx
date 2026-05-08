@@ -149,6 +149,7 @@ export default function AdminPage() {
               <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                 <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
                 <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Role</th>
+                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Visit</th>
                 <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Omset</th>
                 <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">WoD</th>
                 <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Status</th>
@@ -157,7 +158,7 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
               ) : users.map(u => (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3 font-medium text-white">{u.name}</td>
@@ -170,6 +171,9 @@ export default function AdminPage() {
                     }`}>
                       {u.role === "hunter" ? "Sales Hunter" : u.role === "sales_person" ? "Sales Person" : u.role}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-slate-400">
+                    {u.visit_target ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-400">
                     {u.role === "hunter" ? formatRupiah(u.monthly_target) : "—"}

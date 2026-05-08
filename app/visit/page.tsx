@@ -96,6 +96,7 @@ export default function VisitPage() {
   const [visits, setVisits] = useState<Visit[]>([])
   const [userIdMap, setUserIdMap] = useState<Record<string, string>>({})
   const [userTargetMap, setUserTargetMap] = useState<Record<string, number>>({})
+  const [userRoleMap, setUserRoleMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -118,19 +119,22 @@ export default function VisitPage() {
         .select("*")
         .eq("month", month).eq("year", year)
         .order("visit_date", { ascending: false }),
-      supabase.from("users").select("id,name,visit_target").eq("status", "active"),
+      supabase.from("users").select("id,name,visit_target,role").eq("status", "active"),
     ])
     const allVisits = (visitRes.data || []) as Visit[]
     setVisits(isAdmin ? allVisits : allVisits.filter(v => v.user_id === user!.id))
 
     const idMap: Record<string, string> = {}
     const targetMap: Record<string, number> = {}
+    const roleMap: Record<string, string> = {}
     for (const u of (userRes.data || [])) {
       idMap[u.name] = u.id
       targetMap[u.id] = u.visit_target || 40
+      roleMap[u.id] = u.role
     }
     setUserIdMap(idMap)
     setUserTargetMap(targetMap)
+    setUserRoleMap(roleMap)
     setLoading(false)
   }
 
@@ -193,12 +197,10 @@ export default function VisitPage() {
   ]
 
   const hunterIds = new Set(
-    HUNTER_GROUPS.map(g => userIdMap[g.dbName]).filter((id): id is string => !!id)
+    Object.entries(userRoleMap).filter(([, role]) => role === "hunter").map(([id]) => id)
   )
   const spIds = new Set(
-    HUNTER_GROUPS.flatMap(g => g.spNames)
-      .map(name => userIdMap[name])
-      .filter((id): id is string => !!id)
+    Object.entries(userRoleMap).filter(([, role]) => role === "sales_person").map(([id]) => id)
   )
   const hunterVisitTotal = visits.filter(v => hunterIds.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
   const hunterTargetTotal = Array.from(hunterIds).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
@@ -208,16 +210,15 @@ export default function VisitPage() {
   const spTargetTotal = Array.from(spIds).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
   const spPct = spTargetTotal > 0 ? Math.round((spVisitTotal / spTargetTotal) * 100) : 0
 
-  const top3SP = HUNTER_GROUPS
-    .flatMap(g => g.spNames)
-    .map(name => {
-      const id = userIdMap[name]
-      const total = id ? visits.filter(v => v.user_id === id).reduce((s, v) => s + (v.count || 0), 0) : 0
-      const target = id ? (userTargetMap[id] || 40) : 40
+  // name lookup: id → name (reverse of userIdMap)
+  const idNameMap = Object.fromEntries(Object.entries(userIdMap).map(([name, id]) => [id, name]))
+  const top3SP = Array.from(spIds)
+    .map(id => {
+      const total = visits.filter(v => v.user_id === id).reduce((s, v) => s + (v.count || 0), 0)
+      const target = userTargetMap[id] || 40
       const pct = target > 0 ? Math.round((total / target) * 100) : 0
-      return { name, total, target, pct }
+      return { name: idNameMap[id] ?? id, total, target, pct }
     })
-    .filter(sp => userIdMap[sp.name])
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 3)
 
