@@ -1,4 +1,4 @@
-﻿export type Role = 'admin' | 'hunter'
+﻿export type Role = 'admin' | 'hunter' | 'sales_person'
 export type UserStatus = 'active' | 'resigned'
 export type ActivityStatus = 'pending' | 'in_progress' | 'completed' | 'overdue'
 export type SPLevel = 'SP0' | 'SP1' | 'SP2' | 'SP3' | 'SP4' | 'SP5'
@@ -66,6 +66,7 @@ export interface Closing {
   month: number
   year: number
   notes: string | null
+  salesname: string | null
   created_at: string
   user?: User
 }
