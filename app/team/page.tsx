@@ -59,15 +59,15 @@ export default function TeamPage() {
     setLoading(true)
     const [usersRes, closingsRes] = await Promise.all([
       supabase.from("users").select("id,name,monthly_target,sp_level").eq("status", "active"),
-      supabase.from("Closing").select("user_id,closing_value,salesname,notes").eq("month", month).eq("year", year),
+      supabase.from("konsumen").select("user_id,nilai_hjr,sales_person").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
     ])
 
     const omsetMap: Record<string, number> = {}
     const newSpOmsetMap: SpOmsetMap = {}
     ;(closingsRes.data || []).forEach(c => {
-      omsetMap[c.user_id] = (omsetMap[c.user_id] || 0) + (c.closing_value || 0)
-      const spName = c.salesname || c.notes
-      if (spName) newSpOmsetMap[spName] = (newSpOmsetMap[spName] || 0) + (c.closing_value || 0)
+      omsetMap[c.user_id] = (omsetMap[c.user_id] || 0) + (c.nilai_hjr || 0)
+      const spName = c.sales_person
+      if (spName) newSpOmsetMap[spName] = (newSpOmsetMap[spName] || 0) + (c.nilai_hjr || 0)
     })
     setSpOmsetMap(newSpOmsetMap)
 

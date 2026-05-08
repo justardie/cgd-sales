@@ -102,13 +102,11 @@ export default function OverviewPage() {
     try {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status").eq("status", "active"),
-        supabase.from("Closing").select("user_id,closing_value,project").eq("month", month).eq("year", year),
-        supabase.from("Closing").select("user_id,closing_value").eq("year", year).lte("month", month),
-        supabase.from("Closing").select("user_id,closing_value").eq("month", lastMonth).eq("year", lastYear),
+        supabase.from("konsumen").select("user_id,nilai_hjr,project").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
+        supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
+        supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
-        supabase.from("pipeline").select("user_id,value,status")
-          .not("status", "eq", "closed_lost")
-          .not("status", "eq", "closed_won"),
+        supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]),
       ])
 
       const nameToUser: Record<string, { id: string; monthly_target: number; win_or_die_target: number; visit_target: number }> = {}
@@ -120,9 +118,9 @@ export default function OverviewPage() {
           const hu = nameToUser[group.dbName]
           if (!hu) return null
 
-          const omset_mtd  = (closingsMtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.closing_value || 0), 0)
-          const omset_ytd  = (closingsYtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.closing_value || 0), 0)
-          const omset_last = (closingsLast.data || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.closing_value || 0), 0)
+          const omset_mtd  = (closingsMtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+          const omset_ytd  = (closingsYtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+          const omset_last = (closingsLast.data || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
 
           const memberIds = new Set(
             [group.dbName, ...group.spNames].map(n => nameToUser[n]?.id).filter((id): id is string => !!id)
@@ -147,7 +145,7 @@ export default function OverviewPage() {
       for (const c of (closingsMtd.data || [])) {
         if (!hunterIds.has(c.user_id)) continue
         for (const { key, match } of PROJECT_LABELS) {
-          if (match.test(c.project || "")) { projMap[key] = (projMap[key] || 0) + (c.closing_value || 0); break }
+          if (match.test(c.project || "")) { projMap[key] = (projMap[key] || 0) + (c.nilai_hjr || 0); break }
         }
       }
 
@@ -160,7 +158,7 @@ export default function OverviewPage() {
         omsetLast:   list.reduce((s, h) => s + h.omset_last, 0),
         visits:      list.reduce((s, h) => s + h.visits, 0),
         pipeline:    pipes.length,
-        pipelineVal: pipes.reduce((s, p) => s + (p.value || 0), 0),
+        pipelineVal: pipes.reduce((s, p) => s + (p.potensi_closing || 0), 0),
       })
     } finally { setLoading(false) }
   }

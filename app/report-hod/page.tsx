@@ -46,10 +46,10 @@ export default function ReportHODPage() {
     const [usersRes, closingsMtdRes, closingsYtdRes, visitsRes] = await Promise.all([
       supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,role,status")
         .eq("role", "hunter").eq("status", "active"),
-      supabase.from("Closing").select("user_id,closing_value")
-        .eq("month", month).eq("year", year),
-      supabase.from("Closing").select("user_id,closing_value")
-        .eq("year", year).lte("month", month),
+      supabase.from("konsumen").select("user_id,nilai_hjr")
+        .eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
+      supabase.from("konsumen").select("user_id,nilai_hjr")
+        .eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
       supabase.from("visit_logs").select("user_id,count")
         .eq("month", month).eq("year", year),
     ])
@@ -69,8 +69,8 @@ export default function ReportHODPage() {
         monthly_target: u.monthly_target || 0,
         win_or_die_target: u.win_or_die_target || 0,
         visit_target: u.visit_target || 50,
-        omset_mtd: mtdRows.reduce((s, c) => s + (Number(c.closing_value) || 0), 0),
-        omset_ytd: ytdRows.reduce((s, c) => s + (Number(c.closing_value) || 0), 0),
+        omset_mtd: mtdRows.reduce((s, c) => s + (Number(c.nilai_hjr) || 0), 0),
+        omset_ytd: ytdRows.reduce((s, c) => s + (Number(c.nilai_hjr) || 0), 0),
         visit_mtd: visitRows.reduce((s, v) => s + (Number(v.count) || 0), 0),
         closing_count: mtdRows.length,
       }
