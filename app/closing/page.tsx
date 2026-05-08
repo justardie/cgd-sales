@@ -90,9 +90,9 @@ export default function ClosingPage() {
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
 
-  const [chartOpen,    setChartOpen]    = useState(true)
-  const [chartProject, setChartProject] = useState("")
-  const [chartData,    setChartData]    = useState<{ month: string; total: number }[]>([])
+  const [chartOpen,     setChartOpen]    = useState(true)
+  const [chartProject,  setChartProject] = useState("")
+  const [chartRawData,  setChartRawData] = useState<{ nilai_hjr: number; project: string | null; closing_month: number }[]>([])
 
   const blankForm = {
     sales_hunter: isAdmin ? "" : (user?.name || ""),
@@ -118,25 +118,14 @@ export default function ClosingPage() {
     const currentMonth = new Date().getMonth() + 1
     supabase
       .from("konsumen")
-      .select("nilai_hjr,project,closing_month,closing_year")
+      .select("nilai_hjr,project,closing_month")
       .eq("status", "closing")
-      .gte("closing_year", 2026)
+      .eq("closing_year", 2026)
       .lte("closing_month", currentMonth)
       .then(({ data }) => {
-        const rows = (data || []).filter((r: { closing_year: number }) => r.closing_year === 2026)
-        const MONTH_NAMES = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-        const result: { month: string; total: number }[] = []
-        for (let m = 1; m <= currentMonth; m++) {
-          const monthRows = rows.filter((r: { closing_month: number; project: string | null }) =>
-            r.closing_month === m &&
-            (!chartProject || r.project === chartProject)
-          )
-          const total = monthRows.reduce((s: number, r: { nilai_hjr: number }) => s + (r.nilai_hjr || 0), 0)
-          result.push({ month: MONTH_NAMES[m - 1], total })
-        }
-        setChartData(result)
+        setChartRawData((data || []) as { nilai_hjr: number; project: string | null; closing_month: number }[])
       })
-  }, [user, chartProject])
+  }, [user])
 
   async function fetchData() {
     setLoading(true)
@@ -286,6 +275,16 @@ export default function ClosingPage() {
   const spOptions = isAdmin
     ? getSpOptions(form.sales_hunter)
     : getSpOptions(user?.name || "")
+
+  // Chart derived from raw data — filter applied client-side so project dropdown always works
+  const chartCurrentMonth = new Date().getMonth() + 1
+  const CHART_MONTH_NAMES = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+  const chartData = Array.from({ length: chartCurrentMonth }, (_, i) => {
+    const m = i + 1
+    const rows = chartRawData.filter(r => r.closing_month === m && (!chartProject || r.project === chartProject))
+    return { month: CHART_MONTH_NAMES[i], total: rows.reduce((s, r) => s + (r.nilai_hjr || 0), 0) }
+  })
+  const chartProjectOptions = Array.from(new Set(chartRawData.map(r => r.project).filter(Boolean))) as string[]
 
   function ClosingFormFields({ onSubmit, title, submitLabel }: {
     onSubmit: (e: React.FormEvent) => Promise<void>
@@ -460,7 +459,7 @@ export default function ClosingPage() {
                 className="text-xs px-2 py-1 rounded-lg text-slate-300 outline-none"
                 style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                 <option value="">Semua Proyek</option>
-                {PROJECTS.map(p => (
+                {chartProjectOptions.map(p => (
                   <option key={p} value={p}>{p}</option>
                 ))}
               </select>
@@ -475,7 +474,7 @@ export default function ClosingPage() {
           </div>
           {chartOpen && (
             <div className="px-4 pt-4 pb-5">
-              {chartData.length === 0 ? (
+              {chartRawData.length === 0 ? (
                 <div className="flex items-center justify-center h-32 text-xs text-slate-600">Memuat data chart...</div>
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
@@ -737,6 +736,19 @@ export default function ClosingPage() {
                   </tr>
                 ))}
               </tbody>
+              {!loading && filtered.length > 0 && (
+                <tfoot>
+                  <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
+                    <td colSpan={5} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      Total · {filtered.length} transaksi
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-bold whitespace-nowrap" style={{ color: "#22c55e" }}>
+                      {formatRupiah(filtered.reduce((s, c) => s + (c.nilai_hjr || 0), 0))}
+                    </td>
+                    <td colSpan={4} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>

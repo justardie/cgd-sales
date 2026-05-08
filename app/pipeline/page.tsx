@@ -319,6 +319,19 @@ export default function PipelinePage() {
                   </tr>
                 ))}
               </tbody>
+              {!loading && filtered.length > 0 && (
+                <tfoot>
+                  <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
+                    <td colSpan={5} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      Total · {filtered.length} prospek
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-bold whitespace-nowrap" style={{ color: "var(--accent)" }}>
+                      {formatRupiah(filtered.reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0))}
+                    </td>
+                    <td colSpan={4} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>
