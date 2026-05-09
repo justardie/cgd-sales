@@ -23,17 +23,19 @@ export default function LoginPage() {
   const router = useRouter()
   const { setUser } = useAuth()
   const [name, setName] = useState("")
+  const [pin, setPin] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name) { setError("Pilih nama kamu"); return }
+    if (!pin) { setError("Masukkan PIN kamu"); return }
     setLoading(true)
     setError("")
-    const user = await loginUser(name)
+    const user = await loginUser(name, pin)
     if (!user) {
-      setError("Nama tidak ditemukan. Hubungi admin.")
+      setError("PIN salah atau nama tidak ditemukan. Hubungi admin.")
       setLoading(false)
       return
     }
@@ -101,7 +103,7 @@ export default function LoginPage() {
               </label>
               <select
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setPin(""); setError("") }}
                 className="w-full text-sm outline-none"
                 style={{
                   background: "var(--surface2)",
@@ -122,6 +124,37 @@ export default function LoginPage() {
                 ))}
               </select>
             </div>
+
+            {name && (
+              <div>
+                <label
+                  className="block text-xs font-semibold mb-1.5"
+                  style={{ color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}
+                >
+                  PIN
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••"
+                  className="w-full text-sm outline-none tracking-widest"
+                  style={{
+                    background: "var(--surface2)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    color: "var(--text-primary)",
+                    transition: "border-color 0.2s",
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
+                  onBlur={(e) => (e.target.style.borderColor = "var(--border-medium)")}
+                  autoFocus
+                />
+              </div>
+            )}
 
             {error && (
               <p

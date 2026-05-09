@@ -6,16 +6,20 @@ const NAME_ALIASES: Record<string, string[]> = {
   'Rika Sanusi': ['Rika Sanusi', 'Asun', 'Rika Sanusi (Asun)'],
 }
 
-export async function loginUser(name: string): Promise<AuthUser | null> {
+export async function loginUser(name: string, pin?: string): Promise<AuthUser | null> {
   const namesToTry = NAME_ALIASES[name] ?? [name]
   for (const n of namesToTry) {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, role, status')
+      .select('id, name, role, status, pin_hash')
       .ilike('name', n.trim())
       .eq('status', 'active')
       .single()
-    if (!error && data) return { id: data.id, name: data.name, role: data.role, status: data.status }
+    if (error || !data) continue
+    if ((data.role === 'hunter' || data.role === 'admin') && data.pin_hash) {
+      if (!pin || pin !== data.pin_hash) return null
+    }
+    return { id: data.id, name: data.name, role: data.role, status: data.status }
   }
   return null
 }

@@ -39,6 +39,7 @@ export default function AdminPage() {
     monthly_target: "",
     win_or_die_target: "",
     visit_target: "40",
+    pin: "",
   })
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", visit_target: "40" })
+    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", visit_target: "40", pin: "" })
     setShowModal(true)
   }
 
@@ -69,6 +70,7 @@ export default function AdminPage() {
       monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
       visit_target: u.visit_target.toString(),
+      pin: "",
     })
     setShowModal(true)
   }
@@ -93,6 +95,9 @@ export default function AdminPage() {
     }
     if (form.role === "sales_person") {
       payload.hunter_name = form.hunter_name
+    }
+    if (form.pin.trim()) {
+      payload.pin_hash = form.pin.trim()
     }
     if (editing) {
       await supabase.from("users").update(payload).eq("id", editing.id)
@@ -267,6 +272,20 @@ export default function AdminPage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
+              {(form.role === "hunter" || form.role === "admin") && (
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">PIN {editing ? "(kosongkan jika tidak diubah)" : ""}</label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={form.pin}
+                    onChange={e => setForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, "") }))}
+                    placeholder={editing ? "••••" : "4 digit PIN"}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none tracking-widest"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
+              )}
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"

@@ -183,7 +183,7 @@ export default function OverviewPage() {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role").eq("status", "active"),
         supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
-        supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
+        supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1),
         supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]),
@@ -355,15 +355,15 @@ export default function OverviewPage() {
             label="Omset YTD"
             icon={TrendingUp}
             value={formatRupiah(totals.omsetYtd)}
-            sub={`Jan–${getMonthName(month)} ${year}`}
+            sub={`Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`}
             color="#FF6A3D"
           />
           <GaugeCard
             label="Omset MTD"
             icon={DollarSign}
             value={formatRupiah(totals.omsetMtd)}
-            sub={`Target ${formatRupiah(totalTarget)}`}
-            achievement={totalTarget > 0 ? totals.omsetMtd / totalTarget : 0}
+            sub={`Target ${formatRupiah(50_000_000)}`}
+            achievement={totals.omsetMtd / 50_000_000}
           />
           <StatCard
             label="Pipeline Aktif"

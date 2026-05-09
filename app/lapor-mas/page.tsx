@@ -45,30 +45,32 @@ function DetailModal({ laporan, onClose, onStatusChange }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
-      <div className="w-full max-w-lg rounded-xl relative max-h-[85vh] overflow-y-auto"
+      <div className="w-full max-w-lg rounded-xl flex flex-col max-h-[85vh] relative"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
-          <X size={16} />
-        </button>
-        <div className="p-5">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-3 flex-wrap pr-6">
+
+        {/* Sticky header */}
+        <div className="flex-shrink-0 px-5 pt-4 pb-3 pr-10" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-xs px-2 py-0.5 rounded-full border ${jenis.color}`}>{jenis.label}</span>
             <span className="text-xs text-slate-500">{laporan.proyek}</span>
             <span className="text-xs text-slate-600 ml-auto">
               {new Date(laporan.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
+        </div>
+        <button onClick={onClose} className="absolute top-3.5 right-4 text-slate-500 hover:text-white z-10">
+          <X size={16} />
+        </button>
 
-          {/* Content */}
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto p-5">
           <div className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed mb-4 p-3 rounded-lg"
             style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
             {laporan.isi}
           </div>
 
-          {/* Photos */}
           {laporan.foto_urls?.length > 0 && (
-            <div className="mb-4">
+            <div>
               <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
                 <Image size={12} /> {laporan.foto_urls.length} foto
               </div>
@@ -83,24 +85,24 @@ function DetailModal({ laporan, onClose, onStatusChange }: {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Status update */}
-          <div className="flex items-center gap-2 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
-            <span className="text-xs text-slate-500">Status:</span>
-            {["baru", "proses", "selesai"].map(s => (
-              <button key={s} disabled={saving || laporan.status === s}
-                onClick={() => updateStatus(s)}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition font-medium ${
-                  laporan.status === s
-                    ? s === "baru" ? "bg-red-500/20 text-red-300 border-red-500/40"
-                      : s === "proses" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
-                      : "bg-green-500/20 text-green-300 border-green-500/40"
-                    : "text-slate-500 border-slate-700 hover:text-white hover:border-slate-500"
-                } disabled:cursor-default`}>
-                {STATUS_CONFIG[s]?.label || s}
-              </button>
-            ))}
-          </div>
+        {/* Sticky footer: status buttons */}
+        <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3" style={{ borderTop: "1px solid var(--border)" }}>
+          <span className="text-xs text-slate-500">Status:</span>
+          {["baru", "proses", "selesai"].map(s => (
+            <button key={s} disabled={saving || laporan.status === s}
+              onClick={() => updateStatus(s)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition font-medium ${
+                laporan.status === s
+                  ? s === "baru" ? "bg-red-500/20 text-red-300 border-red-500/40"
+                    : s === "proses" ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
+                    : "bg-green-500/20 text-green-300 border-green-500/40"
+                  : "text-slate-500 border-slate-700 hover:text-white hover:border-slate-500"
+              } disabled:cursor-default`}>
+              {STATUS_CONFIG[s]?.label || s}
+            </button>
+          ))}
         </div>
       </div>
     </div>
