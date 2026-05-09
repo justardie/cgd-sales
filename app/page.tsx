@@ -152,10 +152,6 @@ const ChartTooltip = ({ active, payload, label }: {
 }
 
 const now = new Date()
-const ALL_SP_NAMES = new Set(
-  HUNTER_GROUPS.flatMap(g => g.spNames).map(n => n.toLowerCase().trim())
-)
-const TOTAL_SPS = HUNTER_GROUPS.reduce((s, g) => s + g.spNames.length, 0)
 
 export default function OverviewPage() {
   const { user } = useAuth()
@@ -164,7 +160,7 @@ export default function OverviewPage() {
     omsetMtd: 0, omsetYtd: 0, omsetLast: 0,
     visits: 0, visitTarget: 0,
     pipeline: 0, pipelineVal: 0,
-    spMenjual: 0,
+    spMenjual: 0, totalActiveSps: 0,
   })
   const [projectTotals, setProjectTotals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -180,13 +176,14 @@ export default function OverviewPage() {
   async function fetchDashboard() {
     setLoading(true)
     try {
-      const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes] = await Promise.all([
+      const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes, activeSpsRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role").eq("status", "active"),
         supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
         supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1),
         supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]),
+        supabase.from("users").select("name").eq("role", "sales_person").eq("status", "active"),
       ])
 
       const allUsers = usersRes.data || []
@@ -239,11 +236,13 @@ export default function OverviewPage() {
         }
       }
 
-      // SP menjual: distinct sales_person values who closed this month
+      // SP menjual: count distinct active SPs who had a closing this month
+      const activeSpNames = new Set((activeSpsRes.data || []).map(u => (u.name || "").toLowerCase().trim()))
+      const totalActiveSps = (activeSpsRes.data || []).length
       const spMenjual = new Set(
         (closingsMtd.data || [])
           .map(c => (c.sales_person || "").toLowerCase().trim())
-          .filter(n => n && ALL_SP_NAMES.has(n))
+          .filter(n => n && activeSpNames.has(n))
       ).size
 
       // Total visit (all users) and total visit target (all active users)
@@ -261,7 +260,7 @@ export default function OverviewPage() {
         visitTarget: totalVisitTarget,
         pipeline:    pipes.length,
         pipelineVal: pipes.reduce((s, p) => s + (p.potensi_closing || 0), 0),
-        spMenjual,
+        spMenjual, totalActiveSps,
       })
     } finally { setLoading(false) }
   }
@@ -362,8 +361,8 @@ export default function OverviewPage() {
             label="Omset MTD"
             icon={DollarSign}
             value={formatRupiah(totals.omsetMtd)}
-            sub={`Target ${formatRupiah(50_000_000)}`}
-            achievement={totals.omsetMtd / 50_000_000}
+            sub={`Target ${formatRupiah(50_000_000_000)}`}
+            achievement={totals.omsetMtd / 50_000_000_000}
           />
           <StatCard
             label="Pipeline Aktif"
@@ -383,9 +382,9 @@ export default function OverviewPage() {
           <GaugeCard
             label="Sales Person Aktif"
             icon={Users}
-            value={`${totals.spMenjual} / ${TOTAL_SPS}`}
+            value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
             sub="menjual bulan ini"
-            achievement={TOTAL_SPS > 0 ? totals.spMenjual / TOTAL_SPS : 0}
+            achievement={totals.totalActiveSps > 0 ? totals.spMenjual / totals.totalActiveSps : 0}
             accentColor="#10b981"
           />
           <StatCard

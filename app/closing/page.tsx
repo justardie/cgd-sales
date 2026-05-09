@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import { formatRupiah, getMonthName } from "@/lib/utils"
-import { getSpOptions, HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2, ChevronDown } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { User } from "@/types"
@@ -90,6 +90,8 @@ export default function ClosingPage() {
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
 
+  const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
+
   const [chartOpen,     setChartOpen]    = useState(true)
   const [chartProject,  setChartProject] = useState("")
   const [chartRawData,  setChartRawData] = useState<{ nilai_hjr: number; project: string | null; closing_month: number }[]>([])
@@ -129,7 +131,7 @@ export default function ClosingPage() {
 
   async function fetchData() {
     setLoading(true)
-    const [closingsRes, usersRes] = await Promise.all([
+    const [closingsRes, usersRes, spsRes] = await Promise.all([
       supabase.from("konsumen")
         .select("id,user_id,sales_hunter,sales_person,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
         .eq("status", "closing")
@@ -140,6 +142,10 @@ export default function ClosingPage() {
         .select("id,name,monthly_target,role,status")
         .eq("status", "active")
         .eq("role", "hunter"),
+      supabase.from("users")
+        .select("name,hunter_name")
+        .eq("role", "sales_person")
+        .eq("status", "active"),
     ])
     setHunters((usersRes.data || []) as User[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]
@@ -151,6 +157,13 @@ export default function ClosingPage() {
         c.user_id === user!.id || (c.sales_hunter || "").toLowerCase() === name
       ))
     }
+    const spsMap: Record<string, string[]> = {}
+    for (const sp of (spsRes.data || [])) {
+      if (!sp.hunter_name) continue
+      if (!spsMap[sp.hunter_name]) spsMap[sp.hunter_name] = []
+      spsMap[sp.hunter_name].push(sp.name)
+    }
+    setActiveSps(spsMap)
     setLoading(false)
   }
 
@@ -272,9 +285,10 @@ export default function ClosingPage() {
   const totalOmset = filtered.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
   const projectOptions = Array.from(new Set(closings.map(c => c.project).filter(Boolean))) as string[]
 
-  const spOptions = isAdmin
-    ? getSpOptions(form.sales_hunter)
-    : getSpOptions(user?.name || "")
+  const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
+  const spBase = activeSps[hunterKey] || []
+  const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
+  const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
 
   // Chart derived from raw data — filter applied client-side so project dropdown always works
   const chartCurrentMonth = new Date().getMonth() + 1
@@ -588,9 +602,9 @@ export default function ClosingPage() {
                     </div>
                   )
                 })}
-                {currentHunterGroup && currentHunterGroup.spNames.length > 0 && (
+                {currentHunterGroup && (activeSps[currentHunterGroup.dbName] || []).length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {currentHunterGroup.spNames.map(spName => {
+                    {(activeSps[currentHunterGroup.dbName] || []).map(spName => {
                       const spOmset = filtered.filter(c => (c.sales_person || "").toLowerCase() === spName.toLowerCase())
                         .reduce((s, c) => s + (c.nilai_hjr || 0), 0)
                       return (

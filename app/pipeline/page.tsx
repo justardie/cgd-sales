@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
-import { getSpOptions, HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Search } from "lucide-react"
 
 interface KonsumenRow {
@@ -86,6 +86,7 @@ export default function PipelinePage() {
   const [saving, setSaving] = useState(false)
   const [savingClosing, setSavingClosing] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
   const [closingForm, setClosingForm] = useState({
     nilai_hjr: "",
     closing_date: new Date().toISOString().slice(0, 10),
@@ -95,11 +96,10 @@ export default function PipelinePage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
-      .from("konsumen")
-      .select("*")
-      .in("status", ["warm", "hot", "tidak_potensial"])
-      .order("created_at", { ascending: false })
+    const [{ data }, spsRes] = await Promise.all([
+      supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
+      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").eq("status", "active"),
+    ])
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {
       setRows(all)
@@ -107,6 +107,13 @@ export default function PipelinePage() {
       const name = (user!.name || "").toLowerCase()
       setRows(all.filter(r => r.user_id === user!.id || (r.sales_hunter || "").toLowerCase() === name))
     }
+    const spsMap: Record<string, string[]> = {}
+    for (const sp of (spsRes.data || [])) {
+      if (!sp.hunter_name) continue
+      if (!spsMap[sp.hunter_name]) spsMap[sp.hunter_name] = []
+      spsMap[sp.hunter_name].push(sp.name)
+    }
+    setActiveSps(spsMap)
     setLoading(false)
   }
 
@@ -204,9 +211,10 @@ export default function PipelinePage() {
                     .reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0),
   }
 
-  const spOptions = isAdmin
-    ? getSpOptions(form.sales_hunter)
-    : getSpOptions(user?.name || "")
+  const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
+  const spBase = activeSps[hunterKey] || []
+  const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
+  const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
 
   return (
     <DashboardShell>
