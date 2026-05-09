@@ -44,7 +44,7 @@ function DetailModal({ laporan, onClose, onStatusChange }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
       <div className="w-full max-w-lg rounded-xl flex flex-col max-h-[85vh] relative"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
 
