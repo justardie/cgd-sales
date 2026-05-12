@@ -53,6 +53,142 @@ function projColor(p: string | null) {
   return "bg-slate-500/10 text-slate-400"
 }
 
+interface ClosingFormProps {
+  isAdmin: boolean
+  form: Record<string, string>
+  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  spOptions: string[]
+  saving: boolean
+  onCancel: () => void
+  onSubmit: (e: React.FormEvent) => Promise<void>
+  title: string
+  submitLabel: string
+}
+
+function ClosingFormFields({
+  isAdmin, form, setForm, spOptions, saving, onCancel, onSubmit, title, submitLabel,
+}: ClosingFormProps) {
+  return (
+    <div className="p-5">
+      <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
+      <form onSubmit={onSubmit} className="space-y-3">
+        {isAdmin && (
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Hunter</label>
+            <select value={form.sales_hunter}
+              onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "" }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <option value="">— Pilih Hunter —</option>
+              {HUNTER_GROUPS.map(g => (
+                <option key={g.dbName} value={g.dbName}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
+          {spOptions.length > 0 ? (
+            <select value={form.sales_person}
+              onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <option value="">— Tanpa SP / Hunter Langsung —</option>
+              {spOptions.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+            </select>
+          ) : (
+            <input type="text" value={form.sales_person}
+              onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
+              placeholder="Nama sales person (opsional)"
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+          )}
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 block mb-1">Nama Konsumen <span className="text-red-400">*</span></label>
+          <input type="text" value={form.name} required
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Proyek</label>
+            <select value={form.project}
+              onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <option value="">— Pilih —</option>
+              {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Klaster / Unit</label>
+            <input type="text" value={form.unit}
+              onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
+            <input type="number" value={form.nilai_hjr} required
+              onChange={e => setForm(f => ({ ...f, nilai_hjr: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>
+            <select value={form.cara_bayar}
+              onChange={e => setForm(f => ({ ...f, cara_bayar: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <option value="">— Pilih —</option>
+              {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
+            <input type="date" value={form.visit_date}
+              onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
+            <input type="date" value={form.closing_date} required
+              onChange={e => setForm(f => ({ ...f, closing_date: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 block mb-1">Catatan</label>
+          <textarea value={form.notes}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            rows={2}
+            className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onCancel}
+            className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+            Batal
+          </button>
+          <button type="submit" disabled={saving}
+            className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-500 disabled:opacity-50 transition">
+            {saving ? "Menyimpan..." : submitLabel}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -299,133 +435,6 @@ export default function ClosingPage() {
     return { month: CHART_MONTH_NAMES[i], total: rows.reduce((s, r) => s + (r.nilai_hjr || 0), 0) }
   })
   const chartProjectOptions = Array.from(new Set(chartRawData.map(r => r.project).filter(Boolean))) as string[]
-
-  function ClosingFormFields({ onSubmit, title, submitLabel }: {
-    onSubmit: (e: React.FormEvent) => Promise<void>
-    title: string
-    submitLabel: string
-  }) {
-    return (
-      <div className="p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
-        <form onSubmit={onSubmit} className="space-y-3">
-          {isAdmin && (
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Hunter</label>
-              <select value={form.sales_hunter}
-                onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "" }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                <option value="">— Pilih Hunter —</option>
-                {HUNTER_GROUPS.map(g => (
-                  <option key={g.dbName} value={g.dbName}>{g.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
-            {spOptions.length > 0 ? (
-              <select value={form.sales_person}
-                onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                <option value="">— Tanpa SP / Hunter Langsung —</option>
-                {spOptions.map(sp => <option key={sp} value={sp}>{sp}</option>)}
-              </select>
-            ) : (
-              <input type="text" value={form.sales_person}
-                onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
-                placeholder="Nama sales person (opsional)"
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-            )}
-          </div>
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">Nama Konsumen <span className="text-red-400">*</span></label>
-            <input type="text" value={form.name} required
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Proyek</label>
-              <select value={form.project}
-                onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                <option value="">— Pilih —</option>
-                {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Klaster / Unit</label>
-              <input type="text" value={form.unit}
-                onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
-              <input type="number" value={form.nilai_hjr} required
-                onChange={e => setForm(f => ({ ...f, nilai_hjr: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>
-              <select value={form.cara_bayar}
-                onChange={e => setForm(f => ({ ...f, cara_bayar: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                <option value="">— Pilih —</option>
-                {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
-              <input type="date" value={form.visit_date}
-                onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
-              <input type="date" value={form.closing_date} required
-                onChange={e => setForm(f => ({ ...f, closing_date: e.target.value }))}
-                className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">Catatan</label>
-            <textarea value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              rows={2}
-              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button type="button"
-              onClick={() => { setShowInputModal(false); setShowEditModal(false) }}
-              className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              Batal
-            </button>
-            <button type="submit" disabled={saving}
-              className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-green-600 hover:bg-green-500 disabled:opacity-50 transition">
-              {saving ? "Menyimpan..." : submitLabel}
-            </button>
-          </div>
-        </form>
-      </div>
-    )
-  }
 
   return (
     <DashboardShell>
@@ -770,13 +779,21 @@ export default function ClosingPage() {
 
       {showInputModal && (
         <Modal onClose={() => setShowInputModal(false)}>
-          <ClosingFormFields onSubmit={handleSave} title="Input Closing" submitLabel="Simpan Closing" />
+          <ClosingFormFields
+            isAdmin={isAdmin} form={form} setForm={setForm as any}
+            spOptions={spOptions} saving={saving}
+            onCancel={() => setShowInputModal(false)}
+            onSubmit={handleSave} title="Input Closing" submitLabel="Simpan Closing"
+          />
         </Modal>
       )}
 
       {showEditModal && editingClosing && (
         <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }}>
           <ClosingFormFields
+            isAdmin={isAdmin} form={form} setForm={setForm as any}
+            spOptions={spOptions} saving={saving}
+            onCancel={() => { setShowEditModal(false); setEditingClosing(null) }}
             onSubmit={handleEditSave}
             title={`Edit: ${editingClosing.name}`}
             submitLabel="Simpan Perubahan"
