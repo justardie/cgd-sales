@@ -166,7 +166,12 @@ export default function AdminPage() {
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
               ) : users.map(u => (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 font-medium text-white">{u.name}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-white">{u.name}</div>
+                    {u.role === "sales_person" && (u as any).hunter_name && (
+                      <div className="text-xs text-slate-500 mt-0.5">Tim: {(u as any).hunter_name}</div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       u.role === "admin"        ? "bg-purple-500/20 text-purple-400" :
