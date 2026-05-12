@@ -204,11 +204,11 @@ export default function PipelinePage() {
     return matchSearch && matchStatus
   })
 
+  const activeRows = rows.filter(r => r.status !== "tidak_potensial")
   const stats = {
-    total:      rows.length,
-    hot:        rows.filter(r => r.status === "hot").length,
-    totalValue: rows.filter(r => r.status !== "tidak_potensial")
-                    .reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0),
+    total:      activeRows.length,
+    hot:        activeRows.filter(r => r.status === "hot").length,
+    totalValue: activeRows.reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0),
   }
 
   const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
@@ -278,6 +278,7 @@ export default function PipelinePage() {
                   <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Konsumen</th>
                   <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Project</th>
                   <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Unit</th>
+                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Status</th>
                   <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Nilai Potensi</th>
                   <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Cara Bayar</th>
                   <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Visit</th>
@@ -290,16 +291,22 @@ export default function PipelinePage() {
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
-                ) : filtered.slice(0, 100).map(r => (
+                ) : filtered.slice(0, 100).map(r => {
+                  const isTidakPotensial = r.status === "tidak_potensial"
+                  const badge = statusBadge(r.status)
+                  return (
                   <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}
-                    className="hover:bg-white/[0.02]">
+                    className={`hover:bg-white/[0.02] ${isTidakPotensial ? "opacity-50" : ""}`}>
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_hunter || "—"}</td>
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_person || "—"}</td>
                     <td className="px-4 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.project || "—"}</td>
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.unit || "—"}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
+                    </td>
                     <td className="px-4 py-3 text-right text-slate-300 text-xs whitespace-nowrap">
-                      {r.potensi_closing ? formatRupiah(Number(r.potensi_closing)) : "—"}
+                      {!isTidakPotensial && r.potensi_closing ? formatRupiah(Number(r.potensi_closing)) : "—"}
                     </td>
                     <td className="px-4 py-3 text-center text-xs text-slate-400 whitespace-nowrap">
                       {r.cara_bayar || "—"}
@@ -325,16 +332,21 @@ export default function PipelinePage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
               {!loading && filtered.length > 0 && (
                 <tfoot>
                   <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
-                    <td colSpan={5} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                      Total · {filtered.length} prospek
+                    <td colSpan={6} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      {filtered.filter(r => r.status !== "tidak_potensial").length} prospek aktif
+                      {filtered.filter(r => r.status === "tidak_potensial").length > 0 &&
+                        <span className="text-slate-600 ml-1">
+                          · {filtered.filter(r => r.status === "tidak_potensial").length} tdk potensial
+                        </span>
+                      }
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-bold whitespace-nowrap" style={{ color: "var(--accent)" }}>
-                      {formatRupiah(filtered.reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0))}
+                      {formatRupiah(filtered.filter(r => r.status !== "tidak_potensial").reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0))}
                     </td>
                     <td colSpan={4} />
                   </tr>
