@@ -98,7 +98,7 @@ export default function PipelinePage() {
     setLoading(true)
     const [{ data }, spsRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
-      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").eq("status", "active"),
+      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
     ])
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {

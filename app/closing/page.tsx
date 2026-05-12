@@ -145,7 +145,7 @@ export default function ClosingPage() {
       supabase.from("users")
         .select("name,hunter_name")
         .eq("role", "sales_person")
-        .eq("status", "active"),
+        .neq("status", "resigned"),
     ])
     setHunters((usersRes.data || []) as User[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]
