@@ -1,5 +1,7 @@
--- Set hunter_name for all sales_person users based on hunters.ts mapping
--- Run this once in Supabase SQL Editor
+-- Add hunter_name column if it doesn't exist, then populate it
+-- Run this in Supabase SQL Editor
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS hunter_name text;
 
 -- Lyndon Sumarli's team
 UPDATE users SET hunter_name = 'Lyndon Sumarli'
