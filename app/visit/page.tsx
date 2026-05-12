@@ -75,7 +75,7 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
         <div
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
           style={{ paddingLeft: "1rem", borderLeft: "2px solid var(--border)" }}>
-          {hunter.spNames.map(spName => {
+          {hunter.spNames.filter(spName => !!userIdMap[spName]).map(spName => {
             const spId = userIdMap[spName]
             const total = spId
               ? visits.filter(v => v.user_id === spId).reduce((s, v) => s + (v.count || 0), 0)
@@ -147,13 +147,6 @@ export default function VisitPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = XLSX.utils.sheet_to_json<any>(wb.Sheets[wb.SheetNames[0]])
 
-    // Replace all existing records for this user + selected month/year
-    await supabase.from("visit_logs")
-      .delete()
-      .eq("user_id", user!.id)
-      .eq("month", month)
-      .eq("year", year)
-
     const inserts = rows
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((r: Record<string, any>) => {
@@ -171,11 +164,18 @@ export default function VisitPage() {
           count,
           notes: (r.catatan ?? r.notes ?? null) as string | null,
           week_number: getWeekNumber(d),
-          month: d.getMonth() + 1,
-          year: d.getFullYear(),
+          month,        // always use selected page month
+          year,         // always use selected page year
         }
       })
       .filter((r: { count: number }) => r.count > 0)
+
+    // Delete ALL existing records for selected month/year before inserting
+    await supabase.from("visit_logs")
+      .delete()
+      .eq("user_id", user!.id)
+      .eq("month", month)
+      .eq("year", year)
 
     if (inserts.length === 0) {
       setMsg({ type: "err", text: "Tidak ada data valid di file Excel" })
