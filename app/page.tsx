@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, pct, getMonthName, normalizeProject } from "@/lib/utils"
+import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES } from "@/lib/utils"
 import {
   TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
   Users, Activity, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
@@ -27,11 +27,6 @@ interface HunterStat {
   rank?: number
 }
 
-const PROJECT_NAMES = [
-  "Central Hills", "Central Tiban", "Central Raya Batu Aji",
-  "Central Raya Tiban", "Central Raya Tanjung Uncang",
-  "Central Laguna Hills", "SCC - Hillside", "SCC - Valleyside",
-]
 
 /* ─── Circular Ring Gauge ───────────────────────── */
 function CircleRing({ pct: p, color }: { pct: number; color: string }) {

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah } from "@/lib/utils"
+import { formatRupiah, normalizeProject, PROJECT_NAMES } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import type { User } from "@/types"
 
@@ -17,14 +17,6 @@ interface KonsumenRow {
   closing_year: number | null
 }
 
-const PROJECTS = [
-  "Central Hills",
-  "Central Tiban",
-  "MRD CRBA+CBA",
-  "MRD CLH",
-  "MRD CRTU",
-  "SCC",
-]
 
 const CURRENT_MONTH = new Date().getMonth() + 1
 const CURRENT_YEAR  = new Date().getFullYear()
@@ -75,9 +67,9 @@ export default function PotensiPage() {
   const totalTargetMTD  = hunters.reduce((s, h) => s + (h.monthly_target || 0), 0)
   const pctMTD          = totalTargetMTD > 0 ? Math.round((totalClosingMTD / totalTargetMTD) * 100) : 0
 
-  const byProject = PROJECTS.map(proj => {
-    const pRows = pipelineRows.filter(r => r.project === proj)
-    const cRows = closingMTD.filter(r => r.project === proj)
+  const byProject = PROJECT_NAMES.map(proj => {
+    const pRows = pipelineRows.filter(r => normalizeProject(r.project) === proj)
+    const cRows = closingMTD.filter(r => normalizeProject(r.project) === proj)
     return {
       project:       proj,
       pipelineCount: pRows.length,

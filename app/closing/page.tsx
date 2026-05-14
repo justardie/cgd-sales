@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
-import { formatRupiah, getMonthName, MONTHS } from "@/lib/utils"
+import { formatRupiah, getMonthName, MONTHS, normalizeProject } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Edit2, Trash2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
@@ -29,17 +29,18 @@ interface KonsumenRow {
 }
 
 const PROJECT_COLORS: Record<string, string> = {
-  "Central Hills": "bg-blue-500/10 text-blue-400",
-  "Central Tiban": "bg-cyan-500/10 text-cyan-400",
-  "MRD":           "bg-purple-500/10 text-purple-400",
-  "SCC":           "bg-green-500/10 text-green-400",
+  "CH":               "bg-blue-500/10 text-blue-400",
+  "CT":               "bg-cyan-500/10 text-cyan-400",
+  "MRD CRBA+CBA":    "bg-purple-500/10 text-purple-400",
+  "CRT":              "bg-indigo-500/10 text-indigo-400",
+  "MRD CRTU":        "bg-violet-500/10 text-violet-400",
+  "MRD CLH":         "bg-fuchsia-500/10 text-fuchsia-400",
+  "SCC - Hillside":   "bg-green-500/10 text-green-400",
+  "SCC - Valleyside": "bg-emerald-500/10 text-emerald-400",
 }
 function projColor(p: string | null) {
   if (!p) return "bg-slate-500/10 text-slate-400"
-  for (const [k, v] of Object.entries(PROJECT_COLORS)) {
-    if (p.toLowerCase().includes(k.toLowerCase())) return v
-  }
-  return "bg-slate-500/10 text-slate-400"
+  return PROJECT_COLORS[p] ?? "bg-slate-500/10 text-slate-400"
 }
 
 interface ClosingFormProps {
@@ -442,13 +443,13 @@ export default function ClosingPage() {
 
   const filtered = closings.filter(c => {
     if (filterHunter    && (c.sales_hunter || "") !== filterHunter) return false
-    if (filterProject   && c.project  !== filterProject)  return false
+    if (filterProject   && normalizeProject(c.project)  !== filterProject)  return false
     if (filterCaraBayar && c.cara_bayar !== filterCaraBayar) return false
     return true
   })
 
   const totalOmset = filtered.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-  const projectOptions = Array.from(new Set(closings.map(c => c.project).filter(Boolean))) as string[]
+  const projectOptions = Array.from(new Set(closings.map(c => normalizeProject(c.project)).filter(Boolean))) as string[]
 
   const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
@@ -760,7 +761,7 @@ export default function ClosingPage() {
                     <td className="px-4 py-3 font-medium text-white text-xs">{c.name}</td>
                     <td className="px-4 py-3">
                       {c.project
-                        ? <span className={`text-xs px-2 py-0.5 rounded-full ${projColor(c.project)}`}>{c.project}</span>
+                        ? <span className={`text-xs px-2 py-0.5 rounded-full ${projColor(normalizeProject(c.project))}`}>{normalizeProject(c.project)}</span>
                         : <span className="text-xs text-slate-600">—</span>}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.unit || "—"}</td>

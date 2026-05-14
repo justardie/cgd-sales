@@ -4,23 +4,13 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { formatRupiah, getMonthName, pct, normalizeProject } from "@/lib/utils"
+import { formatRupiah, getMonthName, pct, normalizeProject, PROJECT_NAMES } from "@/lib/utils"
 import { Printer, ChevronLeft, ChevronRight, ChevronDown, FileText, Code2, Trophy, Target } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts"
 
-const PROJECTS = [
-  "Central Hills",
-  "Central Tiban",
-  "Central Raya Tanjung Uncang",
-  "Central Raya Batu Aji",
-  "Central Raya Tiban",
-  "SCC - Hillside",
-  "SCC - Valleyside",
-  "Central Laguna Hills",
-]
 
 const PIE_COLORS = ["#E84500", "#3b82f6", "#22c55e", "#a855f7", "#f59e0b", "#06b6d4", "#ec4899", "#84cc16"]
 
@@ -295,7 +285,7 @@ export default function ReportHODPage() {
 
 <h2>Per Project MTD</h2>
 <div class="kpi-row">
-${PROJECTS.map(p => `  <div class="kpi-box"><div class="lbl">${p}</div><div class="val">${formatRupiah(projectOmset[p]||0)}</div></div>`).join("\n")}
+${PROJECT_NAMES.map(p => `  <div class="kpi-box"><div class="lbl">${p}</div><div class="val">${formatRupiah(projectOmset[p]||0)}</div></div>`).join("\n")}
 </div>
 
 <h2>Pencapaian per Sales Hunter</h2>
@@ -458,7 +448,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
             <div className="card-enter-3">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Omset MTD per Project</div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {PROJECTS.map((proj, i) => (
+                {PROJECT_NAMES.map((proj, i) => (
                   <div key={proj}
                     className={`kpi-card rounded-xl p-3 card-enter-${Math.min(i + 1, 6)}`}
                     style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -719,7 +709,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                 <p className="text-xs text-slate-500 mt-0.5">Status: Warm &amp; Hot · Nilai Potensi = Nilai HJR</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-px" style={{ background: "var(--border)" }}>
-                {PROJECTS.map(proj => {
+                {PROJECT_NAMES.map(proj => {
                   const stat = pipelineStats.find(p => p.project === proj)
                   return (
                     <div key={proj} className="p-4 kpi-card" style={{ background: "var(--surface)" }}>
@@ -731,11 +721,11 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                   )
                 })}
               </div>
-              {pipelineStats.filter(p => !PROJECTS.includes(p.project)).length > 0 && (
+              {pipelineStats.filter(p => !PROJECT_NAMES.includes(p.project)).length > 0 && (
                 <div className="px-5 py-3" style={{ background: "var(--surface2)", borderTop: "1px solid var(--border)" }}>
                   <div className="text-xs text-slate-500 mb-2">Project Lainnya</div>
                   <div className="flex flex-wrap gap-4">
-                    {pipelineStats.filter(p => !PROJECTS.includes(p.project)).map((p, i) => (
+                    {pipelineStats.filter(p => !PROJECT_NAMES.includes(p.project)).map((p, i) => (
                       <div key={i} className="text-xs">
                         <span className="text-slate-400">{p.project}:</span>{" "}
                         <span className="text-white font-semibold">{p.count}</span>

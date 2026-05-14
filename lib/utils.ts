@@ -45,17 +45,36 @@ export const MONTHS = [
   { value: 11, label: 'November' }, { value: 12, label: 'Desember' },
 ]
 
+/** Canonical project names — single source of truth for all pages & DB */
+export const PROJECT_NAMES = [
+  "CH",
+  "CT",
+  "MRD CRBA+CBA",
+  "CRT",
+  "MRD CRTU",
+  "MRD CLH",
+  "SCC - Hillside",
+  "SCC - Valleyside",
+] as const
+
+export type ProjectName = typeof PROJECT_NAMES[number]
+
+/**
+ * Normalise any project string (from DB or user input) to canonical abbreviated name.
+ * Returns the raw string if unrecognised — investigate those records.
+ * NOTE: standalone "MRD" or "residential" is NOT valid; must be CRBA+CBA / CRTU / CLH.
+ */
 export function normalizeProject(project: string | null | undefined): string {
   if (!project) return ""
   const p = project.trim()
-  if (/central.?hills|^CH$/i.test(p))                        return "Central Hills"
-  if (/central.?tiban(?!.*raya)|^CT$/i.test(p))              return "Central Tiban"
-  if (/central.?raya.?batu|^(CBA|CRBA)$/i.test(p))          return "Central Raya Batu Aji"
-  if (/central.?raya.?tiban(?!.*uncang)|^CRT$/i.test(p))    return "Central Raya Tiban"
-  if (/tanjung|^CRTU$/i.test(p))                             return "Central Raya Tanjung Uncang"
-  if (/laguna|^(CLH|CLB)$/i.test(p))                        return "Central Laguna Hills"
-  if (/hillside/i.test(p))                                   return "SCC - Hillside"
-  if (/valleyside/i.test(p))                                 return "SCC - Valleyside"
-  if (/^MRD$/i.test(p) || /residential/i.test(p))           return "MRD"
+  if (/central.?hills|^CH$/i.test(p))                              return "CH"
+  if (/central.?tiban(?!.*raya)|^CT$/i.test(p))                   return "CT"
+  if (/central.?(raya.?)?batu|^(CBA|CRBA|MRD[\s-]*CRBA)$/i.test(p)) return "MRD CRBA+CBA"
+  if (/central.?raya.?tiban(?!.*uncang)|^CRT$/i.test(p))          return "CRT"
+  if (/tanjung|uncang|^(CRTU|MRD[\s-]*CRTU)$/i.test(p))          return "MRD CRTU"
+  if (/laguna|^(CLH|CLB|MRD[\s-]*CLH)$/i.test(p))                return "MRD CLH"
+  if (/hillside/i.test(p))                                        return "SCC - Hillside"
+  if (/valleyside/i.test(p))                                      return "SCC - Valleyside"
+  // Standalone "MRD" or "residential" — not a valid standalone project, return as-is to surface in UI
   return p
 }
