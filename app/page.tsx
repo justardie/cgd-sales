@@ -257,9 +257,9 @@ export default function OverviewPage() {
       setHunters(list)
       setProjectTotals(projMap)
       setTotals({
-        omsetMtd:    list.reduce((s, h) => s + h.omset_mtd, 0),
-        omsetYtd:    list.reduce((s, h) => s + h.omset_ytd, 0),
-        omsetLast:   list.reduce((s, h) => s + h.omset_last, 0),
+        omsetMtd:    (closingsMtd.data  || []).reduce((s, c) => s + (c.nilai_hjr || 0), 0),
+        omsetYtd:    (closingsYtd.data  || []).reduce((s, c) => s + (c.nilai_hjr || 0), 0),
+        omsetLast:   (closingsLast.data || []).reduce((s, c) => s + (c.nilai_hjr || 0), 0),
         visits:      totalVisits,
         visitTarget: totalVisitTarget,
         pipeline:    pipes.length,
@@ -544,7 +544,7 @@ export default function OverviewPage() {
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
               Omset per Proyek — {ytdMode ? `YTD ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {PROJECT_NAMES.map((key, idx) => (
                 <div key={key} className={`rounded-2xl p-4 kpi-card card-enter-${Math.min(idx + 1, 6)}`} style={{
                   background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,

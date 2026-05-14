@@ -361,8 +361,11 @@ export default function ClosingPage() {
     if (!editingClosing) return
     setSaving(true)
     const d = new Date(form.closing_date)
+    const newHunterName = form.sales_hunter || editingClosing.sales_hunter
+    const newHunterUser = hunters.find(h => h.name === newHunterName)
     await supabase.from("konsumen").update({
-      sales_hunter:  form.sales_hunter || editingClosing.sales_hunter,
+      user_id:       newHunterUser?.id ?? editingClosing.user_id,
+      sales_hunter:  newHunterName,
       sales_person:  form.sales_person || null,
       name:          form.name,
       project:       form.project || null,
@@ -438,7 +441,7 @@ export default function ClosingPage() {
     : hunters.filter(h => h.id === user?.id)
 
   const filtered = closings.filter(c => {
-    if (filterHunter    && (c.user_id !== filterHunter && c.sales_hunter !== filterHunter)) return false
+    if (filterHunter    && (c.sales_hunter || "") !== filterHunter) return false
     if (filterProject   && c.project  !== filterProject)  return false
     if (filterCaraBayar && c.cara_bayar !== filterCaraBayar) return false
     return true
@@ -592,7 +595,6 @@ export default function ClosingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {displayHunters.map(hunter => {
                   const hunterClosings = closings.filter(c =>
-                    c.user_id === hunter.id ||
                     (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
                   )
                   const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
@@ -670,7 +672,6 @@ export default function ClosingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {displayHunters.map(hunter => {
                   const hunterClosings = closings.filter(c =>
-                    c.user_id === hunter.id ||
                     (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
                   )
                   const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
@@ -702,7 +703,7 @@ export default function ClosingPage() {
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <option value="">Semua Hunter</option>
-            {displayHunters.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+            {displayHunters.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
           </select>
           <select value={filterProject} onChange={e => setFilterProject(e.target.value)}
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
