@@ -721,11 +721,11 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                   )
                 })}
               </div>
-              {pipelineStats.filter(p => !PROJECT_NAMES.includes(p.project)).length > 0 && (
+              {pipelineStats.filter(p => !(PROJECT_NAMES as readonly string[]).includes(p.project)).length > 0 && (
                 <div className="px-5 py-3" style={{ background: "var(--surface2)", borderTop: "1px solid var(--border)" }}>
                   <div className="text-xs text-slate-500 mb-2">Project Lainnya</div>
                   <div className="flex flex-wrap gap-4">
-                    {pipelineStats.filter(p => !PROJECT_NAMES.includes(p.project)).map((p, i) => (
+                    {pipelineStats.filter(p => !(PROJECT_NAMES as readonly string[]).includes(p.project)).map((p, i) => (
                       <div key={i} className="text-xs">
                         <span className="text-slate-400">{p.project}:</span>{" "}
                         <span className="text-white font-semibold">{p.count}</span>
