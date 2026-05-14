@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, pct, getMonthName } from "@/lib/utils"
+import { formatRupiah, pct, getMonthName, normalizeProject } from "@/lib/utils"
 import {
   TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
   Users, Activity, ChevronDown, ChevronUp,
@@ -27,15 +27,10 @@ interface HunterStat {
   rank?: number
 }
 
-const PROJECT_LABELS: { key: string; match: RegExp }[] = [
-  { key: "CH",     match: /central.?hills|^CH$/i },
-  { key: "CT",     match: /central.?tiban(?!.*raya)|^CT$/i },
-  { key: "CBA",    match: /central.?raya.?batu|^(CBA|CRBA)$/i },
-  { key: "CRT",    match: /central.?raya.?tiban|^CRT$/i },
-  { key: "CRTU",   match: /tanjung|^CRTU$/i },
-  { key: "CLH",    match: /laguna|^(CLH|CLB)$/i },
-  { key: "SCC-HS", match: /hillside/i },
-  { key: "SCC-VS", match: /valleyside/i },
+const PROJECT_NAMES = [
+  "Central Hills", "Central Tiban", "Central Raya Batu Aji",
+  "Central Raya Tiban", "Central Raya Tanjung Uncang",
+  "Central Laguna Hills", "SCC - Hillside", "SCC - Valleyside",
 ]
 
 /* ─── Circular Ring Gauge ───────────────────────── */
@@ -232,9 +227,8 @@ export default function OverviewPage() {
       const projMap: Record<string, number> = {}
       for (const c of (closingsMtd.data || [])) {
         if (c.sales_hunter && !hunterDbNameSet.has(c.sales_hunter)) continue
-        for (const { key, match } of PROJECT_LABELS) {
-          if (match.test(c.project || "")) { projMap[key] = (projMap[key] || 0) + (c.nilai_hjr || 0); break }
-        }
+        const proj = normalizeProject(c.project)
+        if (proj) projMap[proj] = (projMap[proj] || 0) + (c.nilai_hjr || 0)
       }
 
       // SP menjual: count distinct active SPs who had a closing this month
@@ -556,7 +550,7 @@ export default function OverviewPage() {
               Omset per Proyek — {getMonthName(month)} {year}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-              {PROJECT_LABELS.map(({ key }, idx) => (
+              {PROJECT_NAMES.map((key, idx) => (
                 <div key={key} className={`rounded-2xl p-4 kpi-card card-enter-${Math.min(idx + 1, 6)}`} style={{
                   background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
                   border: "1px solid var(--border)",

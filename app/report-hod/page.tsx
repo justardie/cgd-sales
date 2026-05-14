@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { formatRupiah, getMonthName, pct } from "@/lib/utils"
+import { formatRupiah, getMonthName, pct, normalizeProject } from "@/lib/utils"
 import { Printer, ChevronLeft, ChevronRight, ChevronDown, FileText, Code2, Trophy, Target } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -16,6 +16,7 @@ const PROJECTS = [
   "Central Tiban",
   "Central Raya Tanjung Uncang",
   "Central Raya Batu Aji",
+  "Central Raya Tiban",
   "SCC - Hillside",
   "SCC - Valleyside",
   "Central Laguna Hills",
@@ -118,7 +119,7 @@ export default function ReportHODPage() {
         .eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
       supabase.from("visit_logs").select("user_id,count,accompanied_count")
         .eq("month", month).eq("year", year),
-      supabase.from("konsumen").select("project,nilai_hjr")
+      supabase.from("konsumen").select("project,potensi_closing")
         .in("status", ["warm", "hot"]),
     ])
 
@@ -151,7 +152,8 @@ export default function ReportHODPage() {
         spOmsetMtd[c.sales_person] = (spOmsetMtd[c.sales_person] || 0) + val
         spUnitMtd[c.sales_person]  = (spUnitMtd[c.sales_person] || 0) + 1
       }
-      if (c.project)    projOmset[c.project]   = (projOmset[c.project] || 0) + val
+      const proj = normalizeProject(c.project)
+      if (proj) projOmset[proj] = (projOmset[proj] || 0) + val
       if (c.cara_bayar) cbCount[c.cara_bayar]  = (cbCount[c.cara_bayar] || 0) + 1
     })
 
@@ -216,11 +218,11 @@ export default function ReportHODPage() {
 
     // Pipeline per project
     const pipelineByProject: Record<string, { count: number; total: number }> = {}
-    pipelineRows.forEach((r: { project: string | null; nilai_hjr: number | null }) => {
-      const p = r.project || "Lainnya"
+    pipelineRows.forEach((r: { project: string | null; potensi_closing: number | null }) => {
+      const p = normalizeProject(r.project) || "Lainnya"
       if (!pipelineByProject[p]) pipelineByProject[p] = { count: 0, total: 0 }
       pipelineByProject[p].count += 1
-      pipelineByProject[p].total += (r.nilai_hjr || 0)
+      pipelineByProject[p].total += (r.potensi_closing || 0)
     })
     const newPipeline = Object.entries(pipelineByProject)
       .map(([project, d]) => ({ project, count: d.count, total_potensi: d.total }))
@@ -587,7 +589,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                     <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickFormatter={v => `${v}M`} />
                     <Tooltip
                       formatter={(v) => `Rp ${Number(v).toFixed(1)}M`}
-                      contentStyle={{ background: "#111827", border: "1px solid #1e2d45", fontSize: 11 }}
+                      contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-medium)", fontSize: 11, color: "var(--text-primary)" }}
                     />
                     <Bar dataKey="Target" fill="#1e40af" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="WinDie" fill="#7f1d1d" radius={[3, 3, 0, 0]} />
@@ -613,7 +615,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                       </Pie>
                       <Tooltip
                         formatter={(v, name) => [`${v} closing`, name]}
-                        contentStyle={{ background: "#111827", border: "1px solid #1e2d45", fontSize: 11 }}
+                        contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-medium)", fontSize: 11, color: "var(--text-primary)" }}
                       />
                       <Legend wrapperStyle={{ fontSize: 10, color: "#94a3b8" }} />
                     </PieChart>

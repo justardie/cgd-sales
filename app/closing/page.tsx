@@ -4,8 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
-import { formatRupiah, getMonthName } from "@/lib/utils"
-import { useMonth } from "@/contexts/MonthContext"
+import { formatRupiah, getMonthName, MONTHS } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Edit2, Trash2, ChevronDown } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
@@ -196,9 +195,12 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   )
 }
 
+const now = new Date()
+
 export default function ClosingPage() {
   const { user, isAdmin } = useAuth()
-  const { monthState } = useMonth()
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(now.getFullYear())
   const [closings, setClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [dbProjects, setDbProjects] = useState<string[]>([])
@@ -239,7 +241,7 @@ export default function ClosingPage() {
   const [form, setForm] = useState(blankForm)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, monthState])
+  useEffect(() => { if (user) fetchData() }, [user, month, year])
 
   useEffect(() => {
     if (!user) return
@@ -257,20 +259,13 @@ export default function ClosingPage() {
 
   async function fetchData() {
     setLoading(true)
-    const now = new Date()
-    const curMonth = now.getMonth() + 1
-    const curYear  = now.getFullYear()
 
     let closingQuery = supabase.from("konsumen")
       .select("id,user_id,sales_hunter,sales_person,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
       .eq("status", "closing")
       .order("closing_date", { ascending: false })
 
-    if (monthState.ytd) {
-      closingQuery = closingQuery.eq("closing_year", curYear).lte("closing_month", curMonth)
-    } else {
-      closingQuery = closingQuery.eq("closing_month", monthState.month).eq("closing_year", monthState.year)
-    }
+    closingQuery = closingQuery.eq("closing_month", month).eq("closing_year", year)
 
     const [closingsRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
       closingQuery,
@@ -463,13 +458,46 @@ export default function ClosingPage() {
           <div>
             <h1 className="text-xl font-bold text-white">Closing</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {monthState.ytd
-                ? `YTD ${new Date().getFullYear()}`
-                : `${getMonthName(monthState.month)} ${monthState.year}`
-              } · {filtered.length} transaksi · {formatRupiah(totalOmset)}
+              {getMonthName(month)} {year} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <select
+              value={month}
+              onChange={e => setMonth(Number(e.target.value))}
+              className="text-sm font-semibold outline-none"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-medium)",
+                borderRadius: "20px",
+                padding: "6px 14px",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              {MONTHS.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={e => setYear(Number(e.target.value))}
+              className="text-sm font-semibold outline-none"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border-medium)",
+                borderRadius: "20px",
+                padding: "6px 14px",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              {[2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
             <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
               className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
               <Plus size={14} /> Input Closing
@@ -722,7 +750,7 @@ export default function ClosingPage() {
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">
-                    Belum ada closing {monthState.ytd ? `YTD ${new Date().getFullYear()}` : `${getMonthName(monthState.month)} ${monthState.year}`}
+                    Belum ada closing {getMonthName(month)} {year}
                   </td></tr>
                 ) : filtered.map(c => (
                   <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}

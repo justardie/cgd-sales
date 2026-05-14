@@ -44,3 +44,18 @@ export const MONTHS = [
   { value: 9, label: 'September' }, { value: 10, label: 'Oktober' },
   { value: 11, label: 'November' }, { value: 12, label: 'Desember' },
 ]
+
+export function normalizeProject(project: string | null | undefined): string {
+  if (!project) return ""
+  const p = project.trim()
+  if (/central.?hills|^CH$/i.test(p))                        return "Central Hills"
+  if (/central.?tiban(?!.*raya)|^CT$/i.test(p))              return "Central Tiban"
+  if (/central.?raya.?batu|^(CBA|CRBA)$/i.test(p))          return "Central Raya Batu Aji"
+  if (/central.?raya.?tiban(?!.*uncang)|^CRT$/i.test(p))    return "Central Raya Tiban"
+  if (/tanjung|^CRTU$/i.test(p))                             return "Central Raya Tanjung Uncang"
+  if (/laguna|^(CLH|CLB)$/i.test(p))                        return "Central Laguna Hills"
+  if (/hillside/i.test(p))                                   return "SCC - Hillside"
+  if (/valleyside/i.test(p))                                 return "SCC - Valleyside"
+  if (/^MRD$/i.test(p) || /residential/i.test(p))           return "MRD"
+  return p
+}

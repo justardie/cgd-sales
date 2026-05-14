@@ -2,10 +2,9 @@
 import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
-import { useMonth } from "@/contexts/MonthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { getWeekNumber } from "@/lib/utils"
-import { Upload } from "lucide-react"
+import { getWeekNumber, getMonthName } from "@/lib/utils"
+import { Upload, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Visit } from "@/types"
 import * as XLSX from "xlsx"
 import { HUNTER_GROUPS } from "@/lib/hunters"
@@ -93,9 +92,12 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
   )
 }
 
+const now = new Date()
+
 export default function VisitPage() {
   const { user, isAdmin } = useAuth()
-  const { monthState } = useMonth()
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(now.getFullYear())
   const [visits, setVisits] = useState<Visit[]>([])
   const [userIdMap, setUserIdMap] = useState<Record<string, string>>({})
   const [userTargetMap, setUserTargetMap] = useState<Record<string, number>>({})
@@ -104,21 +106,20 @@ export default function VisitPage() {
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  function prevMonth() {
+    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, monthState])
+  useEffect(() => { if (user) fetchData() }, [user, month, year])
 
   async function fetchData() {
     setLoading(true)
-    const now = new Date()
-    const curMonth = now.getMonth() + 1
-    const curYear = now.getFullYear()
-
-    let visitQuery = supabase.from("visit_logs").select("*")
-    if (monthState.ytd) {
-      visitQuery = visitQuery.eq("year", curYear).lte("month", curMonth)
-    } else {
-      visitQuery = visitQuery.eq("month", monthState.month).eq("year", monthState.year)
-    }
+    const visitQuery = supabase.from("visit_logs").select("*")
+      .eq("month", month).eq("year", year)
 
     const [visitRes, userRes] = await Promise.all([
       visitQuery.order("visit_date", { ascending: false }),
@@ -150,10 +151,8 @@ export default function VisitPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = XLSX.utils.sheet_to_json<any>(wb.Sheets[wb.SheetNames[0]])
 
-    // For YTD mode: import to current month
-    const now = new Date()
-    const importMonth = monthState.ytd ? now.getMonth() + 1 : monthState.month
-    const importYear  = monthState.ytd ? now.getFullYear()  : monthState.year
+    const importMonth = month
+    const importYear  = year
 
     const inserts = rows
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,11 +206,9 @@ export default function VisitPage() {
   const myTarget = user ? (userTargetMap[user.id] || 40) : 40
   const pctMonth = myTarget > 0 ? Math.round((totalMonth / myTarget) * 100) : 0
 
-  const periodLabel = monthState.ytd ? "YTD" : "Bulan Ini"
-
   const kpiCards = [
-    { label: `Visit ${periodLabel}`, value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
-    { label: `% ${periodLabel}`,     value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
+    { label: "Visit Bulan Ini", value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
+    { label: "% Bulan Ini",     value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
   ]
 
   const hunterIds = new Set(
@@ -258,6 +255,19 @@ export default function VisitPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={prevMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
+              {getMonthName(month)} {year}
+            </div>
+            <button onClick={nextMonth}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronRight size={14} />
+            </button>
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -278,7 +288,7 @@ export default function VisitPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">Visit Sales Hunter {periodLabel}</div>
+                <div className="text-xs text-slate-500 mb-1">Visit Sales Hunter Bulan Ini</div>
                 <div className="text-2xl font-bold text-white">{hunterVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
                 <div className="text-xs text-slate-600 mt-0.5">Target {hunterTargetTotal}</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -286,7 +296,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">% {periodLabel} Visit Hunter</div>
+                <div className="text-xs text-slate-500 mb-1">% Visit Hunter Bulan Ini</div>
                 <div className="text-2xl font-bold" style={{ color: barColor(hunterPct) }}>{hunterPct}%</div>
                 <div className="text-xs text-slate-600 mt-0.5">{hunterVisitTotal} dari {hunterTargetTotal} visit</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -294,7 +304,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">Visit Sales Person {periodLabel}</div>
+                <div className="text-xs text-slate-500 mb-1">Visit Sales Person Bulan Ini</div>
                 <div className="text-2xl font-bold text-white">{spVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
                 <div className="text-xs text-slate-600 mt-0.5">Target {spTargetTotal}</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -302,7 +312,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">% {periodLabel} Visit Sales Person</div>
+                <div className="text-xs text-slate-500 mb-1">% Visit Sales Person Bulan Ini</div>
                 <div className="text-2xl font-bold" style={{ color: barColor(spPct) }}>{spPct}%</div>
                 <div className="text-xs text-slate-600 mt-0.5">{spVisitTotal} dari {spTargetTotal} visit</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>

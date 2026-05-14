@@ -18,7 +18,7 @@
 
   --text-primary:   #1A1816;
   --text-secondary: #54524F;  /* darker for contrast */
-  --text-muted:     #9A9790;
+  --text-muted:     #6B6865;
 
   --border:        rgba(0,0,0,0.08);
   --border-medium: rgba(0,0,0,0.13);
@@ -129,13 +129,14 @@ html.dark body {
 .text-slate-300 { color: #4B5563               !important; }
 .text-slate-400 { color: var(--text-secondary) !important; }
 .text-slate-500 { color: var(--text-muted)     !important; }
-.text-slate-600 { color: rgba(0,0,0,0.28)      !important; }
+.text-slate-600 { color: rgba(0,0,0,0.50)      !important; }
 
 html.dark .text-white     { color: #F0EDE8 !important; }
 html.dark .text-slate-100 { color: #e2e8f0 !important; }
 html.dark .text-slate-200 { color: #cbd5e1 !important; }
 html.dark .text-slate-300 { color: #94a3b8 !important; }
 html.dark .text-slate-400 { color: #94a3b8 !important; }
+html:not(.dark) .text-slate-400 { color: #54524F !important; }
 html.dark .text-slate-500 { color: #64748b !important; }
 html.dark .text-slate-600 { color: #475569 !important; }
 
