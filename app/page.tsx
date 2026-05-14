@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject } from "@/lib/utils"
 import {
   TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
-  Users, Activity, ChevronDown, ChevronUp,
+  Users, Activity, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
 } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -164,6 +164,15 @@ export default function OverviewPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [showCharts, setShowCharts] = useState(true)
 
+  const [ytdMode,    setYtdMode]    = useState(false)
+
+  function prevMonth() {
+    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
+
   const lastMonth = month === 1 ? 12 : month - 1
   const lastYear  = month === 1 ? year - 1 : year
 
@@ -268,8 +277,8 @@ export default function OverviewPage() {
 
   const omsetChart = hunters.map(h => ({
     name: h.name.split(" ")[0],
-    "Target":    Math.round(h.monthly_target / 1_000_000),
-    "Realisasi": Math.round(h.omset_mtd / 1_000_000),
+    "Target":    Math.round((ytdMode ? h.monthly_target * (now.getMonth() + 1) : h.monthly_target) / 1_000_000),
+    "Realisasi": Math.round((ytdMode ? h.omset_ytd : h.omset_mtd) / 1_000_000),
   }))
 
   const visitChart = hunters.map(h => ({
@@ -298,48 +307,34 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Month Selector */}
+        {/* Month / YTD Selector */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
             MASCOL Division · Sales Performance
           </p>
           <div className="flex items-center gap-2">
-            <select
-              value={month}
-              onChange={e => setMonth(Number(e.target.value))}
-              className="text-sm font-semibold outline-none"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "20px",
-                padding: "6px 14px",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              {["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"].map((m, i) => (
-                <option key={i + 1} value={i + 1}>{m}</option>
-              ))}
-            </select>
-            <select
-              value={year}
-              onChange={e => setYear(Number(e.target.value))}
-              className="text-sm font-semibold outline-none"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "20px",
-                padding: "6px 14px",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              {[2024, 2025, 2026, 2027].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <button onClick={prevMonth} disabled={ytdMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
+              {ytdMode ? `Jan – ${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
+            </div>
+            <button onClick={nextMonth} disabled={ytdMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronRight size={14} />
+            </button>
+            <button onClick={() => setYtdMode(m => !m)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                ytdMode ? "text-orange-400" : "text-slate-400 hover:text-white"
+              }`}
+              style={ytdMode
+                ? { background: "rgba(234,92,0,0.15)", border: "1px solid rgba(234,92,0,0.4)" }
+                : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              YTD {now.getFullYear()}
+            </button>
           </div>
         </div>
 
@@ -482,7 +477,7 @@ export default function OverviewPage() {
             <div className="flex items-center gap-2">
               <Activity size={14} style={{ color: "var(--accent)" }} />
               <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Grafik Performa — {getMonthName(month)} {year}
+                Grafik Performa — {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
               </span>
             </div>
             {showCharts
@@ -547,7 +542,7 @@ export default function OverviewPage() {
         {Object.keys(projectTotals).length > 0 && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
-              Omset per Proyek — {getMonthName(month)} {year}
+              Omset per Proyek — {ytdMode ? `YTD ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {PROJECT_NAMES.map((key, idx) => (
@@ -577,7 +572,7 @@ export default function OverviewPage() {
           }}>
             <Trophy size={15} style={{ color: "#f59e0b" }} />
             <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-              Ranking Performa — {getMonthName(month)} {year}
+              Ranking Performa — {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
             </h2>
           </div>
           <div className="overflow-x-auto" style={{ background: "var(--surface)" }}>
@@ -599,9 +594,13 @@ export default function OverviewPage() {
                 ) : hunters.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Belum ada data</td></tr>
                 ) : hunters.map((h, rowIdx) => {
-                  const revPct = pct(h.omset_mtd, h.monthly_target)
-                  const wodPct = h.win_or_die_target > 0 ? pct(h.omset_mtd, h.win_or_die_target) : null
-                  const wod    = h.win_or_die_target > 0 && h.omset_mtd < h.win_or_die_target
+                  const ytdM       = now.getMonth() + 1
+                  const omsetDisp  = ytdMode ? h.omset_ytd : h.omset_mtd
+                  const targetDisp = ytdMode ? h.monthly_target * ytdM : h.monthly_target
+                  const wodDisp    = ytdMode ? h.win_or_die_target * ytdM : h.win_or_die_target
+                  const revPct = pct(omsetDisp, targetDisp)
+                  const wodPct = wodDisp > 0 ? pct(omsetDisp, wodDisp) : null
+                  const wod    = wodDisp > 0 && omsetDisp < wodDisp
                   return (
                     <tr key={h.id} className={`row-enter row-enter-${Math.min(rowIdx + 1, 8)}`} style={{
                       borderBottom: "1px solid var(--border)",
@@ -615,12 +614,12 @@ export default function OverviewPage() {
                             style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>WoD</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>{formatRupiah(h.monthly_target)}</td>
+                      <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>{formatRupiah(targetDisp)}</td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>
-                        {h.win_or_die_target > 0 ? formatRupiah(h.win_or_die_target) : "—"}
+                        {wodDisp > 0 ? formatRupiah(wodDisp) : "—"}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
-                        {formatRupiah(h.omset_mtd)}
+                        {formatRupiah(omsetDisp)}
                       </td>
                       <td className="px-4 py-3 text-right text-xs font-bold" style={{
                         color: revPct >= 100 ? "#22c55e" : revPct >= 70 ? "#FF6A3D" : "#ef4444"

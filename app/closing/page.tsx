@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import { formatRupiah, getMonthName, MONTHS } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Edit2, Trash2, ChevronDown } from "lucide-react"
+import { Plus, X, Edit2, Trash2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { User } from "@/types"
 
@@ -201,6 +201,15 @@ export default function ClosingPage() {
   const { user, isAdmin } = useAuth()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
+  const [ytdMode, setYtdMode] = useState(false)
+
+  function prevMonth() {
+    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
+  }
+  function nextMonth() {
+    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
+  }
+
   const [closings, setClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [dbProjects, setDbProjects] = useState<string[]>([])
@@ -241,7 +250,7 @@ export default function ClosingPage() {
   const [form, setForm] = useState(blankForm)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, month, year])
+  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode])
 
   useEffect(() => {
     if (!user) return
@@ -265,7 +274,11 @@ export default function ClosingPage() {
       .eq("status", "closing")
       .order("closing_date", { ascending: false })
 
-    closingQuery = closingQuery.eq("closing_month", month).eq("closing_year", year)
+    if (ytdMode) {
+      closingQuery = closingQuery.eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1)
+    } else {
+      closingQuery = closingQuery.eq("closing_month", month).eq("closing_year", year)
+    }
 
     const [closingsRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
       closingQuery,
@@ -458,46 +471,32 @@ export default function ClosingPage() {
           <div>
             <h1 className="text-xl font-bold text-white">Closing</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {getMonthName(month)} {year} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
+              {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={month}
-              onChange={e => setMonth(Number(e.target.value))}
-              className="text-sm font-semibold outline-none"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "20px",
-                padding: "6px 14px",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              {MONTHS.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
-            <select
-              value={year}
-              onChange={e => setYear(Number(e.target.value))}
-              className="text-sm font-semibold outline-none"
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "20px",
-                padding: "6px 14px",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              {[2024, 2025, 2026, 2027].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <button onClick={prevMonth} disabled={ytdMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronLeft size={14} />
+            </button>
+            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
+              {ytdMode ? `Jan – ${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
+            </div>
+            <button onClick={nextMonth} disabled={ytdMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <ChevronRight size={14} />
+            </button>
+            <button onClick={() => setYtdMode(m => !m)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                ytdMode ? "text-orange-400" : "text-slate-400 hover:text-white"
+              }`}
+              style={ytdMode
+                ? { background: "rgba(234,92,0,0.15)", border: "1px solid rgba(234,92,0,0.4)" }
+                : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              YTD {now.getFullYear()}
+            </button>
             <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
               className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
               <Plus size={14} /> Input Closing

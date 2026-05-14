@@ -103,6 +103,7 @@ export default function VisitPage() {
   const [userTargetMap, setUserTargetMap] = useState<Record<string, number>>({})
   const [userRoleMap, setUserRoleMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const [ytdMode, setYtdMode] = useState(false)
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -114,18 +115,32 @@ export default function VisitPage() {
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, month, year])
+  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode])
 
   async function fetchData() {
     setLoading(true)
-    const visitQuery = supabase.from("visit_logs").select("*")
-      .eq("month", month).eq("year", year)
+    let visitQuery = supabase.from("visit_logs").select("*").eq("year", year)
+    if (ytdMode) {
+      visitQuery = visitQuery.lte("month", now.getMonth() + 1)
+    } else {
+      visitQuery = visitQuery.eq("month", month)
+    }
 
     const [visitRes, userRes] = await Promise.all([
       visitQuery.order("visit_date", { ascending: false }),
       supabase.from("users").select("id,name,visit_target,role").eq("status", "active"),
     ])
-    const allVisits = (visitRes.data || []) as Visit[]
+    let allVisits = (visitRes.data || []) as Visit[]
+    if (ytdMode) {
+      // Aggregate multiple monthly records into one per user
+      const agg: Record<string, Visit> = {}
+      for (const v of allVisits) {
+        if (!agg[v.user_id]) agg[v.user_id] = { ...v, count: 0, accompanied_count: 0 }
+        agg[v.user_id].count = (agg[v.user_id].count || 0) + (v.count || 0)
+        agg[v.user_id].accompanied_count = (agg[v.user_id].accompanied_count || 0) + (v.accompanied_count || 0)
+      }
+      allVisits = Object.values(agg)
+    }
     setVisits(isAdmin ? allVisits : allVisits.filter(v => v.user_id === user!.id))
 
     const idMap: Record<string, string> = {}
@@ -202,13 +217,18 @@ export default function VisitPage() {
     if (fileRef.current) fileRef.current.value = ""
   }
 
+  const ytdM = ytdMode ? (now.getMonth() + 1) : 1
+  const displayTargetMap = ytdM === 1 ? userTargetMap : Object.fromEntries(
+    Object.entries(userTargetMap).map(([k, v]) => [k, v * ytdM])
+  )
+
   const totalMonth = visits.filter(v => v.user_id === user?.id).reduce((s, v) => s + (v.count || 0), 0)
-  const myTarget = user ? (userTargetMap[user.id] || 40) : 40
+  const myTarget = user ? ((displayTargetMap[user.id]) || 40) : 40
   const pctMonth = myTarget > 0 ? Math.round((totalMonth / myTarget) * 100) : 0
 
   const kpiCards = [
-    { label: "Visit Bulan Ini", value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
-    { label: "% Bulan Ini",     value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
+    { label: ytdMode ? "Visit YTD" : "Visit Bulan Ini", value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
+    { label: ytdMode ? "% YTD" : "% Bulan Ini",         value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
   ]
 
   const hunterIds = new Set(
@@ -220,11 +240,11 @@ export default function VisitPage() {
 
   // Hunter visit total = sum of accompanied_count from all SPs
   const hunterVisitTotal = visits.filter(v => spIdSet.has(v.user_id)).reduce((s, v) => s + (v.accompanied_count || 0), 0)
-  const hunterTargetTotal = Array.from(hunterIds).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
+  const hunterTargetTotal = Array.from(hunterIds).reduce((s, id) => s + (displayTargetMap[id] || 0), 0)
   const hunterPct = hunterTargetTotal > 0 ? Math.round((hunterVisitTotal / hunterTargetTotal) * 100) : 0
 
   const spVisitTotal = visits.filter(v => spIdSet.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
-  const spTargetTotal = Array.from(spIdSet).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
+  const spTargetTotal = Array.from(spIdSet).reduce((s, id) => s + (displayTargetMap[id] || 0), 0)
   const spPct = spTargetTotal > 0 ? Math.round((spVisitTotal / spTargetTotal) * 100) : 0
 
   // id → name lookup for top-3 table
@@ -255,18 +275,27 @@ export default function VisitPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={prevMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+            <button onClick={prevMonth} disabled={ytdMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <ChevronLeft size={14} />
             </button>
             <div className="text-sm font-semibold text-white min-w-[130px] text-center">
-              {getMonthName(month)} {year}
+              {ytdMode ? `Jan – ${getMonthName(now.getMonth() + 1)} ${year}` : `${getMonthName(month)} ${year}`}
             </div>
-            <button onClick={nextMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
+            <button onClick={nextMonth} disabled={ytdMode}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <ChevronRight size={14} />
+            </button>
+            <button onClick={() => setYtdMode(m => !m)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                ytdMode ? "text-orange-400" : "text-slate-400 hover:text-white"
+              }`}
+              style={ytdMode
+                ? { background: "rgba(234,92,0,0.15)", border: "1px solid rgba(234,92,0,0.4)" }
+                : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              YTD {year}
             </button>
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
@@ -288,7 +317,7 @@ export default function VisitPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">Visit Sales Hunter Bulan Ini</div>
+                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "Visit Sales Hunter YTD" : "Visit Sales Hunter Bulan Ini"}</div>
                 <div className="text-2xl font-bold text-white">{hunterVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
                 <div className="text-xs text-slate-600 mt-0.5">Target {hunterTargetTotal}</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -296,7 +325,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">% Visit Hunter Bulan Ini</div>
+                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "% Visit Hunter YTD" : "% Visit Hunter Bulan Ini"}</div>
                 <div className="text-2xl font-bold" style={{ color: barColor(hunterPct) }}>{hunterPct}%</div>
                 <div className="text-xs text-slate-600 mt-0.5">{hunterVisitTotal} dari {hunterTargetTotal} visit</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -304,7 +333,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">Visit Sales Person Bulan Ini</div>
+                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "Visit Sales Person YTD" : "Visit Sales Person Bulan Ini"}</div>
                 <div className="text-2xl font-bold text-white">{spVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
                 <div className="text-xs text-slate-600 mt-0.5">Target {spTargetTotal}</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -312,7 +341,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">% Visit Sales Person Bulan Ini</div>
+                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "% Visit Sales Person YTD" : "% Visit Sales Person Bulan Ini"}</div>
                 <div className="text-2xl font-bold" style={{ color: barColor(spPct) }}>{spPct}%</div>
                 <div className="text-xs text-slate-600 mt-0.5">{spVisitTotal} dari {spTargetTotal} visit</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -373,7 +402,7 @@ export default function VisitPage() {
                 hunter={hunter}
                 visits={visits}
                 userIdMap={userIdMap}
-                userTargetMap={userTargetMap}
+                userTargetMap={displayTargetMap}
               />
             ))}
           </div>
