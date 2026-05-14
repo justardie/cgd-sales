@@ -5,8 +5,9 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import { formatRupiah, getMonthName } from "@/lib/utils"
+import { useMonth } from "@/contexts/MonthContext"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, ChevronLeft, ChevronRight, Edit2, Trash2, ChevronDown } from "lucide-react"
+import { Plus, X, Edit2, Trash2, ChevronDown } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { User } from "@/types"
 
@@ -27,15 +28,6 @@ interface KonsumenRow {
   notes: string | null
   status: string
 }
-
-const PROJECTS = [
-  "Central Hills",
-  "Central Tiban",
-  "MRD CRBA+CBA",
-  "MRD CLH",
-  "MRD CRTU",
-  "SCC",
-]
 
 const CARA_BAYAR = ["KPR Indent", "KPR UM", "Cash Keras", "Cash Bertahap", "SOB"]
 
@@ -58,6 +50,7 @@ interface ClosingFormProps {
   form: Record<string, string>
   setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>
   spOptions: string[]
+  projects: string[]
   saving: boolean
   onCancel: () => void
   onSubmit: (e: React.FormEvent) => Promise<void>
@@ -66,7 +59,7 @@ interface ClosingFormProps {
 }
 
 function ClosingFormFields({
-  isAdmin, form, setForm, spOptions, saving, onCancel, onSubmit, title, submitLabel,
+  isAdmin, form, setForm, spOptions, projects, saving, onCancel, onSubmit, title, submitLabel,
 }: ClosingFormProps) {
   return (
     <div className="p-5">
@@ -119,7 +112,7 @@ function ClosingFormFields({
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <option value="">— Pilih —</option>
-              {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
+              {projects.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
@@ -206,13 +199,12 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
 export default function ClosingPage() {
   const { user, isAdmin } = useAuth()
+  const { monthState } = useMonth()
   const [closings, setClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
+  const [dbProjects, setDbProjects] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [year, setYear]   = useState(new Date().getFullYear())
 
   const [filterHunter,    setFilterHunter]    = useState("")
   const [filterProject,   setFilterProject]   = useState("")
@@ -246,10 +238,8 @@ export default function ClosingPage() {
   }
   const [form, setForm] = useState(blankForm)
 
-  function prevMonth() { if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1) }
-  function nextMonth() { if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1) }
-
-  useEffect(() => { if (user) fetchData() }, [user, month, year])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user) fetchData() }, [user, monthState])
 
   useEffect(() => {
     if (!user) return
@@ -267,13 +257,23 @@ export default function ClosingPage() {
 
   async function fetchData() {
     setLoading(true)
-    const [closingsRes, usersRes, spsRes] = await Promise.all([
-      supabase.from("konsumen")
-        .select("id,user_id,sales_hunter,sales_person,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
-        .eq("status", "closing")
-        .eq("closing_month", month)
-        .eq("closing_year", year)
-        .order("closing_date", { ascending: false }),
+    const now = new Date()
+    const curMonth = now.getMonth() + 1
+    const curYear  = now.getFullYear()
+
+    let closingQuery = supabase.from("konsumen")
+      .select("id,user_id,sales_hunter,sales_person,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
+      .eq("status", "closing")
+      .order("closing_date", { ascending: false })
+
+    if (monthState.ytd) {
+      closingQuery = closingQuery.eq("closing_year", curYear).lte("closing_month", curMonth)
+    } else {
+      closingQuery = closingQuery.eq("closing_month", monthState.month).eq("closing_year", monthState.year)
+    }
+
+    const [closingsRes, usersRes, spsRes, projRes] = await Promise.all([
+      closingQuery,
       supabase.from("users")
         .select("id,name,monthly_target,role,status")
         .eq("status", "active")
@@ -282,7 +282,16 @@ export default function ClosingPage() {
         .select("name,hunter_name")
         .eq("role", "sales_person")
         .neq("status", "resigned"),
+      supabase.from("konsumen")
+        .select("project")
+        .not("project", "is", null),
     ])
+
+    // Extract distinct, sorted project names from DB
+    const uniqueProjects = Array.from(
+      new Set((projRes.data || []).map((r: { project: string | null }) => r.project).filter(Boolean) as string[])
+    ).sort()
+    setDbProjects(uniqueProjects)
     setHunters((usersRes.data || []) as User[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]
     if (isAdmin) {
@@ -445,23 +454,13 @@ export default function ClosingPage() {
           <div>
             <h1 className="text-xl font-bold text-white">Closing</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {getMonthName(month)} {year} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
+              {monthState.ytd
+                ? `YTD ${new Date().getFullYear()}`
+                : `${getMonthName(monthState.month)} ${monthState.year}`
+              } · {filtered.length} transaksi · {formatRupiah(totalOmset)}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={prevMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronLeft size={14} />
-            </button>
-            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
-              {getMonthName(month)} {year}
-            </div>
-            <button onClick={nextMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronRight size={14} />
-            </button>
             <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
               className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
               <Plus size={14} /> Input Closing
@@ -714,7 +713,7 @@ export default function ClosingPage() {
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">
-                    Belum ada closing {getMonthName(month)} {year}
+                    Belum ada closing {monthState.ytd ? `YTD ${new Date().getFullYear()}` : `${getMonthName(monthState.month)} ${monthState.year}`}
                   </td></tr>
                 ) : filtered.map(c => (
                   <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}
@@ -781,7 +780,7 @@ export default function ClosingPage() {
         <Modal onClose={() => setShowInputModal(false)}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm as any}
-            spOptions={spOptions} saving={saving}
+            spOptions={spOptions} projects={dbProjects} saving={saving}
             onCancel={() => setShowInputModal(false)}
             onSubmit={handleSave} title="Input Closing" submitLabel="Simpan Closing"
           />
@@ -792,7 +791,7 @@ export default function ClosingPage() {
         <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm as any}
-            spOptions={spOptions} saving={saving}
+            spOptions={spOptions} projects={dbProjects} saving={saving}
             onCancel={() => { setShowEditModal(false); setEditingClosing(null) }}
             onSubmit={handleEditSave}
             title={`Edit: ${editingClosing.name}`}

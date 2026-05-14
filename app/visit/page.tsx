@@ -2,9 +2,10 @@
 import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useMonth } from "@/contexts/MonthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { getMonthName, getWeekNumber } from "@/lib/utils"
-import { Upload, ChevronLeft, ChevronRight } from "lucide-react"
+import { getWeekNumber } from "@/lib/utils"
+import { Upload } from "lucide-react"
 import type { Visit } from "@/types"
 import * as XLSX from "xlsx"
 import { HUNTER_GROUPS } from "@/lib/hunters"
@@ -43,7 +44,7 @@ function PersonCard({ name, total, target, isHunter }: PersonCardProps) {
         <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: barColor(pct) }} />
       </div>
       <div className={`text-xs font-semibold ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
-        {pct}% bulanan
+        {pct}%
       </div>
     </div>
   )
@@ -58,10 +59,13 @@ interface HunterSectionProps {
 
 function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSectionProps) {
   const hunterId = userIdMap[hunter.dbName]
-  const hunterVisits = hunterId
-    ? visits.filter(v => v.user_id === hunterId).reduce((s, v) => s + (v.count || 0), 0)
-    : 0
   const hunterTarget = hunterId ? (userTargetMap[hunterId] || 60) : 60
+
+  // Hunter visit count = sum of "Didampingi Atasan" (accompanied_count) across their SPs
+  const spIds = hunter.spNames.filter(n => !!userIdMap[n]).map(n => userIdMap[n])
+  const hunterVisits = visits
+    .filter(v => spIds.includes(v.user_id))
+    .reduce((s, v) => s + (v.accompanied_count || 0), 0)
 
   return (
     <div className="space-y-3">
@@ -89,10 +93,9 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
   )
 }
 
-const now = new Date()
-
 export default function VisitPage() {
   const { user, isAdmin } = useAuth()
+  const { monthState } = useMonth()
   const [visits, setVisits] = useState<Visit[]>([])
   const [userIdMap, setUserIdMap] = useState<Record<string, string>>({})
   const [userTargetMap, setUserTargetMap] = useState<Record<string, number>>({})
@@ -100,25 +103,25 @@ export default function VisitPage() {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [year, setYear] = useState(now.getFullYear())
 
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
-  }
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
-  }
-
-  useEffect(() => { if (user) fetchData() }, [user, month, year])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user) fetchData() }, [user, monthState])
 
   async function fetchData() {
     setLoading(true)
+    const now = new Date()
+    const curMonth = now.getMonth() + 1
+    const curYear = now.getFullYear()
+
+    let visitQuery = supabase.from("visit_logs").select("*")
+    if (monthState.ytd) {
+      visitQuery = visitQuery.eq("year", curYear).lte("month", curMonth)
+    } else {
+      visitQuery = visitQuery.eq("month", monthState.month).eq("year", monthState.year)
+    }
+
     const [visitRes, userRes] = await Promise.all([
-      supabase.from("visit_logs")
-        .select("*")
-        .eq("month", month).eq("year", year)
-        .order("visit_date", { ascending: false }),
+      visitQuery.order("visit_date", { ascending: false }),
       supabase.from("users").select("id,name,visit_target,role").eq("status", "active"),
     ])
     const allVisits = (visitRes.data || []) as Visit[]
@@ -147,72 +150,89 @@ export default function VisitPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = XLSX.utils.sheet_to_json<any>(wb.Sheets[wb.SheetNames[0]])
 
+    // For YTD mode: import to current month
+    const now = new Date()
+    const importMonth = monthState.ytd ? now.getMonth() + 1 : monthState.month
+    const importYear  = monthState.ytd ? now.getFullYear()  : monthState.year
+
     const inserts = rows
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((r: Record<string, any>) => {
         const d = new Date(r.tanggal ?? r.Tanggal ?? Date.now())
-        // VISIT = Visit Konsumen + Visit Lokasi
+        // SP total visit = Visit Konsumen + Visit Lokasi
         const vk = Number(r["visit_konsumen"] ?? r["Visit Konsumen"] ?? r["VISIT KONSUMEN"] ?? 0)
         const vl = Number(r["visit_lokasi"]   ?? r["Visit Lokasi"]   ?? r["VISIT LOKASI"]   ?? 0)
         const count = vk + vl > 0
           ? vk + vl
           : Number(r.jumlah ?? r.VISIT ?? r.visit ?? r.total ?? 1)
+        // "Didampingi Atasan" = times the hunter accompanied this SP during visits
+        const accompanied = Number(
+          r["didampingi_atasan"] ?? r["Didampingi Atasan"] ?? r["DIDAMPINGI ATASAN"] ?? 0
+        )
         return {
-          user_id: user!.id,
-          visit_date: d.toISOString().slice(0, 10),
-          visit_type: "konsumen" as const,
+          user_id:           user!.id,
+          visit_date:        d.toISOString().slice(0, 10),
+          visit_type:        "konsumen" as const,
           count,
-          notes: (r.catatan ?? r.notes ?? null) as string | null,
-          week_number: getWeekNumber(d),
-          month,        // always use selected page month
-          year,         // always use selected page year
+          accompanied_count: accompanied,
+          notes:             (r.catatan ?? r.notes ?? null) as string | null,
+          week_number:       getWeekNumber(d),
+          month:             importMonth,
+          year:              importYear,
         }
       })
       .filter((r: { count: number }) => r.count > 0)
 
-    // Delete ALL existing records for selected month/year before inserting
+    // Delete ALL existing records for the target month/year before inserting
     await supabase.from("visit_logs")
       .delete()
       .eq("user_id", user!.id)
-      .eq("month", month)
-      .eq("year", year)
+      .eq("month", importMonth)
+      .eq("year", importYear)
 
     if (inserts.length === 0) {
       setMsg({ type: "err", text: "Tidak ada data valid di file Excel" })
     } else {
       const { error } = await supabase.from("visit_logs").insert(inserts)
       if (error) setMsg({ type: "err", text: error.message })
-      else { setMsg({ type: "ok", text: `${inserts.length} baris diimport — data lama diganti` }); fetchData() }
+      else {
+        setMsg({ type: "ok", text: `${inserts.length} baris diimport — data lama diganti` })
+        fetchData()
+      }
     }
     if (fileRef.current) fileRef.current.value = ""
   }
 
-  const totalMonth = visits.reduce((s, v) => s + (v.count || 0), 0)
+  const totalMonth = visits.filter(v => v.user_id === user?.id).reduce((s, v) => s + (v.count || 0), 0)
   const myTarget = user ? (userTargetMap[user.id] || 40) : 40
   const pctMonth = myTarget > 0 ? Math.round((totalMonth / myTarget) * 100) : 0
 
+  const periodLabel = monthState.ytd ? "YTD" : "Bulan Ini"
+
   const kpiCards = [
-    { label: "Visit Bulan Ini", value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
-    { label: "% Bulanan", value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
+    { label: `Visit ${periodLabel}`, value: totalMonth, unit: "visit", sub: `Target ${myTarget}`, pct: pctMonth },
+    { label: `% ${periodLabel}`,     value: `${pctMonth}%`, unit: "", sub: `${totalMonth} dari ${myTarget} visit`, pct: pctMonth },
   ]
 
   const hunterIds = new Set(
     Object.entries(userRoleMap).filter(([, role]) => role === "hunter").map(([id]) => id)
   )
-  const spIds = new Set(
+  const spIdSet = new Set(
     Object.entries(userRoleMap).filter(([, role]) => role === "sales_person").map(([id]) => id)
   )
-  const hunterVisitTotal = visits.filter(v => hunterIds.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
+
+  // Hunter visit total = sum of accompanied_count from all SPs
+  const hunterVisitTotal = visits.filter(v => spIdSet.has(v.user_id)).reduce((s, v) => s + (v.accompanied_count || 0), 0)
   const hunterTargetTotal = Array.from(hunterIds).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
   const hunterPct = hunterTargetTotal > 0 ? Math.round((hunterVisitTotal / hunterTargetTotal) * 100) : 0
 
-  const spVisitTotal = visits.filter(v => spIds.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
-  const spTargetTotal = Array.from(spIds).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
+  const spVisitTotal = visits.filter(v => spIdSet.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
+  const spTargetTotal = Array.from(spIdSet).reduce((s, id) => s + (userTargetMap[id] || 0), 0)
   const spPct = spTargetTotal > 0 ? Math.round((spVisitTotal / spTargetTotal) * 100) : 0
 
-  // name lookup: id → name (reverse of userIdMap)
+  // id → name lookup for top-3 table
   const idNameMap = Object.fromEntries(Object.entries(userIdMap).map(([name, id]) => [id, name]))
-  const top3SP = Array.from(spIds)
+  const top3SP = Array.from(spIdSet)
     .map(id => {
       const total = visits.filter(v => v.user_id === id).reduce((s, v) => s + (v.count || 0), 0)
       const target = userTargetMap[id] || 40
@@ -229,7 +249,7 @@ export default function VisitPage() {
   return (
     <DashboardShell>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Page header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold text-white">Visit</h1>
@@ -238,19 +258,6 @@ export default function VisitPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={prevMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronLeft size={14} />
-            </button>
-            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
-              {getMonthName(month)} {year}
-            </div>
-            <button onClick={nextMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronRight size={14} />
-            </button>
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -271,7 +278,7 @@ export default function VisitPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">Visit Sales Hunter Bulan Ini</div>
+                <div className="text-xs text-slate-500 mb-1">Visit Sales Hunter {periodLabel}</div>
                 <div className="text-2xl font-bold text-white">{hunterVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
                 <div className="text-xs text-slate-600 mt-0.5">Target {hunterTargetTotal}</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -279,7 +286,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">% Bulanan Visit Hunter</div>
+                <div className="text-xs text-slate-500 mb-1">% {periodLabel} Visit Hunter</div>
                 <div className="text-2xl font-bold" style={{ color: barColor(hunterPct) }}>{hunterPct}%</div>
                 <div className="text-xs text-slate-600 mt-0.5">{hunterVisitTotal} dari {hunterTargetTotal} visit</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -287,7 +294,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">Visit Sales Person Bulan Ini</div>
+                <div className="text-xs text-slate-500 mb-1">Visit Sales Person {periodLabel}</div>
                 <div className="text-2xl font-bold text-white">{spVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
                 <div className="text-xs text-slate-600 mt-0.5">Target {spTargetTotal}</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
@@ -295,7 +302,7 @@ export default function VisitPage() {
                 </div>
               </div>
               <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">% Bulanan Visit Sales Person</div>
+                <div className="text-xs text-slate-500 mb-1">% {periodLabel} Visit Sales Person</div>
                 <div className="text-2xl font-bold" style={{ color: barColor(spPct) }}>{spPct}%</div>
                 <div className="text-xs text-slate-600 mt-0.5">{spVisitTotal} dari {spTargetTotal} visit</div>
                 <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>

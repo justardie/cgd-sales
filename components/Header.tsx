@@ -5,8 +5,12 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
-import { Bell, Sun, Moon, LogOut } from "lucide-react"
+import { useMonth } from "@/contexts/MonthContext"
+import { Bell, Sun, Moon, LogOut, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+const MONTH_PICKER_PATHS = ["/visit", "/closing", "/"]
 
 const BASE_NAV = [
   { href: "/",           label: "Overview"    },
@@ -30,9 +34,22 @@ export default function Header() {
   const { user, isAdmin, logout } = useAuth()
   const { theme, toggle } = useTheme()
 
+  const { monthState, setMonthState } = useMonth()
   const [profileOpen, setProfileOpen] = useState(false)
-  const [taskCount, setTaskCount] = useState(0)
+  const [monthOpen,   setMonthOpen]   = useState(false)
+  const [taskCount,   setTaskCount]   = useState(0)
   const profileRef = useRef<HTMLDivElement>(null)
+  const monthRef   = useRef<HTMLDivElement>(null)
+
+  const showMonthPicker = MONTH_PICKER_PATHS.includes(pathname)
+
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1
+  const currentYear  = now.getFullYear()
+
+  const monthLabel = monthState.ytd
+    ? `YTD ${currentYear}`
+    : `${MONTH_NAMES[monthState.month - 1]} ${monthState.year}`
 
   const navItems = [...BASE_NAV, ...(isAdmin ? ADMIN_NAV : [])]
   const initials = user?.name
@@ -57,13 +74,12 @@ export default function Header() {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false)
-      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false)
+      if (monthRef.current  && !monthRef.current.contains(e.target as Node))   setMonthOpen(false)
     }
-    if (profileOpen) document.addEventListener("mousedown", handleClick)
+    if (profileOpen || monthOpen) document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
-  }, [profileOpen])
+  }, [profileOpen, monthOpen])
 
   return (
     <header className="app-header">
@@ -91,6 +107,63 @@ export default function Header() {
       </nav>
 
       <div className="header-right">
+        {/* Month picker — only shown on relevant pages */}
+        {showMonthPicker && (
+          <div style={{ position: "relative" }} ref={monthRef}>
+            <button
+              className="header-icon-btn"
+              aria-label="Pilih bulan"
+              onClick={() => setMonthOpen(v => !v)}
+              style={{ display: "flex", alignItems: "center", gap: "5px", padding: "0 10px", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}
+            >
+              <Calendar size={14} />
+              <span>{monthLabel}</span>
+            </button>
+
+            {monthOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 8px)", right: 0,
+                background: "var(--surface)", border: "1px solid var(--border)",
+                borderRadius: "12px", boxShadow: "var(--shadow-lg)",
+                minWidth: "160px", zIndex: 300, padding: "6px",
+              }}>
+                {/* YTD option */}
+                <button
+                  onClick={() => { setMonthState({ month: currentMonth, year: currentYear, ytd: true }); setMonthOpen(false) }}
+                  style={{
+                    width: "100%", textAlign: "left", padding: "7px 10px",
+                    borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                    background: monthState.ytd ? "var(--accent-soft)" : "transparent",
+                    color: monthState.ytd ? "var(--accent)" : "var(--text-secondary)",
+                    border: "none", cursor: "pointer",
+                  }}>
+                  YTD {currentYear}
+                </button>
+                <div style={{ height: "1px", background: "var(--border)", margin: "4px 0" }} />
+                {/* Monthly options — current year */}
+                {MONTH_NAMES.map((name, i) => {
+                  const m = i + 1
+                  const active = !monthState.ytd && monthState.month === m && monthState.year === currentYear
+                  return (
+                    <button key={m}
+                      onClick={() => { setMonthState({ month: m, year: currentYear, ytd: false }); setMonthOpen(false) }}
+                      style={{
+                        width: "100%", textAlign: "left", padding: "7px 10px",
+                        borderRadius: "8px", fontSize: "12px",
+                        background: active ? "var(--accent-soft)" : "transparent",
+                        color: active ? "var(--accent)" : "var(--text-secondary)",
+                        border: "none", cursor: "pointer",
+                        opacity: m > currentMonth ? 0.4 : 1,
+                      }}>
+                      {name} {currentYear}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           className="header-icon-btn"
           aria-label="Notifikasi task"

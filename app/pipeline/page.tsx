@@ -24,15 +24,6 @@ interface KonsumenRow {
   created_at?: string
 }
 
-const PROJECTS = [
-  "Central Hills",
-  "Central Tiban",
-  "MRD CRBA+CBA",
-  "MRD CLH",
-  "MRD CRTU",
-  "SCC",
-]
-
 const CARA_BAYAR = ["KPR Indent", "KPR UM", "Cash Keras", "Cash Bertahap", "SOB"]
 
 const STATUSES = [
@@ -87,8 +78,11 @@ export default function PipelinePage() {
   const [savingClosing, setSavingClosing] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
+  const [dbProjects, setDbProjects] = useState<string[]>([])
   const [closingForm, setClosingForm] = useState({
-    nilai_hjr: "",
+    unit:         "",
+    nilai_hjr:    "",
+    cara_bayar:   "",
     closing_date: new Date().toISOString().slice(0, 10),
   })
 
@@ -96,10 +90,15 @@ export default function PipelinePage() {
 
   async function fetchData() {
     setLoading(true)
-    const [{ data }, spsRes] = await Promise.all([
+    const [{ data }, spsRes, projRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
       supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
+      supabase.from("konsumen").select("project").not("project", "is", null),
     ])
+    const uniqueProjects = Array.from(
+      new Set((projRes.data || []).map((r: { project: string | null }) => r.project).filter(Boolean) as string[])
+    ).sort()
+    setDbProjects(uniqueProjects)
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {
       setRows(all)
@@ -144,7 +143,9 @@ export default function PipelinePage() {
   function openClosingConfirm(r: KonsumenRow) {
     setClosingTarget(r)
     setClosingForm({
-      nilai_hjr: r.potensi_closing?.toString() || "",
+      unit:         r.unit || "",
+      nilai_hjr:    r.potensi_closing?.toString() || "",
+      cara_bayar:   r.cara_bayar || "",
       closing_date: new Date().toISOString().slice(0, 10),
     })
     setShowClosingModal(true)
@@ -157,7 +158,9 @@ export default function PipelinePage() {
     const d = new Date(closingForm.closing_date)
     await supabase.from("konsumen").update({
       status:        "closing",
+      unit:          closingForm.unit || null,
       nilai_hjr:     Number(closingForm.nilai_hjr),
+      cara_bayar:    closingForm.cara_bayar || null,
       closing_date:  closingForm.closing_date,
       closing_month: d.getMonth() + 1,
       closing_year:  d.getFullYear(),
@@ -373,6 +376,14 @@ export default function PipelinePage() {
             </p>
             <form onSubmit={handleClosingConfirm} className="space-y-3">
               <div>
+                <label className="text-xs text-slate-500 block mb-1">Klaster / Unit</label>
+                <input type="text" value={closingForm.unit}
+                  onChange={e => setClosingForm(f => ({ ...f, unit: e.target.value }))}
+                  placeholder="Contoh: Kavling 8A, Type 45"
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              </div>
+              <div>
                 <label className="text-xs text-slate-500 block mb-1">
                   Nilai HJR (Rp) <span className="text-red-400">*</span>
                 </label>
@@ -380,6 +391,16 @@ export default function PipelinePage() {
                   onChange={e => setClosingForm(f => ({ ...f, nilai_hjr: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>
+                <select value={closingForm.cara_bayar}
+                  onChange={e => setClosingForm(f => ({ ...f, cara_bayar: e.target.value }))}
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <option value="">— Pilih —</option>
+                  {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">
@@ -468,7 +489,7 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="">— Pilih Proyek —</option>
-                  {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
+                  {dbProjects.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
