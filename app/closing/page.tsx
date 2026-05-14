@@ -29,8 +29,6 @@ interface KonsumenRow {
   status: string
 }
 
-const CARA_BAYAR = ["KPR Indent", "KPR UM", "Cash Keras", "Cash Bertahap", "SOB"]
-
 const PROJECT_COLORS: Record<string, string> = {
   "Central Hills": "bg-blue-500/10 text-blue-400",
   "Central Tiban": "bg-cyan-500/10 text-cyan-400",
@@ -51,6 +49,7 @@ interface ClosingFormProps {
   setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>
   spOptions: string[]
   projects: string[]
+  caraBayarOptions: string[]
   saving: boolean
   onCancel: () => void
   onSubmit: (e: React.FormEvent) => Promise<void>
@@ -59,7 +58,7 @@ interface ClosingFormProps {
 }
 
 function ClosingFormFields({
-  isAdmin, form, setForm, spOptions, projects, saving, onCancel, onSubmit, title, submitLabel,
+  isAdmin, form, setForm, spOptions, projects, caraBayarOptions, saving, onCancel, onSubmit, title, submitLabel,
 }: ClosingFormProps) {
   return (
     <div className="p-5">
@@ -138,7 +137,7 @@ function ClosingFormFields({
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <option value="">— Pilih —</option>
-              {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
+              {caraBayarOptions.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
         </div>
@@ -203,6 +202,7 @@ export default function ClosingPage() {
   const [closings, setClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [dbProjects, setDbProjects] = useState<string[]>([])
+  const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -272,7 +272,7 @@ export default function ClosingPage() {
       closingQuery = closingQuery.eq("closing_month", monthState.month).eq("closing_year", monthState.year)
     }
 
-    const [closingsRes, usersRes, spsRes, projRes] = await Promise.all([
+    const [closingsRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
       closingQuery,
       supabase.from("users")
         .select("id,name,monthly_target,role,status")
@@ -285,6 +285,9 @@ export default function ClosingPage() {
       supabase.from("konsumen")
         .select("project")
         .not("project", "is", null),
+      supabase.from("konsumen")
+        .select("cara_bayar")
+        .not("cara_bayar", "is", null),
     ])
 
     // Extract distinct, sorted project names from DB
@@ -292,6 +295,12 @@ export default function ClosingPage() {
       new Set((projRes.data || []).map((r: { project: string | null }) => r.project).filter(Boolean) as string[])
     ).sort()
     setDbProjects(uniqueProjects)
+
+    // Extract distinct, sorted cara_bayar values from DB
+    const uniqueCaraBayar = Array.from(
+      new Set((cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[])
+    ).sort()
+    setDbCaraBayar(uniqueCaraBayar)
     setHunters((usersRes.data || []) as User[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]
     if (isAdmin) {
@@ -678,7 +687,7 @@ export default function ClosingPage() {
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <option value="">Semua Cara Bayar</option>
-            {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
+            {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
           {(filterHunter || filterProject || filterCaraBayar) && (
             <button
@@ -780,7 +789,7 @@ export default function ClosingPage() {
         <Modal onClose={() => setShowInputModal(false)}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm as any}
-            spOptions={spOptions} projects={dbProjects} saving={saving}
+            spOptions={spOptions} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
             onCancel={() => setShowInputModal(false)}
             onSubmit={handleSave} title="Input Closing" submitLabel="Simpan Closing"
           />
@@ -791,7 +800,7 @@ export default function ClosingPage() {
         <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm as any}
-            spOptions={spOptions} projects={dbProjects} saving={saving}
+            spOptions={spOptions} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
             onCancel={() => { setShowEditModal(false); setEditingClosing(null) }}
             onSubmit={handleEditSave}
             title={`Edit: ${editingClosing.name}`}

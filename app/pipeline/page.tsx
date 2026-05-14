@@ -24,8 +24,6 @@ interface KonsumenRow {
   created_at?: string
 }
 
-const CARA_BAYAR = ["KPR Indent", "KPR UM", "Cash Keras", "Cash Bertahap", "SOB"]
-
 const STATUSES = [
   { value: "warm",            label: "Warm",          color: "bg-yellow-500/20 text-yellow-400" },
   { value: "hot",             label: "Hot",           color: "bg-orange-500/20 text-orange-400" },
@@ -79,6 +77,7 @@ export default function PipelinePage() {
   const [form, setForm] = useState(emptyForm)
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
   const [dbProjects, setDbProjects] = useState<string[]>([])
+  const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
   const [closingForm, setClosingForm] = useState({
     unit:         "",
     nilai_hjr:    "",
@@ -90,15 +89,21 @@ export default function PipelinePage() {
 
   async function fetchData() {
     setLoading(true)
-    const [{ data }, spsRes, projRes] = await Promise.all([
+    const [{ data }, spsRes, projRes, cbRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
       supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
       supabase.from("konsumen").select("project").not("project", "is", null),
+      supabase.from("konsumen").select("cara_bayar").not("cara_bayar", "is", null),
     ])
     const uniqueProjects = Array.from(
       new Set((projRes.data || []).map((r: { project: string | null }) => r.project).filter(Boolean) as string[])
     ).sort()
     setDbProjects(uniqueProjects)
+
+    const uniqueCaraBayar = Array.from(
+      new Set((cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[])
+    ).sort()
+    setDbCaraBayar(uniqueCaraBayar)
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {
       setRows(all)
@@ -399,7 +404,7 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="">— Pilih —</option>
-                  {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
+                  {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
               <div>
@@ -522,7 +527,7 @@ export default function PipelinePage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="">— Pilih —</option>
-                  {CARA_BAYAR.map(o => <option key={o} value={o}>{o}</option>)}
+                  {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
               <div>
