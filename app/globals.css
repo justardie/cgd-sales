@@ -597,6 +597,41 @@ html.dark .greeting-title {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInCard {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Staggered card entrance — apply .card-enter-N to each card */
+.card-enter   { animation: fadeInCard 0.32s ease both; }
+.card-enter-1 { animation: fadeInCard 0.32s 0.05s ease both; }
+.card-enter-2 { animation: fadeInCard 0.32s 0.10s ease both; }
+.card-enter-3 { animation: fadeInCard 0.32s 0.15s ease both; }
+.card-enter-4 { animation: fadeInCard 0.32s 0.20s ease both; }
+.card-enter-5 { animation: fadeInCard 0.32s 0.25s ease both; }
+.card-enter-6 { animation: fadeInCard 0.32s 0.30s ease both; }
+
+/* Hover lift for KPI cards */
+.kpi-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.13), 0 0 0 0.5px rgba(0,0,0,0.05);
+}
+html.dark .kpi-card:hover {
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+/* Smooth expand / collapse panel (replace conditional render with this) */
+.expand-panel {
+  overflow: hidden;
+  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity   0.22s ease;
+}
+.expand-panel.open   { max-height: 800px; opacity: 1; }
+.expand-panel.closed { max-height: 0;     opacity: 0; }
+
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════ */

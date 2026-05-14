@@ -189,6 +189,9 @@ export default function TeamPage() {
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>SH</span>
                       <span className="text-sm font-semibold text-white">{hunter.name}</span>
+                      {(hunterClosingsMap[hunter.name] || []).length > 0 && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
+                      )}
                       <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 ml-auto">
                         Sales Hunter
                       </span>
@@ -225,15 +228,20 @@ export default function TeamPage() {
                             className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition"
                             onClick={() => setExpandedSP(isExpanded ? null : hunter.name)}>
                             <div className="flex-1 min-w-0">
-                              <span className="text-sm font-medium text-white">{hunter.name}</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-white">{hunter.name}</span>
+                                {m && m.omset > 0 && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
+                                )}
+                              </div>
                               {m && m.omset > 0 && (
                                 <div className="text-xs text-slate-400 mt-0.5">{formatRupiah(m.omset)}</div>
                               )}
                             </div>
                             <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
                           </div>
-                          {isExpanded && (
-                            <div className="px-4 py-3" style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                          <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                            <div className="px-4 py-3">
                               {closings.length === 0 ? (
                                 <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
                               ) : (
@@ -259,7 +267,7 @@ export default function TeamPage() {
                                 </table>
                               )}
                             </div>
-                          )}
+                          </div>
                         </div>
                       )
                     })()}
@@ -282,6 +290,9 @@ export default function TeamPage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-medium text-white hover:text-blue-300 transition">{spName}</span>
                                   <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
+                                  {spOmset > 0 && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
+                                  )}
                                 </div>
                                 {spOmset > 0 && (
                                   <div className="text-xs text-slate-400 mt-0.5">{formatRupiah(spOmset)}</div>
@@ -289,8 +300,8 @@ export default function TeamPage() {
                               </div>
                               <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
                             </div>
-                            {isExpanded && (
-                              <div className="px-4 py-3" style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                            <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                              <div className="px-4 py-3">
                                 {spClosings.length === 0 ? (
                                   <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
                                 ) : (
@@ -316,7 +327,7 @@ export default function TeamPage() {
                                   </table>
                                 )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         )
                       }
@@ -333,6 +344,9 @@ export default function TeamPage() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-semibold text-white hover:text-blue-300 transition">{sp.name}</span>
                                 <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
+                                {spOmset > 0 && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
+                                )}
                               </div>
                               <div className="text-xs text-slate-400 mt-0.5">
                                 {formatRupiah(spOmset)}
@@ -362,8 +376,8 @@ export default function TeamPage() {
                               <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
                             )}
                           </div>
-                          {isExpanded && (
-                            <div className="px-4 py-3" style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                          <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                            <div className="px-4 py-3">
                               {spClosings.length === 0 ? (
                                 <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
                               ) : (
@@ -389,7 +403,7 @@ export default function TeamPage() {
                                 </table>
                               )}
                             </div>
-                          )}
+                          </div>
                         </div>
                       )
                     })}
