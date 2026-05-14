@@ -115,15 +115,15 @@ export default function VisitPage() {
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode])
+  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode, isAdmin])
 
   async function fetchData() {
     setLoading(true)
-    let visitQuery = supabase.from("visit_logs").select("*").eq("year", year)
+    let visitQuery = supabase.from("visit_logs").select("*")
     if (ytdMode) {
-      visitQuery = visitQuery.lte("month", now.getMonth() + 1)
+      visitQuery = visitQuery.eq("year", now.getFullYear()).lte("month", now.getMonth() + 1)
     } else {
-      visitQuery = visitQuery.eq("month", month)
+      visitQuery = visitQuery.eq("year", year).eq("month", month)
     }
 
     const [visitRes, userRes] = await Promise.all([
@@ -295,7 +295,7 @@ export default function VisitPage() {
               style={ytdMode
                 ? { background: "rgba(234,92,0,0.15)", border: "1px solid rgba(234,92,0,0.4)" }
                 : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              YTD {year}
+              YTD {now.getFullYear()}
             </button>
             <button onClick={() => fileRef.current?.click()}
               className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"

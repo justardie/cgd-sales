@@ -64,7 +64,7 @@ function achievementBadge(ach: number) {
 const now = new Date()
 
 export default function ReportHODPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   const [hunters, setHunters]           = useState<HunterStat[]>([])
   const [spVisits, setSpVisits]         = useState<SpVisitStat[]>([])
   const [projectOmset, setProjectOmset] = useState<Record<string, number>>({})
@@ -87,7 +87,8 @@ export default function ReportHODPage() {
     if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
   }
 
-  useEffect(() => { if (isAdmin) fetchData() }, [month, year])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (isAdmin) fetchData() }, [month, year, isAdmin, user])
 
   // Close share dropdown on outside click
   useEffect(() => {

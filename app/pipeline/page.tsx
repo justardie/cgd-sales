@@ -275,6 +275,9 @@ export default function PipelinePage() {
               </button>
             ))}
           </div>
+          <div className="ml-auto text-xs text-slate-500 self-center">
+            {filtered.length} hasil
+          </div>
         </div>
 
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
@@ -300,7 +303,7 @@ export default function PipelinePage() {
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
-                ) : filtered.slice(0, 100).map(r => {
+                ) : filtered.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
                   const badge = statusBadge(r.status)
                   return (

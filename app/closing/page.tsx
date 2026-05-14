@@ -251,7 +251,7 @@ export default function ClosingPage() {
   const [form, setForm] = useState(blankForm)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode])
+  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode, isAdmin])
 
   useEffect(() => {
     if (!user) return
@@ -260,12 +260,12 @@ export default function ClosingPage() {
       .from("konsumen")
       .select("nilai_hjr,project,closing_month")
       .eq("status", "closing")
-      .eq("closing_year", 2026)
+      .eq("closing_year", year)
       .lte("closing_month", currentMonth)
       .then(({ data }) => {
         setChartRawData((data || []) as { nilai_hjr: number; project: string | null; closing_month: number }[])
       })
-  }, [user])
+  }, [user, year])
 
   async function fetchData() {
     setLoading(true)
@@ -514,7 +514,7 @@ export default function ClosingPage() {
           <div className="flex items-center justify-between px-4 py-3"
             style={{ borderBottom: chartOpen ? "1px solid var(--border)" : "none" }}>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-white">Omset Bulanan 2026</span>
+              <span className="text-sm font-semibold text-white">{`Omset Bulanan ${year}`}</span>
               <select
                 value={chartProject}
                 onChange={e => setChartProject(e.target.value)}
@@ -595,7 +595,7 @@ export default function ClosingPage() {
             {isAdmin && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {displayHunters.map(hunter => {
-                  const hunterClosings = closings.filter(c =>
+                  const hunterClosings = filtered.filter(c =>
                     (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
                   )
                   const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
@@ -627,7 +627,9 @@ export default function ClosingPage() {
             {isHunterLogin && (
               <div className="space-y-3">
                 {displayHunters.map(hunter => {
-                  const total = closings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                  const total = closings
+                    .filter(c => c.sales_hunter === hunter.name)
+                    .reduce((s, c) => s + (c.nilai_hjr || 0), 0)
                   const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
                   const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
                   return (
@@ -704,7 +706,12 @@ export default function ClosingPage() {
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <option value="">Semua Hunter</option>
-            {displayHunters.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+            {displayHunters.map(h => {
+              const g = HUNTER_GROUPS.find(g => g.dbName === h.name || g.name === h.name)
+              const dbName = g?.dbName ?? h.name
+              const label = g?.name ?? h.name
+              return <option key={h.id} value={dbName}>{label}</option>
+            })}
           </select>
           <select value={filterProject} onChange={e => setFilterProject(e.target.value)}
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
@@ -751,7 +758,7 @@ export default function ClosingPage() {
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">
-                    Belum ada closing {getMonthName(month)} {year}
+                    {ytdMode ? `Belum ada closing YTD ${year}` : `Belum ada closing ${getMonthName(month)} ${year}`}
                   </td></tr>
                 ) : filtered.map(c => (
                   <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}

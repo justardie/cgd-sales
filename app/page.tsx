@@ -179,7 +179,7 @@ export default function OverviewPage() {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes, activeSpsRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role").eq("status", "active"),
         supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
-        supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1),
+        supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]),
@@ -343,8 +343,8 @@ export default function OverviewPage() {
           <div className="card-enter-2 kpi-card">
             <GaugeCard label="Omset MTD" icon={DollarSign}
               value={formatRupiah(totals.omsetMtd)}
-              sub={`Target ${formatRupiah(50_000_000_000)}`}
-              achievement={totals.omsetMtd / 50_000_000_000} />
+              sub={`Target ${formatRupiah(totalTarget)}`}
+              achievement={totalTarget > 0 ? totals.omsetMtd / totalTarget : 0} />
           </div>
           <div className="card-enter-3 kpi-card">
             <StatCard label="Pipeline Aktif" icon={Activity}

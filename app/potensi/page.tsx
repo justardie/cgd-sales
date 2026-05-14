@@ -18,9 +18,6 @@ interface KonsumenRow {
 }
 
 
-const CURRENT_MONTH = new Date().getMonth() + 1
-const CURRENT_YEAR  = new Date().getFullYear()
-
 function barColor(pct: number) {
   if (pct >= 100) return "#22c55e"
   if (pct >= 70)  return "#E84500"
@@ -32,8 +29,13 @@ export default function PotensiPage() {
   const [rows, setRows]       = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [month, setMonth] = useState(new Date().getMonth() + 1)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [year, setYear]   = useState(new Date().getFullYear())
 
-  useEffect(() => { if (user) fetchData() }, [user])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user) fetchData() }, [user, month, year])
 
   async function fetchData() {
     setLoading(true)
@@ -58,8 +60,8 @@ export default function PotensiPage() {
   }
 
   const pipelineRows = rows.filter(r => r.status === "warm" || r.status === "hot")
-  const closingMTD   = rows.filter(r => r.status === "closing" && r.closing_month === CURRENT_MONTH && r.closing_year === CURRENT_YEAR)
-  const closingYTD   = rows.filter(r => r.status === "closing" && r.closing_year === CURRENT_YEAR)
+  const closingMTD   = rows.filter(r => r.status === "closing" && r.closing_month === month && r.closing_year === year)
+  const closingYTD   = rows.filter(r => r.status === "closing" && r.closing_year === year)
 
   const totalPotensi    = pipelineRows.reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0)
   const totalClosingMTD = closingMTD.reduce((s, r) => s + (Number(r.nilai_hjr) || 0), 0)
@@ -119,7 +121,7 @@ export default function PotensiPage() {
             )}
           </div>
           <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div className="text-xs text-slate-500 mb-1">Closing YTD 2026</div>
+            <div className="text-xs text-slate-500 mb-1">{`Closing YTD ${year}`}</div>
             <div className="text-xl font-bold text-blue-400">{formatRupiah(totalClosingYTD)}</div>
             <div className="text-xs text-slate-600 mt-0.5">{closingYTD.length} transaksi tahun ini</div>
           </div>
