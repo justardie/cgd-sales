@@ -68,7 +68,7 @@ export default function Header() {
     <header className="app-header">
       <div className="header-logo">
         <Image
-          src={theme === "pearl" || theme === "sand" ? "/logo-dark.png" : "/logo.png"}
+          src={theme === "light" ? "/logo-dark.png" : "/logo.png"}
           alt="CGD"
           width={140}
           height={52}
@@ -120,8 +120,8 @@ export default function Header() {
                 className="profile-dropdown-item"
                 onClick={() => { toggle(); setProfileOpen(false) }}
               >
-                {theme === "midnight" || theme === "ocean" ? <Sun size={14} /> : <Moon size={14} />}
-                <span>{theme === "midnight" || theme === "ocean" ? "Light Mode" : "Dark Mode"}</span>
+                {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+                <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
               </button>
               <div className="profile-dropdown-divider" />
               <button

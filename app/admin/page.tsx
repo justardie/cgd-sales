@@ -157,7 +157,7 @@ export default function AdminPage() {
             <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Tema Global</span>
             <span className="text-xs ml-1" style={{ color: "var(--text-muted)" }}>— berlaku untuk semua user secara real-time</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 max-w-xs">
             {THEMES.map(t => {
               const isActive = activeTheme === t.id
               return (
@@ -185,8 +185,8 @@ export default function AdminPage() {
                     <div style={{
                       position: "absolute", top: 6, left: 6, right: 6, height: 18,
                       borderRadius: 6,
-                      background: t.dark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.75)",
-                      border: `1px solid ${t.dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"}`,
+                      background: t.id === "dark" ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.75)",
+                      border: `1px solid ${t.id === "dark" ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"}`,
                     }} />
                     {/* Accent dot */}
                     <div style={{
@@ -194,10 +194,10 @@ export default function AdminPage() {
                       borderRadius: 4, background: t.accent,
                     }} />
                   </div>
-                  <div className="text-xs font-semibold" style={{ color: t.dark ? "#F0EDE8" : "#1A1816" }}>
+                  <div className="text-xs font-semibold" style={{ color: t.id === "dark" ? "#F0EDE8" : "#1A1816" }}>
                     {t.name}
                   </div>
-                  <div className="text-[10px] mt-0.5" style={{ color: t.dark ? "#8A8784" : "#6B6865" }}>
+                  <div className="text-[10px] mt-0.5" style={{ color: t.id === "dark" ? "#8A8784" : "#6B6865" }}>
                     {t.label}
                   </div>
                   {isActive && (
