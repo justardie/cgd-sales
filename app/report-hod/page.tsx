@@ -355,7 +355,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
     <DashboardShell>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3 no-print card-enter">
+        <div className="flex items-center justify-between flex-wrap gap-3 no-print card-enter" style={{ position: "relative", zIndex: 10 }}>
           <div>
             <h1 className="text-xl font-bold text-white">Report HOD</h1>
             <p className="text-sm text-slate-500 mt-0.5">Laporan kinerja tim MASCOL Division</p>
@@ -423,14 +423,14 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                 <div className="text-xs text-slate-500 mb-1">Total Omset MTD</div>
                 <div className="text-2xl font-bold text-white">{formatRupiah(totalMtd)}</div>
                 <div className="text-xs text-slate-500 mt-1">
-                  Target {formatRupiah(totalTarget)} ·{" "}
-                  <span className={`font-bold ${teamAch >= 100 ? "text-green-400" : teamAch >= 70 ? "text-orange-400" : "text-red-400"}`}>
-                    {teamAch}%
+                  Target {formatRupiah(50_000_000_000)} ·{" "}
+                  <span className={`font-bold ${pct(totalMtd, 50_000_000_000) >= 100 ? "text-green-400" : pct(totalMtd, 50_000_000_000) >= 70 ? "text-orange-400" : "text-red-400"}`}>
+                    {pct(totalMtd, 50_000_000_000)}%
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 rounded-full bg-slate-800">
                   <div className="h-1.5 rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(teamAch, 100)}%`, background: "#E84500" }} />
+                    style={{ width: `${Math.min(pct(totalMtd, 50_000_000_000), 100)}%`, background: "#E84500" }} />
                 </div>
               </div>
               <div className="kpi-card card-enter-2 rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -447,7 +447,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
             {/* Section 2: Per-project Omset MTD cards */}
             <div className="card-enter-3">
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Omset MTD per Project</div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {PROJECT_NAMES.map((proj, i) => (
                   <div key={proj}
                     className={`kpi-card rounded-xl p-3 card-enter-${Math.min(i + 1, 6)}`}
