@@ -28,13 +28,14 @@ interface HunterStat {
 }
 
 const PROJECT_LABELS: { key: string; match: RegExp }[] = [
-  { key: "CH",       match: /^CH$/i },
-  { key: "CT",       match: /^CT$/i },
-  { key: "CBA/CRBA", match: /^(CBA|CRBA)$/i },
-  { key: "CRTU",     match: /^CRTU$/i },
-  { key: "CLH",      match: /^CLH$/i },
-  { key: "SCC-HS",   match: /SCC.?HS/i },
-  { key: "SCC-VS",   match: /SCC.?VS/i },
+  { key: "CH",     match: /central.?hills|^CH$/i },
+  { key: "CT",     match: /central.?tiban(?!.*raya)|^CT$/i },
+  { key: "CBA",    match: /central.?raya.?batu|^(CBA|CRBA)$/i },
+  { key: "CRT",    match: /central.?raya.?tiban|^CRT$/i },
+  { key: "CRTU",   match: /tanjung|^CRTU$/i },
+  { key: "CLH",    match: /laguna|^(CLH|CLB)$/i },
+  { key: "SCC-HS", match: /hillside/i },
+  { key: "SCC-VS", match: /valleyside/i },
 ]
 
 /* ─── Circular Ring Gauge ───────────────────────── */
@@ -178,9 +179,9 @@ export default function OverviewPage() {
     try {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes, activeSpsRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role").eq("status", "active"),
-        supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
-        supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1),
-        supabase.from("konsumen").select("user_id,nilai_hjr").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
+        supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
+        supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1),
+        supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]),
         supabase.from("users").select("name").eq("role", "sales_person").eq("status", "active"),
@@ -205,9 +206,9 @@ export default function OverviewPage() {
               )
           if (!hu) return null
 
-          const omset_mtd  = (closingsMtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-          const omset_ytd  = (closingsYtd.data  || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-          const omset_last = (closingsLast.data || []).filter(c => c.user_id === hu.id).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+          const omset_mtd  = (closingsMtd.data  || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+          const omset_ytd  = (closingsYtd.data  || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+          const omset_last = (closingsLast.data || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
 
           const memberIds = new Set(
             [group.dbName, ...group.spNames].map(n => nameToUser[n]?.id).filter((id): id is string => !!id)
@@ -226,11 +227,11 @@ export default function OverviewPage() {
         .sort((a, b) => pct(b.omset_mtd, b.monthly_target) - pct(a.omset_mtd, a.monthly_target))
         .map((h, i) => ({ ...h, rank: i + 1 }))
 
-      // Project totals (MTD)
-      const hunterIds = new Set(HUNTER_GROUPS.map(g => nameToUser[g.dbName]?.id).filter((id): id is string => !!id))
+      // Project totals (MTD) — filter to MASCOL hunters only via sales_hunter name
+      const hunterDbNameSet = new Set(HUNTER_GROUPS.map(g => g.dbName))
       const projMap: Record<string, number> = {}
       for (const c of (closingsMtd.data || [])) {
-        if (!hunterIds.has(c.user_id)) continue
+        if (c.sales_hunter && !hunterDbNameSet.has(c.sales_hunter)) continue
         for (const { key, match } of PROJECT_LABELS) {
           if (match.test(c.project || "")) { projMap[key] = (projMap[key] || 0) + (c.nilai_hjr || 0); break }
         }
@@ -350,59 +351,51 @@ export default function OverviewPage() {
 
         {/* Hero KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard
-            label="Omset YTD"
-            icon={TrendingUp}
-            value={formatRupiah(totals.omsetYtd)}
-            sub={`Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`}
-            color="#FF6A3D"
-          />
-          <GaugeCard
-            label="Omset MTD"
-            icon={DollarSign}
-            value={formatRupiah(totals.omsetMtd)}
-            sub={`Target ${formatRupiah(50_000_000_000)}`}
-            achievement={totals.omsetMtd / 50_000_000_000}
-          />
-          <StatCard
-            label="Pipeline Aktif"
-            icon={Activity}
-            value={totals.pipeline.toString()}
-            sub={formatRupiah(totals.pipelineVal)}
-            color="#8b5cf6"
-          />
-          <GaugeCard
-            label="Total Visit"
-            icon={MapPin}
-            value={`${totals.visits} visit`}
-            sub={`Target ${totals.visitTarget} · ${getMonthName(month)}`}
-            achievement={totals.visitTarget > 0 ? totals.visits / totals.visitTarget : 0}
-            accentColor="#3b82f6"
-          />
-          <GaugeCard
-            label="Sales Person Aktif"
-            icon={Users}
-            value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
-            sub="menjual bulan ini"
-            achievement={totals.totalActiveSps > 0 ? totals.spMenjual / totals.totalActiveSps : 0}
-            accentColor="#10b981"
-          />
-          <StatCard
-            label={`vs ${getMonthName(lastMonth)}`}
-            icon={TrendingUp}
-            value={mtdGrowth !== null
-              ? `${mtdGrowth >= 0 ? "+" : ""}${mtdGrowth}%`
-              : "—"}
-            sub={mtdGrowth !== null
-              ? `${mtdGrowth >= 0 ? "Naik" : "Turun"} dari bulan lalu`
-              : "Belum ada data bulan lalu"}
-            color={mtdGrowth !== null && mtdGrowth >= 0 ? "#22c55e" : "#ef4444"}
-          />
+          <div className="card-enter-1 kpi-card">
+            <StatCard label="Omset YTD" icon={TrendingUp}
+              value={formatRupiah(totals.omsetYtd)}
+              sub={`Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`}
+              color="#FF6A3D" />
+          </div>
+          <div className="card-enter-2 kpi-card">
+            <GaugeCard label="Omset MTD" icon={DollarSign}
+              value={formatRupiah(totals.omsetMtd)}
+              sub={`Target ${formatRupiah(50_000_000_000)}`}
+              achievement={totals.omsetMtd / 50_000_000_000} />
+          </div>
+          <div className="card-enter-3 kpi-card">
+            <StatCard label="Pipeline Aktif" icon={Activity}
+              value={totals.pipeline.toString()}
+              sub={formatRupiah(totals.pipelineVal)}
+              color="#8b5cf6" />
+          </div>
+          <div className="card-enter-4 kpi-card">
+            <GaugeCard label="Total Visit" icon={MapPin}
+              value={`${totals.visits} visit`}
+              sub={`Target ${totals.visitTarget} · ${getMonthName(month)}`}
+              achievement={totals.visitTarget > 0 ? totals.visits / totals.visitTarget : 0}
+              accentColor="#3b82f6" />
+          </div>
+          <div className="card-enter-5 kpi-card">
+            <GaugeCard label="Sales Person Aktif" icon={Users}
+              value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
+              sub="menjual bulan ini"
+              achievement={totals.totalActiveSps > 0 ? totals.spMenjual / totals.totalActiveSps : 0}
+              accentColor="#10b981" />
+          </div>
+          <div className="card-enter-6 kpi-card">
+            <StatCard label={`vs ${getMonthName(lastMonth)}`} icon={TrendingUp}
+              value={mtdGrowth !== null ? `${mtdGrowth >= 0 ? "+" : ""}${mtdGrowth}%` : "—"}
+              sub={mtdGrowth !== null
+                ? `${mtdGrowth >= 0 ? "Naik" : "Turun"} dari bulan lalu`
+                : "Belum ada data bulan lalu"}
+              color={mtdGrowth !== null && mtdGrowth >= 0 ? "#22c55e" : "#ef4444"} />
+          </div>
         </div>
 
         {/* Win-or-Die Alert */}
         {warnHunters.length > 0 && (
-          <div className="rounded-2xl overflow-hidden relative" style={{
+          <div className="rounded-2xl overflow-hidden relative section-fade-1 wod-glow" style={{
             background: "linear-gradient(135deg, #0c0101 0%, #1c0404 50%, #120202 100%)",
             border: "1px solid rgba(239,68,68,0.30)",
             boxShadow: "0 0 48px rgba(239,68,68,0.08), 0 8px 32px rgba(0,0,0,0.50)",
@@ -483,7 +476,7 @@ export default function OverviewPage() {
         )}
 
         {/* Charts Section — collapsible */}
-        <div className="rounded-2xl overflow-hidden" style={{
+        <div className="rounded-2xl overflow-hidden section-fade-2" style={{
           background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
           border: "1px solid var(--border)",
           boxShadow: "var(--shadow-md)",
@@ -503,8 +496,8 @@ export default function OverviewPage() {
               : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
           </button>
 
-          {showCharts && (
-            <div className="px-5 pb-5 space-y-6" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className={`expand-panel ${showCharts ? "open" : "closed"}`} style={{ borderTop: "1px solid var(--border)" }}>
+            <div className="px-5 pb-5 space-y-6">
               {omsetChart.length > 0 && (
                 <div className="pt-4">
                   <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
@@ -530,7 +523,6 @@ export default function OverviewPage() {
                   </ResponsiveContainer>
                 </div>
               )}
-
               {visitChart.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
@@ -554,7 +546,7 @@ export default function OverviewPage() {
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Project Omset */}
@@ -563,9 +555,9 @@ export default function OverviewPage() {
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
               Omset per Proyek — {getMonthName(month)} {year}
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              {PROJECT_LABELS.map(({ key }) => (
-                <div key={key} className="rounded-2xl p-4" style={{
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              {PROJECT_LABELS.map(({ key }, idx) => (
+                <div key={key} className={`rounded-2xl p-4 kpi-card card-enter-${Math.min(idx + 1, 6)}`} style={{
                   background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
                   border: "1px solid var(--border)",
                   boxShadow: "var(--shadow-sm)",
@@ -581,7 +573,7 @@ export default function OverviewPage() {
         )}
 
         {/* Ranking */}
-        <div className="rounded-2xl overflow-hidden" style={{
+        <div className="rounded-2xl overflow-hidden section-fade-3" style={{
           border: "1px solid var(--border)",
           boxShadow: "var(--shadow-md)",
         }}>
@@ -612,12 +604,12 @@ export default function OverviewPage() {
                   <tr><td colSpan={7} className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Memuat data...</td></tr>
                 ) : hunters.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Belum ada data</td></tr>
-                ) : hunters.map(h => {
+                ) : hunters.map((h, rowIdx) => {
                   const revPct = pct(h.omset_mtd, h.monthly_target)
                   const wodPct = h.win_or_die_target > 0 ? pct(h.omset_mtd, h.win_or_die_target) : null
                   const wod    = h.win_or_die_target > 0 && h.omset_mtd < h.win_or_die_target
                   return (
-                    <tr key={h.id} style={{
+                    <tr key={h.id} className={`row-enter row-enter-${Math.min(rowIdx + 1, 8)}`} style={{
                       borderBottom: "1px solid var(--border)",
                       background: wod ? "rgba(220,38,38,0.04)" : "transparent",
                     }}>

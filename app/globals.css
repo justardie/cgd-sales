@@ -626,11 +626,82 @@ html.dark .kpi-card:hover {
 /* Smooth expand / collapse panel (replace conditional render with this) */
 .expand-panel {
   overflow: hidden;
-  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity   0.22s ease;
+  transition: max-height 0.30s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity   0.24s ease;
 }
-.expand-panel.open   { max-height: 800px; opacity: 1; }
-.expand-panel.closed { max-height: 0;     opacity: 0; }
+.expand-panel.open   { max-height: 2000px; opacity: 1; }
+.expand-panel.closed { max-height: 0;      opacity: 0; }
+
+/* ── Staggered table row entrance ── */
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.row-enter   { animation: rowSlideIn 0.28s ease both; }
+.row-enter-1 { animation: rowSlideIn 0.28s 0.04s ease both; }
+.row-enter-2 { animation: rowSlideIn 0.28s 0.08s ease both; }
+.row-enter-3 { animation: rowSlideIn 0.28s 0.12s ease both; }
+.row-enter-4 { animation: rowSlideIn 0.28s 0.16s ease both; }
+.row-enter-5 { animation: rowSlideIn 0.28s 0.20s ease both; }
+.row-enter-6 { animation: rowSlideIn 0.28s 0.24s ease both; }
+.row-enter-7 { animation: rowSlideIn 0.28s 0.28s ease both; }
+.row-enter-8 { animation: rowSlideIn 0.28s 0.32s ease both; }
+
+/* ── Section fade-in ── */
+@keyframes sectionFade {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.section-fade   { animation: sectionFade 0.40s ease both; }
+.section-fade-1 { animation: sectionFade 0.40s 0.08s ease both; }
+.section-fade-2 { animation: sectionFade 0.40s 0.16s ease both; }
+.section-fade-3 { animation: sectionFade 0.40s 0.24s ease both; }
+.section-fade-4 { animation: sectionFade 0.40s 0.32s ease both; }
+
+/* ── Shimmer skeleton loader ── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+    var(--surface2) 25%,
+    var(--surface3) 50%,
+    var(--surface2) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* ── Badge pop ── */
+@keyframes badgePop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  70%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.badge-pop { animation: badgePop 0.30s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Progress bar fill ── */
+@keyframes barFill { from { width: 0%; } }
+.bar-animated { animation: barFill 0.7s cubic-bezier(0.4, 0, 0.2, 1) both; }
+
+/* ── Glow pulse for WoD alert ── */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(239,68,68,0.20); }
+  50%       { box-shadow: 0 0 28px rgba(239,68,68,0.45); }
+}
+.wod-glow { animation: glowPulse 2.5s ease infinite; }
+
+/* ── Hunter card stagger (Team Status) ── */
+.hunter-card-1 { animation: fadeInCard 0.34s 0.04s ease both; }
+.hunter-card-2 { animation: fadeInCard 0.34s 0.10s ease both; }
+.hunter-card-3 { animation: fadeInCard 0.34s 0.16s ease both; }
+.hunter-card-4 { animation: fadeInCard 0.34s 0.22s ease both; }
+.hunter-card-5 { animation: fadeInCard 0.34s 0.28s ease both; }
+.hunter-card-6 { animation: fadeInCard 0.34s 0.34s ease both; }
+.hunter-card-7 { animation: fadeInCard 0.34s 0.40s ease both; }
+.hunter-card-8 { animation: fadeInCard 0.34s 0.46s ease both; }
+.hunter-card-9 { animation: fadeInCard 0.34s 0.52s ease both; }
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE

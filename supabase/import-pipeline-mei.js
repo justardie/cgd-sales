@@ -229,7 +229,7 @@ dataRows.forEach((row, i) => {
   const catatanVal = catatanDb ? sqlStr(catatanDb) : 'NULL';
 
   lines.push(`-- [${i + 1}] ${namaDb}`);
-  lines.push(`INSERT INTO konsumen (user_id, sales_hunter, sales_person, name, project, unit, status, nilai_hjr, notes)`);
+  lines.push(`INSERT INTO konsumen (user_id, sales_hunter, sales_person, name, project, unit, status, potensi_closing, notes)`);
   lines.push(`SELECT`);
   lines.push(`  COALESCE(`);
   lines.push(`    (SELECT id FROM users WHERE name = ${hunterVal} LIMIT 1),`);

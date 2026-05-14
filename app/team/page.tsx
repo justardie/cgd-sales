@@ -175,12 +175,12 @@ export default function TeamPage() {
           <div className="text-center py-12 text-slate-600 text-sm">Memuat data...</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {HUNTER_GROUPS.map(hunter => {
+            {HUNTER_GROUPS.map((hunter, hIdx) => {
               const color = hunterColor(hunter.dbName)
               const m = getMember(hunter.name)
               return (
                 <div key={hunter.name}
-                  className={`rounded-xl overflow-hidden border ${borderColor(color)}`}
+                  className={`rounded-xl overflow-hidden border ${borderColor(color)} hunter-card-${Math.min(hIdx + 1, 9)}`}
                   style={{ background: "var(--surface)" }}>
 
                   {/* Hunter Card Header */}
@@ -289,7 +289,6 @@ export default function TeamPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-medium text-white hover:text-blue-300 transition">{spName}</span>
-                                  <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">Sales Person</span>
                                   {spOmset > 0 && (
                                     <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
                                   )}
