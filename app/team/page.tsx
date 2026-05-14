@@ -70,19 +70,28 @@ export default function TeamPage() {
     setLoading(true)
     const [usersRes, closingsRes] = await Promise.all([
       supabase.from("users").select("id,name,monthly_target,sp_level").eq("status", "active"),
-      supabase.from("konsumen").select("user_id,nilai_hjr,sales_person,name,project,unit").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
+      supabase.from("konsumen").select("user_id,nilai_hjr,sales_person,sales_hunter,name,project,unit").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
     ])
 
-    const omsetMap: Record<string, number> = {}
+    // Hunter omset keyed by dbName (= sales_hunter field in konsumen)
+    const hunterOmsetByDbName: Record<string, number> = {}
     const newSpOmsetMap: SpOmsetMap = {}
     const newSpClosingsMap: SpClosingsMap = {}
-    const userIdClosingsMap: SpClosingsMap = {}
+    const newHunterClosingsMap: SpClosingsMap = {}
+
     ;(closingsRes.data || []).forEach(c => {
-      omsetMap[c.user_id] = (omsetMap[c.user_id] || 0) + (c.nilai_hjr || 0)
-      if (!userIdClosingsMap[c.user_id]) userIdClosingsMap[c.user_id] = []
-      userIdClosingsMap[c.user_id].push({
-        name: c.name, project: c.project ?? null, unit: c.unit ?? null, nilai_hjr: c.nilai_hjr || 0,
-      })
+      // Aggregate hunter omset by sales_hunter name (dbName)
+      if (c.sales_hunter) {
+        hunterOmsetByDbName[c.sales_hunter] = (hunterOmsetByDbName[c.sales_hunter] || 0) + (c.nilai_hjr || 0)
+        // Store closings keyed by hunter display name for the expand panel
+        const hunterDef = HUNTER_GROUPS.find(h => h.dbName === c.sales_hunter)
+        const displayKey = hunterDef ? hunterDef.name : c.sales_hunter
+        if (!newHunterClosingsMap[displayKey]) newHunterClosingsMap[displayKey] = []
+        newHunterClosingsMap[displayKey].push({
+          name: c.name, project: c.project ?? null, unit: c.unit ?? null, nilai_hjr: c.nilai_hjr || 0,
+        })
+      }
+      // Aggregate SP omset by sales_person name
       const spName = c.sales_person
       if (spName) {
         newSpOmsetMap[spName] = (newSpOmsetMap[spName] || 0) + (c.nilai_hjr || 0)
@@ -92,13 +101,7 @@ export default function TeamPage() {
         })
       }
     })
-    const newHunterClosingsMap: SpClosingsMap = {}
-    ;(usersRes.data || []).forEach(u => {
-      const hunterDef = HUNTER_GROUPS.find(h => h.dbName === u.name && h.spNames.length === 0)
-      if (hunterDef && userIdClosingsMap[u.id]) {
-        newHunterClosingsMap[hunterDef.name] = userIdClosingsMap[u.id]
-      }
-    })
+
     setSpOmsetMap(newSpOmsetMap)
     setSpClosingsMap(newSpClosingsMap)
     setHunterClosingsMap(newHunterClosingsMap)
@@ -114,7 +117,8 @@ export default function TeamPage() {
           name: displayName,
           role_type: isHunter ? "SH" : "SP",
           monthly_target: u.monthly_target || 0,
-          omset: omsetMap[u.id] || 0,
+          // Hunter omset: look up by dbName (u.name) in the sales_hunter-based map
+          omset: isHunter ? (hunterOmsetByDbName[u.name] || 0) : 0,
           sp_level: u.sp_level ?? 0,
         }
       })

@@ -35,7 +35,7 @@ const statusBadge = (s: string) =>
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.7)" }}>
       <div className="w-full max-w-lg rounded-xl relative max-h-[90vh] overflow-y-auto"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -100,10 +100,11 @@ export default function PipelinePage() {
     ).sort()
     setDbProjects(uniqueProjects)
 
-    const uniqueCaraBayar = Array.from(
-      new Set((cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[])
-    ).sort()
-    setDbCaraBayar(uniqueCaraBayar)
+    // Canonical cara bayar list — always present in this order, extras from DB appended
+    const CANONICAL_CARA_BAYAR = ["Cash Keras", "KPR Indent", "KPR UM", "KPR Express", "Cash Bertahap", "SOB"]
+    const dbCb = (cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[]
+    const extraCb = dbCb.filter(v => !CANONICAL_CARA_BAYAR.includes(v))
+    setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {
       setRows(all)

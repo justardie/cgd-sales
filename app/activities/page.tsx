@@ -23,7 +23,7 @@ const STATUSES = [
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
       <div className="w-full max-w-md rounded-xl relative max-h-[90vh] overflow-y-auto"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
         <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
