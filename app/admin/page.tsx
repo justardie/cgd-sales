@@ -5,9 +5,10 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
-import { Shield, Plus, X, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide-react"
+import { Shield, Plus, X, Edit2, UserX, UserCheck, ArrowRightLeft, Palette, Check } from "lucide-react"
 import type { User, Role } from "@/types"
 import { HUNTER_GROUPS } from "@/lib/hunters"
+import { useTheme, THEMES } from "@/contexts/ThemeContext"
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
@@ -23,6 +24,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 export default function AdminPage() {
   const { user, isAdmin } = useAuth()
   const router = useRouter()
+  const { theme: activeTheme, setTheme } = useTheme()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -146,6 +148,68 @@ export default function AdminPage() {
             className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
             <Plus size={14} /> Tambah User
           </button>
+        </div>
+
+        {/* ── Theme Picker ── */}
+        <div className="rounded-xl p-4 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-2">
+            <Palette size={15} style={{ color: "var(--accent)" }} />
+            <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Tema Global</span>
+            <span className="text-xs ml-1" style={{ color: "var(--text-muted)" }}>— berlaku untuk semua user secara real-time</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {THEMES.map(t => {
+              const isActive = activeTheme === t.id
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTheme(t.id)}
+                  className="relative rounded-xl p-3 text-left transition-all hover:scale-[1.03]"
+                  style={{
+                    background: t.bg,
+                    border: isActive ? `2px solid ${t.accent}` : "2px solid transparent",
+                    boxShadow: isActive
+                      ? `0 0 0 1px ${t.accent}50, 0 6px 24px rgba(0,0,0,0.22)`
+                      : "0 2px 8px rgba(0,0,0,0.14)",
+                    outline: "none",
+                  }}
+                >
+                  {/* Mini swatch preview */}
+                  <div className="w-full h-12 rounded-lg mb-2 overflow-hidden relative" style={{ border: `1px solid rgba(128,128,128,0.15)` }}>
+                    {/* Ambient gradient */}
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      background: `radial-gradient(ellipse 80% 60% at 100% 0%, ${t.accent}28, transparent 60%), ${t.bg}`,
+                    }} />
+                    {/* Fake card surface */}
+                    <div style={{
+                      position: "absolute", top: 6, left: 6, right: 6, height: 18,
+                      borderRadius: 6,
+                      background: t.dark ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.75)",
+                      border: `1px solid ${t.dark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"}`,
+                    }} />
+                    {/* Accent dot */}
+                    <div style={{
+                      position: "absolute", bottom: 5, right: 7, width: 20, height: 7,
+                      borderRadius: 4, background: t.accent,
+                    }} />
+                  </div>
+                  <div className="text-xs font-semibold" style={{ color: t.dark ? "#F0EDE8" : "#1A1816" }}>
+                    {t.name}
+                  </div>
+                  <div className="text-[10px] mt-0.5" style={{ color: t.dark ? "#8A8784" : "#6B6865" }}>
+                    {t.label}
+                  </div>
+                  {isActive && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: t.accent }}>
+                      <Check size={11} color="#fff" strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>

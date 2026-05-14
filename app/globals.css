@@ -6,9 +6,9 @@
 :root {
   --bg:        #EDEAE4;      /* warm linen — Apple macOS feel */
   --bg-warm:   #E6E3DC;
-  --surface:   #FFFFFF;      /* true white cards = real elevation contrast */
-  --surface2:  #F6F3EE;      /* warm secondary */
-  --surface3:  #EDEAE4;
+  --surface:   rgba(255,255,255,0.82); /* frosted glass card */
+  --surface2:  rgba(250,247,242,0.78); /* warm secondary */
+  --surface3:  rgba(237,234,228,0.72);
 
   --accent:        #FF6A3D;
   --accent-start:  #FF8C5A;
@@ -56,9 +56,9 @@
 html.dark {
   --bg:        #131315;      /* near-black, Apple-like, slightly blue-shifted */
   --bg-warm:   #1A1A1C;
-  --surface:   #1E1E20;      /* card surface — elevated above bg */
-  --surface2:  #28282B;      /* secondary */
-  --surface3:  #36363A;      /* tertiary / hover */
+  --surface:   rgba(30,30,34,0.80);  /* glass card */
+  --surface2:  rgba(40,40,43,0.76);  /* secondary */
+  --surface3:  rgba(54,54,58,0.70);  /* tertiary */
 
   --text-primary:   #F2EFEB;
   --text-secondary: #8A8784;
@@ -92,6 +92,139 @@ html.dark {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   THEME: MIDNIGHT — Dark glass + CGD Orange
+   (also inherits html.dark rules above)
+═══════════════════════════════════════════════════════════════ */
+html.theme-midnight {
+  --bg:        #0C0C0F;
+  --bg-warm:   #131316;
+  --surface:   rgba(28,28,34,0.80);
+  --surface2:  rgba(36,36,44,0.76);
+  --surface3:  rgba(46,46,56,0.70);
+  --accent:        #FF6A3D;
+  --accent-start:  #FF8C5A;
+  --accent-end:    #FF4D1F;
+  --accent-soft:   rgba(255,106,61,0.12);
+  --accent-medium: rgba(255,106,61,0.20);
+  --text-primary:   #F0EDE8;
+  --text-secondary: #8A8784;
+  --text-muted:     #504E4C;
+  --border:        rgba(255,255,255,0.08);
+  --border-medium: rgba(255,255,255,0.13);
+  --border-strong: rgba(255,255,255,0.22);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.05);
+  --shadow-md: 0 4px 28px rgba(0,0,0,0.70), 0 1px 4px rgba(0,0,0,0.50),
+               0 0 0 0.5px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
+  --shadow-lg: 0 8px 50px rgba(0,0,0,0.80), 0 2px 8px rgba(0,0,0,0.55),
+               inset 0 1px 0 rgba(255,255,255,0.07);
+  --shadow-accent: 0 6px 28px rgba(255,106,61,0.42);
+  --sidebar-bg:      rgba(18,18,22,0.92);
+  --sidebar-border:  rgba(255,255,255,0.08);
+  --header-bg:       rgba(12,12,15,0.88);
+  --nav-active-bg:   #F0EDE8;
+  --nav-active-text: #0C0C0F;
+  --toggle-bg:       rgba(36,36,44,0.80);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME: OCEAN — Deep navy + Cyan accent
+═══════════════════════════════════════════════════════════════ */
+html.theme-ocean {
+  --bg:        #040912;
+  --bg-warm:   #060D1A;
+  --surface:   rgba(8,20,48,0.82);
+  --surface2:  rgba(12,28,62,0.76);
+  --surface3:  rgba(16,36,76,0.70);
+  --accent:        #06B6D4;
+  --accent-start:  #22D3EE;
+  --accent-end:    #0891B2;
+  --accent-soft:   rgba(6,182,212,0.13);
+  --accent-medium: rgba(6,182,212,0.22);
+  --text-primary:   #D6EEFF;
+  --text-secondary: #6EA8C8;
+  --text-muted:     #3E6880;
+  --border:        rgba(100,200,255,0.09);
+  --border-medium: rgba(100,200,255,0.16);
+  --border-strong: rgba(100,200,255,0.28);
+  --shadow-xs: 0 1px 2px rgba(0,0,30,0.65);
+  --shadow-sm: 0 2px 8px rgba(0,0,30,0.65), 0 0 0 0.5px rgba(100,200,255,0.06);
+  --shadow-md: 0 4px 28px rgba(0,0,30,0.75), 0 1px 4px rgba(0,0,30,0.55),
+               0 0 0 0.5px rgba(100,200,255,0.07), inset 0 1px 0 rgba(100,200,255,0.09);
+  --shadow-lg: 0 8px 50px rgba(0,0,30,0.85), 0 2px 8px rgba(0,0,30,0.65),
+               inset 0 1px 0 rgba(100,200,255,0.07);
+  --shadow-accent: 0 6px 28px rgba(6,182,212,0.45);
+  --sidebar-bg:      rgba(4,10,26,0.94);
+  --sidebar-border:  rgba(100,200,255,0.09);
+  --header-bg:       rgba(4,9,18,0.90);
+  --nav-active-bg:   #D6EEFF;
+  --nav-active-text: #040912;
+  --toggle-bg:       rgba(12,28,62,0.80);
+  --green-soft: rgba(16,185,129,0.16);
+  --red-soft:   rgba(239,68,68,0.16);
+  --blue-soft:  rgba(59,130,246,0.22);
+  --amber-soft: rgba(245,158,11,0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME: PEARL — Light frosted glass + CGD Orange
+   (builds on :root defaults, override key vars only)
+═══════════════════════════════════════════════════════════════ */
+html.theme-pearl {
+  --surface:   rgba(255,255,255,0.80);
+  --surface2:  rgba(250,247,242,0.76);
+  --surface3:  rgba(237,234,228,0.70);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04),
+               inset 0 1px 0 rgba(255,255,255,0.85);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06),
+               0 0 0 0.5px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.90);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.07),
+               0 0 0 0.5px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.90);
+  --sidebar-bg:     rgba(255,255,255,0.82);
+  --sidebar-border: rgba(0,0,0,0.08);
+  --header-bg:      rgba(237,234,228,0.88);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME: SAND — Warm linen + Amber accent
+═══════════════════════════════════════════════════════════════ */
+html.theme-sand {
+  --bg:        #DDD4C4;
+  --bg-warm:   #D4CAB8;
+  --surface:   rgba(252,246,234,0.82);
+  --surface2:  rgba(240,232,216,0.78);
+  --surface3:  rgba(224,214,196,0.72);
+  --accent:        #B45309;
+  --accent-start:  #D97706;
+  --accent-end:    #92400E;
+  --accent-soft:   rgba(180,83,9,0.11);
+  --accent-medium: rgba(180,83,9,0.20);
+  --text-primary:   #1C1208;
+  --text-secondary: #5C4A30;
+  --text-muted:     #7A6548;
+  --border:        rgba(100,60,0,0.09);
+  --border-medium: rgba(100,60,0,0.15);
+  --border-strong: rgba(100,60,0,0.26);
+  --shadow-xs: 0 1px 3px rgba(80,40,0,0.12), 0 0 0 0.5px rgba(80,40,0,0.06);
+  --shadow-sm: 0 2px 8px rgba(80,40,0,0.10), 0 0 0 0.5px rgba(80,40,0,0.05),
+               inset 0 1px 0 rgba(255,240,200,0.80);
+  --shadow-md: 0 4px 20px rgba(80,40,0,0.14), 0 1px 4px rgba(80,40,0,0.08),
+               0 0 0 0.5px rgba(80,40,0,0.04), inset 0 1px 0 rgba(255,240,200,0.85);
+  --shadow-lg: 0 8px 40px rgba(80,40,0,0.18), 0 2px 8px rgba(80,40,0,0.10),
+               inset 0 1px 0 rgba(255,240,200,0.85);
+  --shadow-accent: 0 6px 28px rgba(180,83,9,0.40);
+  --sidebar-bg:      rgba(245,236,216,0.86);
+  --sidebar-border:  rgba(100,60,0,0.10);
+  --header-bg:       rgba(220,210,192,0.90);
+  --nav-active-bg:   #1C1208;
+  --nav-active-text: #FFFFFF;
+  --toggle-bg:       rgba(224,214,196,0.80);
+  --green-soft: rgba(16,185,129,0.12);
+  --red-soft:   rgba(239,68,68,0.12);
+  --blue-soft:  rgba(59,130,246,0.12);
+  --amber-soft: rgba(180,83,9,0.13);
+}
+
+/* ═══════════════════════════════════════════════════════════════
    BASE
 ═══════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
@@ -122,6 +255,34 @@ html.dark body {
     var(--bg);
 }
 
+/* Theme-specific rich body backgrounds */
+html.theme-midnight body {
+  background:
+    radial-gradient(ellipse 80% 60% at 100% 0%,   rgba(255,106,61,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 0% 100%,   rgba(120,80,220,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%,   rgba(255,255,255,0.01) 0%, transparent 70%),
+    var(--bg);
+}
+html.theme-ocean body {
+  background:
+    radial-gradient(ellipse 80% 60% at 100% 0%,   rgba(6,182,212,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 0% 100%,   rgba(59,130,246,0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 50%,   rgba(6,182,212,0.03) 0%, transparent 70%),
+    var(--bg);
+}
+html.theme-pearl body {
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%,    rgba(255,106,61,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 100%, rgba(59,130,246,0.05) 0%, transparent 55%),
+    var(--bg);
+}
+html.theme-sand body {
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%,    rgba(180,83,9,0.09) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 95% 100%, rgba(120,80,0,0.07) 0%, transparent 55%),
+    var(--bg);
+}
+
 /* ── Tailwind class resets for light-default ── */
 .text-white     { color: var(--text-primary)   !important; }
 .text-slate-100 { color: #1f2937               !important; }
@@ -140,7 +301,32 @@ html:not(.dark) .text-slate-400 { color: #54524F !important; }
 html.dark .text-slate-500 { color: #64748b !important; }
 html.dark .text-slate-600 { color: #475569 !important; }
 
+/* Ocean theme text overrides */
+html.theme-ocean .text-white     { color: #D6EEFF !important; }
+html.theme-ocean .text-slate-100 { color: #b0d8f0 !important; }
+html.theme-ocean .text-slate-200 { color: #90c0e0 !important; }
+html.theme-ocean .text-slate-300 { color: #70a8cc !important; }
+html.theme-ocean .text-slate-400 { color: #6EA8C8 !important; }
+html.theme-ocean .text-slate-500 { color: #4E8099 !important; }
+html.theme-ocean .text-slate-600 { color: #3A6880 !important; }
+
+/* Sand theme text overrides */
+html.theme-sand .text-white     { color: #1C1208 !important; }
+html.theme-sand .text-slate-100 { color: #2E1F0E !important; }
+html.theme-sand .text-slate-200 { color: #3E2E18 !important; }
+html.theme-sand .text-slate-300 { color: #4E3D26 !important; }
+html.theme-sand .text-slate-400 { color: #5C4A30 !important; }
+html.theme-sand .text-slate-500 { color: #7A6548 !important; }
+html.theme-sand .text-slate-600 { color: rgba(100,60,0,0.55) !important; }
+
 input, select, textarea { color: var(--text-primary); }
+
+/* ─── visionOS Glass — auto-apply backdrop-filter to card divs ─ */
+html[class*="theme-"] div[style*="var(--surface)"],
+html[class*="theme-"] div[style*="var(--surface2)"] {
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
@@ -221,6 +407,11 @@ html.dark .sidebar-float {
   border-color: rgba(255,255,255,0.09);
   box-shadow: 0 8px 32px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.08);
 }
+html.theme-ocean .sidebar-float {
+  background: linear-gradient(160deg, rgba(10,24,56,0.97) 0%, rgba(4,10,26,0.98) 100%);
+  border-color: rgba(100,200,255,0.10);
+  box-shadow: 0 8px 32px rgba(0,0,30,0.70), inset 0 1px 0 rgba(100,200,255,0.09);
+}
 
 .sidebar-divider {
   width: 22px;
@@ -255,7 +446,7 @@ html.dark .sidebar-float {
 .sidebar-btn--active {
   background: linear-gradient(135deg, var(--accent-start), var(--accent-end)) !important;
   color: #fff !important;
-  box-shadow: 0 4px 14px rgba(255,106,61,0.35);
+  box-shadow: 0 4px 14px var(--shadow-accent, rgba(255,106,61,0.35));
 }
 .sidebar-btn--logout:hover {
   background: var(--red-soft) !important;
@@ -306,6 +497,9 @@ html.dark .sidebar-float {
 }
 html.dark .app-header {
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 4px 24px rgba(0,0,0,0.40);
+}
+html.theme-ocean .app-header {
+  box-shadow: 0 1px 0 rgba(100,200,255,0.07), 0 4px 24px rgba(0,0,30,0.55);
 }
 
 .header-logo {
