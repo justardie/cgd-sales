@@ -267,6 +267,7 @@ export default function OverviewPage() {
     ? Math.round(((totals.omsetMtd - totals.omsetLast) / totals.omsetLast) * 100)
     : null
   const warnHunters = hunters.filter(h => h.win_or_die_target > 0 && h.omset_mtd < h.win_or_die_target)
+  const wodHunters  = hunters.filter(h => h.win_or_die_target > 0)
 
   const omsetChart = hunters.map(h => ({
     name: h.name.split(" ")[0],
@@ -376,7 +377,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Win-or-Die Alert */}
-        {warnHunters.length > 0 && (
+        {wodHunters.length > 0 && (
           <div className="rounded-2xl overflow-hidden relative section-fade-1 wod-glow" style={{
             background: "linear-gradient(135deg, #0c0101 0%, #1c0404 50%, #120202 100%)",
             border: "1px solid rgba(239,68,68,0.30)",
@@ -399,7 +400,7 @@ export default function OverviewPage() {
                     WIN-OR-DIE ALERT
                   </div>
                   <div className="text-xs" style={{ color: "rgba(255,255,255,0.30)" }}>
-                    {getMonthName(month)} {year} · {warnHunters.length} hunter belum capai WoD
+                    {getMonthName(month)} {year} · {warnHunters.length} belum capai · {wodHunters.length - warnHunters.length} sudah capai
                   </div>
                 </div>
               </div>
@@ -408,19 +409,23 @@ export default function OverviewPage() {
               </div>
             </div>
             <div className="relative px-6 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {warnHunters.map(h => {
+              {wodHunters.map(h => {
                 const progress = h.win_or_die_target > 0
                   ? Math.min(100, Math.round((h.omset_mtd / h.win_or_die_target) * 100))
                   : 0
-                const urgent = progress < 50
-                const glowColor = urgent ? "rgba(239,68,68,0.55)" : "rgba(245,158,11,0.50)"
-                const barColor = urgent
-                  ? "linear-gradient(90deg, #dc2626, #ef4444)"
-                  : "linear-gradient(90deg, #d97706, #f59e0b)"
+                const achieved = progress >= 100
+                const urgent   = !achieved && progress < 50
+                const glowColor = achieved ? "rgba(34,197,94,0.50)" : urgent ? "rgba(239,68,68,0.55)" : "rgba(245,158,11,0.50)"
+                const barColor  = achieved
+                  ? "linear-gradient(90deg, #16a34a, #22c55e)"
+                  : urgent
+                    ? "linear-gradient(90deg, #dc2626, #ef4444)"
+                    : "linear-gradient(90deg, #d97706, #f59e0b)"
+                const borderColor = achieved ? "rgba(34,197,94,0.25)" : urgent ? "rgba(239,68,68,0.22)" : "rgba(245,158,11,0.20)"
                 return (
                   <div key={h.id} className="rounded-xl p-3.5" style={{
                     background: "rgba(255,255,255,0.03)",
-                    border: `1px solid ${urgent ? "rgba(239,68,68,0.22)" : "rgba(245,158,11,0.20)"}`,
+                    border: `1px solid ${borderColor}`,
                     backdropFilter: "blur(8px)",
                   }}>
                     <div className="flex items-center justify-between mb-2.5">
@@ -432,7 +437,7 @@ export default function OverviewPage() {
                           {formatRupiah(h.omset_mtd)}
                         </span>
                         <span className="text-sm font-black" style={{
-                          color: urgent ? "#f87171" : "#fbbf24",
+                          color: achieved ? "#4ade80" : urgent ? "#f87171" : "#fbbf24",
                           textShadow: `0 0 12px ${glowColor}`,
                         }}>
                           {progress}%
@@ -441,7 +446,7 @@ export default function OverviewPage() {
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
                       <div className="h-full rounded-full" style={{
-                        width: `${progress}%`,
+                        width: `${Math.min(progress, 100)}%`,
                         background: barColor,
                         boxShadow: `0 0 8px ${glowColor}`,
                         transition: "width 0.6s ease",
