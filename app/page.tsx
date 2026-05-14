@@ -231,11 +231,9 @@ export default function OverviewPage() {
         .sort((a, b) => pct(b.omset_mtd, b.monthly_target) - pct(a.omset_mtd, a.monthly_target))
         .map((h, i) => ({ ...h, rank: i + 1 }))
 
-      // Project totals (MTD) — filter to MASCOL hunters only via sales_hunter name
-      const hunterDbNameSet = new Set(HUNTER_GROUPS.map(g => g.dbName))
+      // Project totals (MTD) — all closings, no hunter filter
       const projMap: Record<string, number> = {}
       for (const c of (closingsMtd.data || [])) {
-        if (c.sales_hunter && !hunterDbNameSet.has(c.sales_hunter)) continue
         const proj = normalizeProject(c.project)
         if (proj) projMap[proj] = (projMap[proj] || 0) + (c.nilai_hjr || 0)
       }
