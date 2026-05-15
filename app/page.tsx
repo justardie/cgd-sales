@@ -378,87 +378,92 @@ export default function OverviewPage() {
 
         {/* Win-or-Die Alert */}
         {wodHunters.length > 0 && (
-          <div className="rounded-2xl overflow-hidden relative section-fade-1 wod-glow" style={{
-            background: "linear-gradient(135deg, #0c0101 0%, #1c0404 50%, #120202 100%)",
-            border: "1px solid rgba(239,68,68,0.30)",
-            boxShadow: "0 0 48px rgba(239,68,68,0.08), 0 8px 32px rgba(0,0,0,0.50)",
+          <div className="rounded-2xl overflow-hidden relative section-fade-1" style={{
+            background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
+            border: "1px solid rgba(239,68,68,0.35)",
+            boxShadow: "0 0 32px rgba(239,68,68,0.06), var(--shadow-md)",
           }}>
-            {/* ambient glow */}
-            <div style={{
-              position: "absolute", top: 0, left: 0, right: 0, height: "60%",
-              background: "radial-gradient(ellipse at 50% -30%, rgba(239,68,68,0.18) 0%, transparent 70%)",
-              pointerEvents: "none",
-            }} />
             <div className="relative flex items-center justify-between px-6 pt-5 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.28)" }}>
+                  style={{ background: "rgba(239,68,68,0.14)", border: "1px solid rgba(239,68,68,0.28)" }}>
                   <AlertTriangle size={15} style={{ color: "#f87171" }} />
                 </div>
                 <div>
                   <div className="text-sm font-black tracking-wide" style={{ color: "#f87171", letterSpacing: "0.05em" }}>
                     WIN-OR-DIE ALERT
                   </div>
-                  <div className="text-xs" style={{ color: "rgba(255,255,255,0.30)" }}>
+                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
                     {getMonthName(month)} {year} · {warnHunters.length} belum capai · {wodHunters.length - warnHunters.length} sudah capai
                   </div>
                 </div>
               </div>
-              <div className="text-3xl font-black" style={{ color: "rgba(239,68,68,0.40)", letterSpacing: "-2px" }}>
+              <div className="text-3xl font-black" style={{ color: "rgba(239,68,68,0.55)", letterSpacing: "-2px" }}>
                 {warnHunters.length}
               </div>
             </div>
             <div className="relative px-6 pb-5 grid grid-cols-2 gap-2">
-              {wodHunters.map(h => {
+              {[...wodHunters]
+                .sort((a, b) => {
+                  const pa = a.win_or_die_target > 0 ? a.omset_mtd / a.win_or_die_target : 0
+                  const pb = b.win_or_die_target > 0 ? b.omset_mtd / b.win_or_die_target : 0
+                  return pa - pb
+                })
+                .slice(0, 4)
+                .map(h => {
                 const progress = h.win_or_die_target > 0
                   ? Math.min(100, Math.round((h.omset_mtd / h.win_or_die_target) * 100))
                   : 0
                 const achieved = progress >= 100
                 const urgent   = !achieved && progress < 50
-                const glowColor = achieved ? "rgba(34,197,94,0.50)" : urgent ? "rgba(239,68,68,0.55)" : "rgba(245,158,11,0.50)"
+                const glowColor = achieved ? "rgba(34,197,94,0.40)" : urgent ? "rgba(239,68,68,0.45)" : "rgba(245,158,11,0.40)"
                 const barColor  = achieved
                   ? "linear-gradient(90deg, #16a34a, #22c55e)"
                   : urgent
                     ? "linear-gradient(90deg, #dc2626, #ef4444)"
                     : "linear-gradient(90deg, #d97706, #f59e0b)"
-                const borderColor = achieved ? "rgba(34,197,94,0.25)" : urgent ? "rgba(239,68,68,0.22)" : "rgba(245,158,11,0.20)"
+                const borderColor = achieved ? "rgba(34,197,94,0.28)" : urgent ? "rgba(239,68,68,0.25)" : "rgba(245,158,11,0.22)"
                 return (
                   <div key={h.id} className="rounded-xl p-3.5" style={{
-                    background: "rgba(255,255,255,0.03)",
+                    background: "var(--surface2)",
                     border: `1px solid ${borderColor}`,
-                    backdropFilter: "blur(8px)",
                   }}>
                     <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-sm font-bold" style={{ color: "#f1f0ee" }}>
+                      <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
                         {h.name.split(" ")[0]}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+                        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                           {formatRupiah(h.omset_mtd)}
                         </span>
                         <span className="text-sm font-black" style={{
                           color: achieved ? "#4ade80" : urgent ? "#f87171" : "#fbbf24",
-                          textShadow: `0 0 12px ${glowColor}`,
+                          textShadow: `0 0 10px ${glowColor}`,
                         }}>
                           {progress}%
                         </span>
                       </div>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
                       <div className="h-full rounded-full" style={{
                         width: `${Math.min(progress, 100)}%`,
                         background: barColor,
-                        boxShadow: `0 0 8px ${glowColor}`,
+                        boxShadow: `0 0 6px ${glowColor}`,
                         transition: "width 0.6s ease",
                       }} />
                     </div>
-                    <div className="text-xs mt-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
+                    <div className="text-xs mt-1.5" style={{ color: "var(--text-muted)" }}>
                       WoD target: {formatRupiah(h.win_or_die_target)}
                     </div>
                   </div>
                 )
               })}
             </div>
+            {wodHunters.length > 4 && (
+              <div className="px-6 pb-4 text-xs" style={{ color: "var(--text-muted)" }}>
+                +{wodHunters.length - 4} hunter lainnya belum capai target
+              </div>
+            )}
           </div>
         )}
 
