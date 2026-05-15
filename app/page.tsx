@@ -142,6 +142,44 @@ const ChartTooltip = ({ active, payload, label }: {
   )
 }
 
+const Swatch = ({ color }: { color: string }) => (
+  <span style={{
+    display: "inline-block", width: 10, height: 10,
+    borderRadius: 3, background: color, flexShrink: 0,
+  }} />
+)
+
+const OmsetLegend = () => (
+  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", fontSize: 11, paddingTop: 8 }}>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="rgba(59,130,246,0.50)" /> Target
+    </span>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="#22c55e" /> ≥ Target
+    </span>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="#FF6A3D" /> 70–99%
+    </span>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="#ef4444" /> &lt; 70%
+    </span>
+  </div>
+)
+
+const VisitLegend = () => (
+  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", fontSize: 11, paddingTop: 8 }}>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="rgba(59,130,246,0.50)" /> Target Visit
+    </span>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="#22c55e" /> Tercapai
+    </span>
+    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
+      <Swatch color="#FF6A3D" /> Belum Capai
+    </span>
+  </div>
+)
+
 const now = new Date()
 
 export default function OverviewPage() {
@@ -486,9 +524,8 @@ export default function OverviewPage() {
                       <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                        formatter={v => <span style={{ color: "var(--text-secondary)" }}>{v}</span>} />
-                      <Bar dataKey="Target"    fill="rgba(59,130,246,0.30)" radius={[4, 4, 0, 0]} />
+                      <Legend content={<OmsetLegend />} />
+                      <Bar dataKey="Target"    fill="rgba(59,130,246,0.50)" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Realisasi" radius={[4, 4, 0, 0]}>
                         {omsetChart.map((e, i) => (
                           <Cell key={i} fill={
@@ -511,9 +548,8 @@ export default function OverviewPage() {
                       <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                        formatter={v => <span style={{ color: "var(--text-secondary)" }}>{v}</span>} />
-                      <Bar dataKey="Target Visit" fill="rgba(59,130,246,0.30)" radius={[4, 4, 0, 0]} />
+                      <Legend content={<VisitLegend />} />
+                      <Bar dataKey="Target Visit" fill="rgba(59,130,246,0.50)" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Visit" radius={[4, 4, 0, 0]}>
                         {visitChart.map((e, i) => (
                           <Cell key={i} fill={e["Visit"] >= e["Target Visit"] ? "#22c55e" : "#FF6A3D"} />
