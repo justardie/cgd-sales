@@ -354,9 +354,9 @@ export default function VisitPage() {
         {loading ? (
           <div className="text-center py-8 text-slate-600 text-sm">Memuat...</div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {hunterGroups.length === 0 ? (
-              <div className="text-center py-12 text-slate-600 text-sm">Tidak ada data tim ditemukan</div>
+              <div className="col-span-2 text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>Tidak ada data tim ditemukan</div>
             ) : hunterGroups.map(hunter => (
               <HunterSection
                 key={hunter.dbName}
