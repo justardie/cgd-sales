@@ -15,36 +15,11 @@ function barColor(pct: number) {
   return "#ef4444"
 }
 
-interface PersonCardProps {
-  name: string
-  total: number
-  target: number
-  isHunter?: boolean
-}
-
-function PersonCard({ name, total, target, isHunter }: PersonCardProps) {
-  const pct = target > 0 ? Math.min(Math.round((total / target) * 100), 100) : 0
-  const pctColor = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
+// ── Inline bar used inside group rows ──────────────────────────
+function MiniBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="rounded-lg px-3 py-2.5"
-      style={{ background: "var(--surface)", border: `1px solid ${isHunter ? "rgba(234,92,0,0.35)" : "var(--border)"}` }}>
-      <div className="flex items-center justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {isHunter && (
-            <span className="text-[9px] px-1 py-0.5 rounded font-bold flex-shrink-0"
-              style={{ background: "rgba(234,92,0,0.12)", color: "#fb923c" }}>SH</span>
-          )}
-          <span className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }} title={name}>{name}</span>
-        </div>
-        <div className="flex items-baseline gap-1 flex-shrink-0">
-          <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{total}</span>
-          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>/{target}</span>
-          <span className="text-xs font-bold ml-1" style={{ color: pctColor }}>{pct}%</span>
-        </div>
-      </div>
-      <div className="h-1 rounded-full" style={{ background: "var(--border)" }}>
-        <div className="h-1 rounded-full transition-all" style={{ width: `${pct}%`, background: pctColor }} />
-      </div>
+    <div className="w-20 h-1 rounded-full flex-shrink-0" style={{ background: "var(--border)" }}>
+      <div className="h-1 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: color }} />
     </div>
   )
 }
@@ -60,34 +35,69 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
   const hunterId = userIdMap[hunter.dbName]
   const hunterTarget = hunterId ? (userTargetMap[hunterId] || 60) : 60
 
-  // Hunter visit count = sum of "Didampingi Atasan" (accompanied_count) across their SPs
   const spIds = hunter.spNames.filter(n => !!userIdMap[n]).map(n => userIdMap[n])
   const hunterVisits = visits
     .filter(v => spIds.includes(v.user_id))
     .reduce((s, v) => s + (v.accompanied_count || 0), 0)
 
+  const hunterPct = hunterTarget > 0 ? Math.min(Math.round((hunterVisits / hunterTarget) * 100), 100) : 0
+  const hunterColor = barColor(hunterPct)
+
+  const spRows = hunter.spNames
+    .filter(spName => !!userIdMap[spName])
+    .map(spName => {
+      const spId = userIdMap[spName]
+      const total = spId ? visits.filter(v => v.user_id === spId).reduce((s, v) => s + (v.count || 0), 0) : 0
+      const target = spId ? (userTargetMap[spId] || 40) : 40
+      const pct = target > 0 ? Math.min(Math.round((total / target) * 100), 100) : 0
+      return { name: spName, total, target, pct, color: barColor(pct) }
+    })
+
   return (
-    <div className="space-y-2">
-      {/* Hunter card */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-        <PersonCard name={hunter.name} total={hunterVisits} target={hunterTarget} isHunter />
+    <div className="rounded-xl overflow-hidden" style={{
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+    }}>
+      {/* ── Hunter header row ── */}
+      <div className="flex items-center gap-3 px-4 py-3" style={{
+        background: "var(--surface2)",
+        borderBottom: spRows.length > 0 ? "1px solid var(--border)" : undefined,
+      }}>
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-bold flex-shrink-0"
+          style={{ background: "rgba(234,92,0,0.15)", color: "#fb923c" }}>SH</span>
+        <span className="text-sm font-bold flex-1 truncate" style={{ color: "var(--text-primary)" }}>
+          {hunter.name}
+        </span>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <MiniBar pct={hunterPct} color={hunterColor} />
+          <span className="text-xs w-8 text-right" style={{ color: "var(--text-muted)" }}>
+            {hunterVisits}<span style={{ color: "var(--text-muted)", opacity: 0.6 }}>/{hunterTarget}</span>
+          </span>
+          <span className="text-xs font-bold w-9 text-right" style={{ color: hunterColor }}>
+            {hunterPct}%
+          </span>
+        </div>
       </div>
 
-      {/* SP cards indented under hunter */}
-      {hunter.spNames.length > 0 && (
-        <div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2"
-          style={{ paddingLeft: "0.75rem", borderLeft: "2px solid var(--border)" }}>
-          {hunter.spNames.filter(spName => !!userIdMap[spName]).map(spName => {
-            const spId = userIdMap[spName]
-            const total = spId
-              ? visits.filter(v => v.user_id === spId).reduce((s, v) => s + (v.count || 0), 0)
-              : 0
-            const target = spId ? (userTargetMap[spId] || 40) : 40
-            return <PersonCard key={spName} name={spName} total={total} target={target} />
-          })}
+      {/* ── SP rows ── */}
+      {spRows.map((sp, i) => (
+        <div key={sp.name} className="flex items-center gap-3 px-4 py-2.5" style={{
+          borderBottom: i < spRows.length - 1 ? "1px solid var(--border)" : undefined,
+        }}>
+          <span className="text-xs flex-1 truncate pl-5" style={{ color: "var(--text-secondary)" }}>
+            {sp.name}
+          </span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <MiniBar pct={sp.pct} color={sp.color} />
+            <span className="text-xs w-8 text-right" style={{ color: "var(--text-muted)" }}>
+              {sp.total}<span style={{ opacity: 0.6 }}>/{sp.target}</span>
+            </span>
+            <span className="text-xs font-semibold w-9 text-right" style={{ color: sp.color }}>
+              {sp.pct}%
+            </span>
+          </div>
         </div>
-      )}
+      ))}
     </div>
   )
 }
@@ -344,7 +354,7 @@ export default function VisitPage() {
         {loading ? (
           <div className="text-center py-8 text-slate-600 text-sm">Memuat...</div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {hunterGroups.length === 0 ? (
               <div className="text-center py-12 text-slate-600 text-sm">Tidak ada data tim ditemukan</div>
             ) : hunterGroups.map(hunter => (
