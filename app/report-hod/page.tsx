@@ -709,7 +709,7 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                 <h2 className="text-sm font-semibold text-white">Pipeline (Prospek Aktif) per Project</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Status: Warm &amp; Hot · Nilai Potensi = Nilai HJR</p>
               </div>
-              <div className="grid grid-cols-8 gap-px" style={{ background: "var(--border)" }}>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-px" style={{ background: "var(--border)" }}>
                 {PROJECT_NAMES.map(proj => {
                   const stat = pipelineStats.find(p => p.project === proj)
                   return (
