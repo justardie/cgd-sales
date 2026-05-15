@@ -402,68 +402,54 @@ export default function OverviewPage() {
                 {warnHunters.length}
               </div>
             </div>
-            <div className="relative px-6 pb-5 grid grid-cols-2 gap-2">
+            <div className="relative px-6 pb-5 grid grid-cols-5 gap-2">
               {[...wodHunters]
                 .sort((a, b) => {
                   const pa = a.win_or_die_target > 0 ? a.omset_mtd / a.win_or_die_target : 0
                   const pb = b.win_or_die_target > 0 ? b.omset_mtd / b.win_or_die_target : 0
                   return pa - pb
                 })
-                .slice(0, 4)
                 .map(h => {
                 const progress = h.win_or_die_target > 0
                   ? Math.min(100, Math.round((h.omset_mtd / h.win_or_die_target) * 100))
                   : 0
                 const achieved = progress >= 100
                 const urgent   = !achieved && progress < 50
-                const glowColor = achieved ? "rgba(34,197,94,0.40)" : urgent ? "rgba(239,68,68,0.45)" : "rgba(245,158,11,0.40)"
                 const barColor  = achieved
                   ? "linear-gradient(90deg, #16a34a, #22c55e)"
                   : urgent
                     ? "linear-gradient(90deg, #dc2626, #ef4444)"
                     : "linear-gradient(90deg, #d97706, #f59e0b)"
                 const borderColor = achieved ? "rgba(34,197,94,0.28)" : urgent ? "rgba(239,68,68,0.25)" : "rgba(245,158,11,0.22)"
+                const pctColor    = achieved ? "#4ade80" : urgent ? "#f87171" : "#fbbf24"
                 return (
-                  <div key={h.id} className="rounded-xl p-3.5" style={{
+                  <div key={h.id} className="rounded-xl p-3" style={{
                     background: "var(--surface2)",
                     border: `1px solid ${borderColor}`,
                   }}>
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-                        {h.name.split(" ")[0]}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                          {formatRupiah(h.omset_mtd)}
-                        </span>
-                        <span className="text-sm font-black" style={{
-                          color: achieved ? "#4ade80" : urgent ? "#f87171" : "#fbbf24",
-                          textShadow: `0 0 10px ${glowColor}`,
-                        }}>
-                          {progress}%
-                        </span>
-                      </div>
+                    <div className="text-xs mb-1" style={{ color: "var(--text-secondary)" }}>
+                      {h.name.split(" ")[0]}
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                    <div className="text-base font-black mb-0.5" style={{ color: "var(--text-primary)" }}>
+                      {formatRupiah(h.omset_mtd)}
+                    </div>
+                    <div className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>
+                      Target: {formatRupiah(h.win_or_die_target)}
+                    </div>
+                    <div className="h-1 rounded-full overflow-hidden mb-1.5" style={{ background: "var(--border)" }}>
                       <div className="h-full rounded-full" style={{
                         width: `${Math.min(progress, 100)}%`,
                         background: barColor,
-                        boxShadow: `0 0 6px ${glowColor}`,
                         transition: "width 0.6s ease",
                       }} />
                     </div>
-                    <div className="text-xs mt-1.5" style={{ color: "var(--text-muted)" }}>
-                      WoD target: {formatRupiah(h.win_or_die_target)}
+                    <div className="text-xs font-bold" style={{ color: pctColor }}>
+                      {progress}%
                     </div>
                   </div>
                 )
               })}
             </div>
-            {wodHunters.length > 4 && (
-              <div className="px-6 pb-4 text-xs" style={{ color: "var(--text-muted)" }}>
-                +{wodHunters.length - 4} hunter lainnya belum capai target
-              </div>
-            )}
           </div>
         )}
 

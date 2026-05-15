@@ -73,9 +73,9 @@ html.dark {
   --surface2:  rgba(255,255,255,0.15);
   --surface3:  rgba(255,255,255,0.21);
 
-  --text-primary:   #F2EFEB;
-  --text-secondary: #8A8784;
-  --text-muted:     #4E4C4A;
+  --text-primary:   #FFFFFF;
+  --text-secondary: #C8C4C0;
+  --text-muted:     #8A8784;
 
   --border:        rgba(255,255,255,0.10);
   --border-medium: rgba(255,255,255,0.16);
@@ -151,14 +151,14 @@ html.dark body {
 .text-slate-500 { color: var(--text-muted)     !important; }
 .text-slate-600 { color: rgba(0,0,0,0.50)      !important; }
 
-html.dark .text-white     { color: #F0EDE8 !important; }
-html.dark .text-slate-100 { color: #e2e8f0 !important; }
-html.dark .text-slate-200 { color: #cbd5e1 !important; }
-html.dark .text-slate-300 { color: #94a3b8 !important; }
-html.dark .text-slate-400 { color: #94a3b8 !important; }
+html.dark .text-white     { color: #FFFFFF !important; }
+html.dark .text-slate-100 { color: #F5F4F2 !important; }
+html.dark .text-slate-200 { color: #E8E5E2 !important; }
+html.dark .text-slate-300 { color: #D0CBC6 !important; }
+html.dark .text-slate-400 { color: #C8C4C0 !important; }
 html:not(.dark) .text-slate-400 { color: var(--text-secondary) !important; }
-html.dark .text-slate-500 { color: #64748b !important; }
-html.dark .text-slate-600 { color: #475569 !important; }
+html.dark .text-slate-500 { color: #A09C98 !important; }
+html.dark .text-slate-600 { color: #8A8784 !important; }
 
 input, select, textarea { color: var(--text-primary); }
 
