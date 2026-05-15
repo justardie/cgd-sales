@@ -162,6 +162,16 @@ html.dark .text-slate-600 { color: #475569 !important; }
 
 input, select, textarea { color: var(--text-primary); }
 
+/* Native <select> dropdown options — always use OS-safe colors */
+select option {
+  color: #1A1816;
+  background-color: #FFFFFF;
+}
+html.dark select option {
+  color: #F0EDE8;
+  background-color: #1E1E22;
+}
+
 /* ─── visionOS Glass — apply backdrop-filter to all card divs ─── */
 div[style*="var(--surface)"],
 div[style*="var(--surface2)"] {
@@ -184,7 +194,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
+  background: transparent; /* body gradient must show through */
   transition: background 0.35s;
 }
 
@@ -209,7 +219,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: var(--bg);
+  background: transparent;
 }
 .loading-spinner {
   width: 28px;
