@@ -634,10 +634,6 @@ export default function OverviewPage() {
                       <td className="px-4 py-3 text-xs font-bold" style={{ color: "var(--text-muted)" }}>{h.rank}</td>
                       <td className="px-4 py-3 font-semibold text-xs" style={{ color: "var(--text-primary)" }}>
                         {h.name}
-                        {wod && (
-                          <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
-                            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>WoD</span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>{formatRupiah(targetDisp)}</td>
                       <td className="px-4 py-3 text-right text-xs" style={{ color: "var(--text-muted)" }}>
