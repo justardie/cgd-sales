@@ -440,7 +440,7 @@ export default function OverviewPage() {
                 {warnHunters.length}
               </div>
             </div>
-            <div className="relative px-6 pb-5 grid grid-cols-5 gap-2">
+            <div className="relative px-6 pb-5 grid grid-cols-2 sm:grid-cols-5 gap-2">
               {[...wodHunters]
                 .sort((a, b) => {
                   const pa = a.win_or_die_target > 0 ? a.omset_mtd / a.win_or_die_target : 0
