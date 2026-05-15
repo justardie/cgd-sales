@@ -68,10 +68,10 @@ html.dark {
   --bg:      #1C1C20;
   --bg-warm: #222226;
 
-  /* Glass panels — low opacity over rich dark+colored background */
-  --surface:   rgba(255,255,255,0.07);
-  --surface2:  rgba(255,255,255,0.11);
-  --surface3:  rgba(255,255,255,0.16);
+  /* Glass panels — slightly higher opacity for visible frosted glass */
+  --surface:   rgba(255,255,255,0.10);
+  --surface2:  rgba(255,255,255,0.15);
+  --surface3:  rgba(255,255,255,0.21);
 
   --text-primary:   #F2EFEB;
   --text-secondary: #8A8784;
@@ -134,11 +134,11 @@ html:not(.dark) body {
 }
 html.dark body {
   background:
-    radial-gradient(ellipse 75% 70% at 0%   0%,   rgba(230,230,235,0.18) 0%, transparent 58%),
-    radial-gradient(ellipse 60% 55% at 100% 100%,  rgba(210,210,220,0.14) 0%, transparent 55%),
-    radial-gradient(ellipse 45% 50% at 100% 0%,   rgba(255,106,61,0.11)  0%, transparent 48%),
-    radial-gradient(ellipse 50% 50% at 15%  80%,  rgba(200,200,210,0.10) 0%, transparent 52%),
-    radial-gradient(ellipse 35% 35% at 55%  45%,  rgba(240,240,245,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 75% 70% at 0%   0%,   rgba(220,220,228,0.28) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at 100% 100%,  rgba(200,200,215,0.22) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 50% at 100% 0%,   rgba(255,106,61,0.18)  0%, transparent 46%),
+    radial-gradient(ellipse 55% 55% at 15%  80%,  rgba(195,195,208,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 40% at 55%  45%,  rgba(235,235,242,0.10) 0%, transparent 48%),
     var(--bg);
 }
 
@@ -172,11 +172,13 @@ html.dark select option {
   background-color: #1E1E22;
 }
 
-/* ─── visionOS Glass — apply backdrop-filter to all card divs ─── */
+/* ─── visionOS Glass — apply backdrop-filter to all glass card divs ─── */
+/* Matches: CSS var surfaces, any rgba(white,0.xx) overlay, .kpi-card class */
 div[style*="var(--surface)"],
-div[style*="var(--surface2)"] {
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
+div[style*="rgba(255,255,255,0."],
+.kpi-card {
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
 }
 
 /* ── Scrollbar ── */

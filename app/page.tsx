@@ -408,7 +408,7 @@ export default function OverviewPage() {
                 {warnHunters.length}
               </div>
             </div>
-            <div className="relative px-6 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="relative px-6 pb-5 grid grid-cols-2 gap-2">
               {wodHunters.map(h => {
                 const progress = h.win_or_die_target > 0
                   ? Math.min(100, Math.round((h.omset_mtd / h.win_or_die_target) * 100))
