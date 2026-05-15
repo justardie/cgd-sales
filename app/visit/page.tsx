@@ -24,26 +24,26 @@ interface PersonCardProps {
 
 function PersonCard({ name, total, target, isHunter }: PersonCardProps) {
   const pct = target > 0 ? Math.min(Math.round((total / target) * 100), 100) : 0
+  const pctColor = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
   return (
-    <div className="rounded-xl p-4"
+    <div className="rounded-lg px-3 py-2.5"
       style={{ background: "var(--surface)", border: `1px solid ${isHunter ? "rgba(234,92,0,0.35)" : "var(--border)"}` }}>
-      {isHunter ? (
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-orange-500/10 text-orange-400">SH</span>
-          <span className="text-xs font-semibold text-white truncate" title={name}>{name}</span>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {isHunter && (
+            <span className="text-[9px] px-1 py-0.5 rounded font-bold flex-shrink-0"
+              style={{ background: "rgba(234,92,0,0.12)", color: "#fb923c" }}>SH</span>
+          )}
+          <span className="text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }} title={name}>{name}</span>
         </div>
-      ) : (
-        <div className="text-xs font-semibold text-white mb-2 truncate" title={name}>{name}</div>
-      )}
-      <div className="flex items-end gap-1 mb-1">
-        <span className="text-xl font-bold text-white">{total}</span>
-        <span className="text-xs text-slate-500 mb-0.5">/ {target} visit</span>
+        <div className="flex items-baseline gap-1 flex-shrink-0">
+          <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{total}</span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>/{target}</span>
+          <span className="text-xs font-bold ml-1" style={{ color: pctColor }}>{pct}%</span>
+        </div>
       </div>
-      <div className="h-1.5 rounded-full mb-2" style={{ background: "var(--surface2)" }}>
-        <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: barColor(pct) }} />
-      </div>
-      <div className={`text-xs font-semibold ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
-        {pct}%
+      <div className="h-1 rounded-full" style={{ background: "var(--border)" }}>
+        <div className="h-1 rounded-full transition-all" style={{ width: `${pct}%`, background: pctColor }} />
       </div>
     </div>
   )
@@ -67,17 +67,17 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
     .reduce((s, v) => s + (v.accompanied_count || 0), 0)
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Hunter card */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
         <PersonCard name={hunter.name} total={hunterVisits} target={hunterTarget} isHunter />
       </div>
 
       {/* SP cards indented under hunter */}
       {hunter.spNames.length > 0 && (
         <div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-          style={{ paddingLeft: "1rem", borderLeft: "2px solid var(--border)" }}>
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2"
+          style={{ paddingLeft: "0.75rem", borderLeft: "2px solid var(--border)" }}>
           {hunter.spNames.filter(spName => !!userIdMap[spName]).map(spName => {
             const spId = userIdMap[spName]
             const total = spId
@@ -247,25 +247,13 @@ export default function VisitPage() {
   const spTargetTotal = Array.from(spIdSet).reduce((s, id) => s + (displayTargetMap[id] || 0), 0)
   const spPct = spTargetTotal > 0 ? Math.round((spVisitTotal / spTargetTotal) * 100) : 0
 
-  // id → name lookup for top-3 table
-  const idNameMap = Object.fromEntries(Object.entries(userIdMap).map(([name, id]) => [id, name]))
-  const top3SP = Array.from(spIdSet)
-    .map(id => {
-      const total = visits.filter(v => v.user_id === id).reduce((s, v) => s + (v.count || 0), 0)
-      const target = userTargetMap[id] || 40
-      const pct = target > 0 ? Math.round((total / target) * 100) : 0
-      return { name: idNameMap[id] ?? id, total, target, pct }
-    })
-    .sort((a, b) => b.pct - a.pct)
-    .slice(0, 3)
-
   const hunterGroups = isAdmin
     ? HUNTER_GROUPS
     : HUNTER_GROUPS.filter(g => g.dbName === user?.name || g.name === user?.name)
 
   return (
     <DashboardShell>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Page header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -314,74 +302,37 @@ export default function VisitPage() {
 
         {/* KPI Cards */}
         {isAdmin ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "Visit Sales Hunter YTD" : "Visit Sales Hunter Bulan Ini"}</div>
-                <div className="text-2xl font-bold text-white">{hunterVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
-                <div className="text-xs text-slate-600 mt-0.5">Target {hunterTargetTotal}</div>
-                <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
-                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(hunterPct, 100)}%`, background: barColor(hunterPct) }} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {[
+              { label: ytdMode ? "Visit Hunter YTD" : "Visit Hunter", value: hunterVisitTotal, unit: "visit", sub: `Target ${hunterTargetTotal}`, pct: hunterPct },
+              { label: ytdMode ? "% Hunter YTD"    : "% Hunter",     value: `${hunterPct}%`,  unit: "",      sub: `${hunterVisitTotal}/${hunterTargetTotal}`,  pct: hunterPct },
+              { label: ytdMode ? "Visit SP YTD"    : "Visit SP",     value: spVisitTotal,      unit: "visit", sub: `Target ${spTargetTotal}`, pct: spPct },
+              { label: ytdMode ? "% SP YTD"        : "% SP",         value: `${spPct}%`,       unit: "",      sub: `${spVisitTotal}/${spTargetTotal}`,           pct: spPct },
+            ].map((c, i) => (
+              <div key={i} className="rounded-lg px-3 py-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div className="text-[10px] mb-1" style={{ color: "var(--text-muted)" }}>{c.label}</div>
+                <div className="text-lg font-bold mb-0.5" style={{ color: i % 2 === 0 ? "var(--text-primary)" : barColor(c.pct) }}>
+                  {c.value}{c.unit && <span className="text-xs font-normal ml-1" style={{ color: "var(--text-muted)" }}>{c.unit}</span>}
+                </div>
+                <div className="text-[10px] mb-1.5" style={{ color: "var(--text-muted)" }}>{c.sub}</div>
+                <div className="h-1 rounded-full" style={{ background: "var(--border)" }}>
+                  <div className="h-1 rounded-full transition-all" style={{ width: `${Math.min(c.pct, 100)}%`, background: barColor(c.pct) }} />
                 </div>
               </div>
-              <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "% Visit Hunter YTD" : "% Visit Hunter Bulan Ini"}</div>
-                <div className="text-2xl font-bold" style={{ color: barColor(hunterPct) }}>{hunterPct}%</div>
-                <div className="text-xs text-slate-600 mt-0.5">{hunterVisitTotal} dari {hunterTargetTotal} visit</div>
-                <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
-                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(hunterPct, 100)}%`, background: barColor(hunterPct) }} />
-                </div>
-              </div>
-              <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "Visit Sales Person YTD" : "Visit Sales Person Bulan Ini"}</div>
-                <div className="text-2xl font-bold text-white">{spVisitTotal}<span className="text-sm text-slate-500 ml-1">visit</span></div>
-                <div className="text-xs text-slate-600 mt-0.5">Target {spTargetTotal}</div>
-                <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
-                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(spPct, 100)}%`, background: barColor(spPct) }} />
-                </div>
-              </div>
-              <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">{ytdMode ? "% Visit Sales Person YTD" : "% Visit Sales Person Bulan Ini"}</div>
-                <div className="text-2xl font-bold" style={{ color: barColor(spPct) }}>{spPct}%</div>
-                <div className="text-xs text-slate-600 mt-0.5">{spVisitTotal} dari {spTargetTotal} visit</div>
-                <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
-                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(spPct, 100)}%`, background: barColor(spPct) }} />
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <div className="text-xs text-slate-500 mb-3">Top 3 Sales Person Mendekati Target</div>
-              <div className="space-y-2.5">
-                {top3SP.map((sp, i) => (
-                  <div key={sp.name} className="flex items-center gap-3">
-                    <span className="text-sm font-bold w-5 text-center shrink-0"
-                      style={{ color: i === 0 ? "#f59e0b" : i === 1 ? "#94a3b8" : "#cd7c3a" }}>{i + 1}</span>
-                    <span className="text-sm text-white flex-1 truncate min-w-0">{sp.name}</span>
-                    <span className="text-xs text-slate-500 shrink-0">{sp.total}/{sp.target}</span>
-                    <span className={`text-xs font-semibold w-12 text-right shrink-0 ${sp.pct >= 100 ? "text-green-400" : sp.pct >= 70 ? "text-orange-400" : "text-red-400"}`}>{sp.pct}%</span>
-                    <div className="w-20 h-1.5 rounded-full shrink-0" style={{ background: "var(--surface2)" }}>
-                      <div className="h-1.5 rounded-full" style={{ width: `${Math.min(sp.pct, 100)}%`, background: barColor(sp.pct) }} />
-                    </div>
-                  </div>
-                ))}
-                {top3SP.length === 0 && <div className="text-xs text-slate-600">Belum ada data</div>}
-              </div>
-            </div>
+            ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             {kpiCards.map((c, i) => (
-              <div key={i} className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="text-xs text-slate-500 mb-1">{c.label}</div>
-                <div className="text-2xl font-bold text-white">
-                  {c.value}
-                  {c.unit && <span className="text-sm text-slate-500 ml-1">{c.unit}</span>}
+              <div key={i} className="rounded-lg px-3 py-2.5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div className="text-[10px] mb-1" style={{ color: "var(--text-muted)" }}>{c.label}</div>
+                <div className="text-lg font-bold mb-0.5" style={{ color: "var(--text-primary)" }}>
+                  {c.value}{c.unit && <span className="text-xs font-normal ml-1" style={{ color: "var(--text-muted)" }}>{c.unit}</span>}
                 </div>
-                <div className="text-xs text-slate-600 mt-0.5">{c.sub}</div>
+                <div className="text-[10px] mb-1.5" style={{ color: "var(--text-muted)" }}>{c.sub}</div>
                 {c.pct > 0 && (
-                  <div className="mt-2 h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
-                    <div className="h-1.5 rounded-full transition-all"
-                      style={{ width: `${Math.min(c.pct, 100)}%`, background: barColor(c.pct) }} />
+                  <div className="h-1 rounded-full" style={{ background: "var(--border)" }}>
+                    <div className="h-1 rounded-full transition-all" style={{ width: `${Math.min(c.pct, 100)}%`, background: barColor(c.pct) }} />
                   </div>
                 )}
               </div>
@@ -393,7 +344,7 @@ export default function VisitPage() {
         {loading ? (
           <div className="text-center py-8 text-slate-600 text-sm">Memuat...</div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-4">
             {hunterGroups.length === 0 ? (
               <div className="text-center py-12 text-slate-600 text-sm">Tidak ada data tim ditemukan</div>
             ) : hunterGroups.map(hunter => (
