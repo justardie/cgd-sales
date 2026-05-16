@@ -64,39 +64,39 @@
 }
 
 html.dark {
-  /* Dark charcoal — visible gray, not pure black */
-  --bg:      #1C1C20;
-  --bg-warm: #222226;
+  /* Deep navy — #0B2249 inspired */
+  --bg:      #06101E;
+  --bg-warm: #0A1628;
 
-  /* Glass panels — slightly higher opacity for visible frosted glass */
-  --surface:   rgba(255,255,255,0.10);
-  --surface2:  rgba(255,255,255,0.15);
-  --surface3:  rgba(255,255,255,0.21);
+  /* Frosted navy glass panels */
+  --surface:   rgba(255,255,255,0.08);
+  --surface2:  rgba(255,255,255,0.13);
+  --surface3:  rgba(255,255,255,0.20);
 
   --text-primary:   #FFFFFF;
   --text-secondary: #C8C4C0;
   --text-muted:     #8A8784;
 
   --border:        rgba(255,255,255,0.10);
-  --border-medium: rgba(255,255,255,0.16);
-  --border-strong: rgba(255,255,255,0.26);
+  --border-medium: rgba(255,255,255,0.18);
+  --border-strong: rgba(255,255,255,0.28);
 
-  /* Deep glass shadows with specular top highlight */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.60);
-  --shadow-sm: 0 2px 10px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.08);
-  --shadow-md: 0 4px 24px rgba(0,0,0,0.70), 0 1px 4px rgba(0,0,0,0.50),
+  /* Deep navy glass shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.70);
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.60), 0 0 0 0.5px rgba(255,255,255,0.07);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.75), 0 1px 4px rgba(0,0,0,0.55),
                0 0 0 0.5px rgba(255,255,255,0.09),
-               inset 0 1px 0 rgba(255,255,255,0.10);
-  --shadow-lg: 0 8px 48px rgba(0,0,0,0.80), 0 2px 8px rgba(0,0,0,0.60),
+               inset 0 1px 0 rgba(255,255,255,0.12);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.65),
                0 0 0 0.5px rgba(255,255,255,0.08),
-               inset 0 1px 0 rgba(255,255,255,0.10);
+               inset 0 1px 0 rgba(255,255,255,0.12);
   --shadow-accent: 0 6px 28px rgba(255,106,61,0.42);
 
   --sidebar-bg:      rgba(255,255,255,0.06);
   --sidebar-border:  rgba(255,255,255,0.10);
-  --header-bg:       rgba(8,8,11,0.80);
+  --header-bg:       rgba(6,16,30,0.88);
   --nav-active-bg:   #F2EFEB;
-  --nav-active-text: #08080B;
+  --nav-active-text: #06101E;
   --toggle-bg:       rgba(255,255,255,0.10);
 
   --green-soft: rgba(16,185,129,0.18);
@@ -134,11 +134,11 @@ html:not(.dark) body {
 }
 html.dark body {
   background:
-    radial-gradient(ellipse 75% 70% at 0%   0%,   rgba(220,220,228,0.28) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 55% at 100% 100%,  rgba(200,200,215,0.22) 0%, transparent 52%),
-    radial-gradient(ellipse 45% 50% at 100% 0%,   rgba(255,106,61,0.18)  0%, transparent 46%),
-    radial-gradient(ellipse 55% 55% at 15%  80%,  rgba(195,195,208,0.18) 0%, transparent 50%),
-    radial-gradient(ellipse 40% 40% at 55%  45%,  rgba(235,235,242,0.10) 0%, transparent 48%),
+    radial-gradient(ellipse 70% 65% at 0%   0%,   rgba(17,79,153,0.60)  0%, transparent 55%),
+    radial-gradient(ellipse 55% 55% at 100% 100%, rgba(8,51,125,0.50)   0%, transparent 52%),
+    radial-gradient(ellipse 45% 42% at 88%  8%,   rgba(236,202,62,0.18) 0%, transparent 46%),
+    radial-gradient(ellipse 50% 55% at 18%  80%,  rgba(17,79,153,0.30)  0%, transparent 50%),
+    radial-gradient(ellipse 38% 38% at 52%  48%,  rgba(100,150,255,0.10) 0%, transparent 48%),
     var(--bg);
 }
 
