@@ -6,14 +6,14 @@
    blurs the richer background beneath → frosted glass effect
 ═══════════════════════════════════════════════════════════════ */
 :root {
-  /* Darker warm base — gives glass panels something to blur against */
-  --bg:        #B8B3AB;
-  --bg-warm:   #AEA9A1;
+  /* Light periwinkle blue base — mirrors dark navy, lighter version */
+  --bg:        #C8D8EE;
+  --bg-warm:   #BDD0EA;
 
-  /* Glass surfaces — transparent enough to show bg beneath */
-  --surface:   rgba(255,255,255,0.58);
-  --surface2:  rgba(255,255,255,0.42);
-  --surface3:  rgba(255,255,255,0.30);
+  /* White glass over blue background — clearly readable */
+  --surface:   rgba(255,255,255,0.72);
+  --surface2:  rgba(255,255,255,0.58);
+  --surface3:  rgba(255,255,255,0.44);
 
   --accent:        #FF6A3D;
   --accent-start:  #FF8C5A;
@@ -21,24 +21,24 @@
   --accent-soft:   rgba(255,106,61,0.12);
   --accent-medium: rgba(255,106,61,0.20);
 
-  --text-primary:   #1A1816;
-  --text-secondary: #3D3B38;
-  --text-muted:     #5E5C59;
+  --text-primary:   #0A1628;
+  --text-secondary: #2A3F5E;
+  --text-muted:     #5A7090;
 
-  --border:        rgba(255,255,255,0.55);
-  --border-medium: rgba(255,255,255,0.72);
-  --border-strong: rgba(255,255,255,0.90);
+  --border:        rgba(255,255,255,0.65);
+  --border-medium: rgba(255,255,255,0.82);
+  --border-strong: rgba(255,255,255,0.95);
 
-  /* Soft, glass-appropriate shadows with specular top highlight */
-  --shadow-xs: 0 1px 3px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(255,255,255,0.40);
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(255,255,255,0.40),
-               inset 0 1px 0 rgba(255,255,255,0.70);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.16), 0 1px 4px rgba(0,0,0,0.10),
-               0 0 0 0.5px rgba(255,255,255,0.40),
-               inset 0 1px 0 rgba(255,255,255,0.75);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.12),
-               0 0 0 0.5px rgba(255,255,255,0.40),
-               inset 0 1px 0 rgba(255,255,255,0.75);
+  /* Light blue-glass shadows */
+  --shadow-xs: 0 1px 3px rgba(10,30,80,0.10), 0 0 0 1px rgba(255,255,255,0.50);
+  --shadow-sm: 0 2px 8px rgba(10,30,80,0.12), 0 0 0 1px rgba(255,255,255,0.55),
+               inset 0 1px 0 rgba(255,255,255,0.80);
+  --shadow-md: 0 4px 20px rgba(10,30,80,0.14), 0 1px 4px rgba(10,30,80,0.08),
+               0 0 0 1px rgba(255,255,255,0.55),
+               inset 0 1px 0 rgba(255,255,255,0.85);
+  --shadow-lg: 0 8px 40px rgba(10,30,80,0.18), 0 2px 8px rgba(10,30,80,0.10),
+               0 0 0 1px rgba(255,255,255,0.55),
+               inset 0 1px 0 rgba(255,255,255,0.85);
   --shadow-accent: 0 6px 28px rgba(255,106,61,0.40);
 
   --r-sm: 10px;
@@ -46,12 +46,12 @@
   --r-lg: 24px;
   --r-xl: 32px;
 
-  --sidebar-bg:      rgba(255,255,255,0.55);
-  --sidebar-border:  rgba(255,255,255,0.70);
-  --header-bg:       rgba(184,179,171,0.82);
-  --nav-active-bg:   #1A1816;
+  --sidebar-bg:      rgba(255,255,255,0.62);
+  --sidebar-border:  rgba(255,255,255,0.80);
+  --header-bg:       rgba(180,200,228,0.88);
+  --nav-active-bg:   #0A1628;
   --nav-active-text: #FFFFFF;
-  --toggle-bg:       rgba(255,255,255,0.38);
+  --toggle-bg:       rgba(255,255,255,0.45);
 
   --green:      #10B981;
   --green-soft: rgba(16,185,129,0.12);
@@ -68,36 +68,36 @@ html.dark {
   --bg:      #06101E;
   --bg-warm: #0A1628;
 
-  /* Frosted navy glass panels */
-  --surface:   rgba(255,255,255,0.08);
-  --surface2:  rgba(255,255,255,0.13);
-  --surface3:  rgba(255,255,255,0.20);
+  /* Frosted navy glass — opaque enough to read, still shows blur behind */
+  --surface:   rgba(8, 20, 55, 0.72);
+  --surface2:  rgba(12, 28, 72, 0.82);
+  --surface3:  rgba(18, 38, 92, 0.90);
 
   --text-primary:   #FFFFFF;
-  --text-secondary: #C8C4C0;
-  --text-muted:     #8A8784;
+  --text-secondary: #C8D8F0;
+  --text-muted:     #7A9CC0;
 
-  --border:        rgba(255,255,255,0.10);
-  --border-medium: rgba(255,255,255,0.18);
-  --border-strong: rgba(255,255,255,0.28);
+  --border:        rgba(255,255,255,0.18);
+  --border-medium: rgba(255,255,255,0.28);
+  --border-strong: rgba(255,255,255,0.45);
 
   /* Deep navy glass shadows */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.70);
-  --shadow-sm: 0 2px 10px rgba(0,0,0,0.60), 0 0 0 0.5px rgba(255,255,255,0.07);
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.60), 0 0 0 1px rgba(255,255,255,0.12);
   --shadow-md: 0 4px 24px rgba(0,0,0,0.75), 0 1px 4px rgba(0,0,0,0.55),
-               0 0 0 0.5px rgba(255,255,255,0.09),
-               inset 0 1px 0 rgba(255,255,255,0.12);
+               0 0 0 1px rgba(255,255,255,0.14),
+               inset 0 1px 0 rgba(255,255,255,0.16);
   --shadow-lg: 0 8px 48px rgba(0,0,0,0.85), 0 2px 8px rgba(0,0,0,0.65),
-               0 0 0 0.5px rgba(255,255,255,0.08),
-               inset 0 1px 0 rgba(255,255,255,0.12);
+               0 0 0 1px rgba(255,255,255,0.12),
+               inset 0 1px 0 rgba(255,255,255,0.16);
   --shadow-accent: 0 6px 28px rgba(255,106,61,0.42);
 
-  --sidebar-bg:      rgba(255,255,255,0.06);
-  --sidebar-border:  rgba(255,255,255,0.10);
-  --header-bg:       rgba(6,16,30,0.88);
+  --sidebar-bg:      rgba(8, 20, 55, 0.78);
+  --sidebar-border:  rgba(255,255,255,0.18);
+  --header-bg:       rgba(6, 16, 30, 0.90);
   --nav-active-bg:   #F2EFEB;
   --nav-active-text: #06101E;
-  --toggle-bg:       rgba(255,255,255,0.10);
+  --toggle-bg:       rgba(255,255,255,0.14);
 
   --green-soft: rgba(16,185,129,0.18);
   --red-soft:   rgba(239,68,68,0.18);
@@ -125,11 +125,11 @@ body {
 /* ── Gradient mesh — rich color blobs, glass blurs these into frosted panels ── */
 html:not(.dark) body {
   background:
-    radial-gradient(ellipse 65% 70% at 8%   5%,   rgba(255,120,50,0.38)  0%, transparent 55%),
-    radial-gradient(ellipse 55% 60% at 92%  8%,   rgba(255,200,80,0.28)  0%, transparent 50%),
-    radial-gradient(ellipse 60% 55% at 75%  90%,  rgba(80,140,255,0.24)  0%, transparent 55%),
-    radial-gradient(ellipse 50% 60% at 15%  85%,  rgba(180,100,255,0.18) 0%, transparent 50%),
-    radial-gradient(ellipse 70% 40% at 50%  50%,  rgba(255,160,60,0.12)  0%, transparent 60%),
+    radial-gradient(ellipse 65% 60% at 5%   5%,   rgba(17,79,153,0.28)   0%, transparent 55%),
+    radial-gradient(ellipse 55% 55% at 95%  8%,   rgba(236,202,62,0.22)  0%, transparent 50%),
+    radial-gradient(ellipse 60% 55% at 80%  90%,  rgba(8,51,125,0.20)    0%, transparent 55%),
+    radial-gradient(ellipse 50% 60% at 12%  85%,  rgba(100,150,255,0.18) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 40% at 50%  50%,  rgba(17,79,153,0.10)   0%, transparent 60%),
     var(--bg);
 }
 html.dark body {
@@ -144,12 +144,12 @@ html.dark body {
 
 /* ── Tailwind class resets for light-default ── */
 .text-white     { color: var(--text-primary)   !important; }
-.text-slate-100 { color: #1f2937               !important; }
-.text-slate-200 { color: #374151               !important; }
-.text-slate-300 { color: #4B5563               !important; }
+.text-slate-100 { color: #0D2040               !important; }
+.text-slate-200 { color: #1A3558               !important; }
+.text-slate-300 { color: #2A4570               !important; }
 .text-slate-400 { color: var(--text-secondary) !important; }
 .text-slate-500 { color: var(--text-muted)     !important; }
-.text-slate-600 { color: rgba(0,0,0,0.50)      !important; }
+.text-slate-600 { color: rgba(10,30,80,0.50)   !important; }
 
 html.dark .text-white     { color: #FFFFFF !important; }
 html.dark .text-slate-100 { color: #F5F4F2 !important; }
@@ -173,12 +173,14 @@ html.dark select option {
 }
 
 /* ─── visionOS Glass — apply backdrop-filter to all glass card divs ─── */
-/* Matches: CSS var surfaces, any rgba(white,0.xx) overlay, .kpi-card class */
 div[style*="var(--surface)"],
 div[style*="rgba(255,255,255,0."],
+div[style*="rgba(8,"],
+div[style*="rgba(12,"],
+div[style*="rgba(18,"],
 .kpi-card {
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(48px) saturate(200%);
+  -webkit-backdrop-filter: blur(48px) saturate(200%);
 }
 
 /* ── Scrollbar ── */
