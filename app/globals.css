@@ -21,9 +21,9 @@
   --accent-soft:   rgba(255,106,61,0.12);
   --accent-medium: rgba(255,106,61,0.20);
 
-  --text-primary:   #0A1628;
-  --text-secondary: #2A3F5E;
-  --text-muted:     #5A7090;
+  --text-primary:   #060F1C;
+  --text-secondary: #152D48;
+  --text-muted:     #2E4D6A;
 
   --border:        rgba(255,255,255,0.65);
   --border-medium: rgba(255,255,255,0.82);
@@ -144,12 +144,12 @@ html.dark body {
 
 /* ── Tailwind class resets for light-default ── */
 .text-white     { color: var(--text-primary)   !important; }
-.text-slate-100 { color: #0D2040               !important; }
-.text-slate-200 { color: #1A3558               !important; }
-.text-slate-300 { color: #2A4570               !important; }
+.text-slate-100 { color: #06111E               !important; }
+.text-slate-200 { color: #0E2138               !important; }
+.text-slate-300 { color: #1A3352               !important; }
 .text-slate-400 { color: var(--text-secondary) !important; }
 .text-slate-500 { color: var(--text-muted)     !important; }
-.text-slate-600 { color: rgba(10,30,80,0.50)   !important; }
+.text-slate-600 { color: rgba(6,15,28,0.60)    !important; }
 
 html.dark .text-white     { color: #FFFFFF !important; }
 html.dark .text-slate-100 { color: #F5F4F2 !important; }
