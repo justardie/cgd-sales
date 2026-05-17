@@ -58,6 +58,9 @@ export const CANONICAL_CARA_BAYAR = [
 /** Annual team omset target (Rp 50 Miliar) */
 export const TEAM_TARGET_ANNUAL = 50_000_000_000
 
+/** Monthly team omset target shown on dashboard hero card (Rp 50 Juta) */
+export const TEAM_MONTHLY_TARGET = 50_000_000
+
 /** Canonical project names — single source of truth for all pages & DB */
 export const PROJECT_NAMES = [
   "CH",

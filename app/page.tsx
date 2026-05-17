@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES } from "@/lib/utils"
+import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import {
   TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
   Users, Activity, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
@@ -388,8 +388,8 @@ export default function OverviewPage() {
           <div className="card-enter-2 kpi-card">
             <GaugeCard label="Omset MTD" icon={DollarSign}
               value={formatRupiah(totals.omsetMtd)}
-              sub={`Target ${formatRupiah(totalTarget)}`}
-              achievement={totalTarget > 0 ? totals.omsetMtd / totalTarget : 0} />
+              sub={`Target ${formatRupiah(TEAM_MONTHLY_TARGET)}`}
+              achievement={totals.omsetMtd / TEAM_MONTHLY_TARGET} />
           </div>
           <div className="card-enter-3 kpi-card">
             <StatCard label="Pipeline Aktif" icon={Activity}
