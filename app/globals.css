@@ -160,6 +160,26 @@ html:not(.dark) .text-slate-400 { color: var(--text-secondary) !important; }
 html.dark .text-slate-500 { color: #A09C98 !important; }
 html.dark .text-slate-600 { color: #8A8784 !important; }
 
+/* ── Colored text — darken in light mode for readability ────────
+   Tailwind *-400 shades are made for dark bg; map to -700 in light */
+html:not(.dark) .text-green-400  { color: #047857 !important; }
+html:not(.dark) .text-green-300  { color: #065f46 !important; }
+html:not(.dark) .text-blue-400   { color: #1d4ed8 !important; }
+html:not(.dark) .text-blue-300   { color: #1e3a8a !important; }
+html:not(.dark) .text-purple-400 { color: #6d28d9 !important; }
+html:not(.dark) .text-purple-300 { color: #5b21b6 !important; }
+html:not(.dark) .text-red-400    { color: #b91c1c !important; }
+html:not(.dark) .text-red-300    { color: #991b1b !important; }
+html:not(.dark) .text-orange-400 { color: #c2410c !important; }
+html:not(.dark) .text-orange-300 { color: #9a3412 !important; }
+html:not(.dark) .text-amber-400  { color: #b45309 !important; }
+html:not(.dark) .text-yellow-400 { color: #a16207 !important; }
+html:not(.dark) .text-pink-400   { color: #be185d !important; }
+html:not(.dark) .text-cyan-400   { color: #0e7490 !important; }
+html:not(.dark) .text-indigo-400 { color: #3730a3 !important; }
+html:not(.dark) .text-teal-400   { color: #0f766e !important; }
+html:not(.dark) .text-violet-400 { color: #5b21b6 !important; }
+
 input, select, textarea { color: var(--text-primary); }
 
 /* Native <select> dropdown options — always use OS-safe colors */
