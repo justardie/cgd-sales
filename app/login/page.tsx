@@ -13,7 +13,7 @@ const TEAM_MEMBERS = [
   "Aida (Rosmaida)",
   "Aldo (Rinaldo)",
   "Frans",
-  "Andre",
+  "Andriansyah",
   "Prediman",
   "Ellen",
   "Rika Sanusi",
