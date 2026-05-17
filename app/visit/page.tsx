@@ -178,7 +178,7 @@ export default function VisitPage() {
 
   async function handleExcel(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !isAdmin) return
     setMsg(null)
     const data = await file.arrayBuffer()
     const wb = XLSX.read(data)
@@ -188,50 +188,77 @@ export default function VisitPage() {
     const importMonth = month
     const importYear  = year
 
-    const inserts = rows
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((r: Record<string, any>) => {
-        const d = new Date(r.tanggal ?? r.Tanggal ?? Date.now())
-        // SP total visit = Visit Konsumen + Visit Lokasi
-        const vk = Number(r["visit_konsumen"] ?? r["Visit Konsumen"] ?? r["VISIT KONSUMEN"] ?? 0)
-        const vl = Number(r["visit_lokasi"]   ?? r["Visit Lokasi"]   ?? r["VISIT LOKASI"]   ?? 0)
-        const count = vk + vl > 0
-          ? vk + vl
-          : Number(r.jumlah ?? r.VISIT ?? r.visit ?? r.total ?? 1)
-        // "Didampingi Atasan" = times the hunter accompanied this SP during visits
-        const accompanied = Number(
-          r["didampingi_atasan"] ?? r["Didampingi Atasan"] ?? r["DIDAMPINGI ATASAN"] ?? 0
-        )
-        return {
-          user_id:           user!.id,
-          visit_date:        d.toISOString().slice(0, 10),
-          visit_type:        "konsumen" as const,
-          count,
-          accompanied_count: accompanied,
-          notes:             (r.catatan ?? r.notes ?? null) as string | null,
-          week_number:       getWeekNumber(d),
-          month:             importMonth,
-          year:              importYear,
-        }
+    // Build inserts grouped by userId so we can delete+insert per user
+    const byUser: Record<string, {
+      user_id: string; visit_date: string; visit_type: "konsumen";
+      count: number; accompanied_count: number; notes: string | null;
+      week_number: number; month: number; year: number
+    }[]> = {}
+    const skippedNames = new Set<string>()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of rows as Record<string, any>[]) {
+      // Identify which user this row belongs to via the "Nama" column
+      const namaRaw: string = (r["nama"] ?? r["Nama"] ?? r["NAMA"] ?? "").toString().trim()
+      if (!namaRaw) { skippedNames.add("(kosong)"); continue }
+
+      const userId = userIdMap[namaRaw]
+      if (!userId) { skippedNames.add(namaRaw); continue }
+
+      const d = new Date(r.tanggal ?? r.Tanggal ?? Date.now())
+      const vk = Number(r["visit_konsumen"] ?? r["Visit Konsumen"] ?? r["VISIT KONSUMEN"] ?? 0)
+      const vl = Number(r["visit_lokasi"]   ?? r["Visit Lokasi"]   ?? r["VISIT LOKASI"]   ?? 0)
+      const count = vk + vl > 0
+        ? vk + vl
+        : Number(r.jumlah ?? r.VISIT ?? r.visit ?? r.total ?? 1)
+      const accompanied = Number(
+        r["didampingi_atasan"] ?? r["Didampingi Atasan"] ?? r["DIDAMPINGI ATASAN"] ?? 0
+      )
+      if (count <= 0) continue
+
+      if (!byUser[userId]) byUser[userId] = []
+      byUser[userId].push({
+        user_id:           userId,
+        visit_date:        d.toISOString().slice(0, 10),
+        visit_type:        "konsumen" as const,
+        count,
+        accompanied_count: accompanied,
+        notes:             (r.catatan ?? r.notes ?? null) as string | null,
+        week_number:       getWeekNumber(d),
+        month:             importMonth,
+        year:              importYear,
       })
-      .filter((r: { count: number }) => r.count > 0)
+    }
 
-    // Delete ALL existing records for the target month/year before inserting
-    await supabase.from("visit_logs")
-      .delete()
-      .eq("user_id", user!.id)
-      .eq("month", importMonth)
-      .eq("year", importYear)
+    const userIds = Object.keys(byUser)
+    if (userIds.length === 0) {
+      const hint = skippedNames.size > 0
+        ? ` Nama tidak dikenal: ${Array.from(skippedNames).join(", ")}`
+        : ""
+      setMsg({ type: "err", text: `Tidak ada data valid di file Excel.${hint}` })
+      if (fileRef.current) fileRef.current.value = ""
+      return
+    }
 
-    if (inserts.length === 0) {
-      setMsg({ type: "err", text: "Tidak ada data valid di file Excel" })
+    // Delete existing records only for users present in this import batch
+    for (const uid of userIds) {
+      await supabase.from("visit_logs")
+        .delete()
+        .eq("user_id", uid)
+        .eq("month", importMonth)
+        .eq("year", importYear)
+    }
+
+    const allInserts = userIds.flatMap(uid => byUser[uid])
+    const { error } = await supabase.from("visit_logs").insert(allInserts)
+    if (error) {
+      setMsg({ type: "err", text: error.message })
     } else {
-      const { error } = await supabase.from("visit_logs").insert(inserts)
-      if (error) setMsg({ type: "err", text: error.message })
-      else {
-        setMsg({ type: "ok", text: `${inserts.length} baris diimport — data lama diganti` })
-        fetchData()
-      }
+      const skippedHint = skippedNames.size > 0
+        ? ` | Dilewati (nama tidak ditemukan): ${Array.from(skippedNames).join(", ")}`
+        : ""
+      setMsg({ type: "ok", text: `${allInserts.length} baris untuk ${userIds.length} user diimport.${skippedHint}` })
+      fetchData()
     }
     if (fileRef.current) fileRef.current.value = ""
   }
@@ -309,12 +336,16 @@ export default function VisitPage() {
                 : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
               YTD {now.getFullYear()}
             </button>
-            <button onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <Upload size={13} /> Import Excel
-            </button>
-            <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleExcel} />
+            {isAdmin && (
+              <>
+                <button onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <Upload size={13} /> Import Excel
+                </button>
+                <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleExcel} />
+              </>
+            )}
           </div>
         </div>
 
