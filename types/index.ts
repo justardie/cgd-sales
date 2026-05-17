@@ -32,6 +32,7 @@ export interface Visit {
   visit_type: 'konsumen' | 'lokasi' | 'assisted' | 'out_of_town' | 'pk' | 'sg_agent'
   count: number
   accompanied_count: number
+  visit_lokasi_count: number
   notes: string | null
   week_number: number
   month: number

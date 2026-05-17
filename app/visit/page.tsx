@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { getWeekNumber, getMonthName } from "@/lib/utils"
+import { getMonthName } from "@/lib/utils"
 import { Upload, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Visit } from "@/types"
 import * as XLSX from "xlsx"
@@ -31,11 +31,14 @@ interface HunterSectionProps {
   userTargetMap: Record<string, number>
 }
 
+const LOKASI_MIN = 12
+
 function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSectionProps) {
   const hunterId = userIdMap[hunter.dbName]
-  const hunterTarget = hunterId ? (userTargetMap[hunterId] || 60) : 60
+  const hunterTarget = hunterId ? (userTargetMap[hunterId] || 40) : 40
 
   const spIds = hunter.spNames.filter(n => !!userIdMap[n]).map(n => userIdMap[n])
+  // Hunter visit = sum of accompanied_count across all their SPs
   const hunterVisits = visits
     .filter(v => spIds.includes(v.user_id))
     .reduce((s, v) => s + (v.accompanied_count || 0), 0)
@@ -47,10 +50,13 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
     .filter(spName => !!userIdMap[spName])
     .map(spName => {
       const spId = userIdMap[spName]
-      const total = spId ? visits.filter(v => v.user_id === spId).reduce((s, v) => s + (v.count || 0), 0) : 0
+      const spVisits = spId ? visits.filter(v => v.user_id === spId) : []
+      // SP total = Visit Konsumen + Visit Lokasi + Accompanied
+      const total  = spVisits.reduce((s, v) => s + (v.count || 0), 0)
+      const lokasi = spVisits.reduce((s, v) => s + (v.visit_lokasi_count || 0), 0)
       const target = spId ? (userTargetMap[spId] || 40) : 40
       const pct = target > 0 ? Math.min(Math.round((total / target) * 100), 100) : 0
-      return { name: spName, total, target, pct, color: barColor(pct) }
+      return { name: spName, total, target, pct, lokasi, color: barColor(pct) }
     })
 
   return (
@@ -80,24 +86,33 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
       </div>
 
       {/* ── SP rows ── */}
-      {spRows.map((sp, i) => (
-        <div key={sp.name} className="flex items-center gap-3 px-4 py-2.5" style={{
-          borderBottom: i < spRows.length - 1 ? "1px solid var(--border)" : undefined,
-        }}>
-          <span className="text-xs flex-1 truncate pl-5" style={{ color: "var(--text-secondary)" }}>
-            {sp.name}
-          </span>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <MiniBar pct={sp.pct} color={sp.color} />
-            <span className="text-xs w-8 text-right" style={{ color: "var(--text-muted)" }}>
-              {sp.total}<span style={{ opacity: 0.6 }}>/{sp.target}</span>
+      {spRows.map((sp, i) => {
+        const lokasiOk = sp.lokasi >= LOKASI_MIN
+        const lokasiColor = lokasiOk ? "#22c55e" : "#ef4444"
+        return (
+          <div key={sp.name} className="flex items-center gap-3 px-4 py-2.5" style={{
+            borderBottom: i < spRows.length - 1 ? "1px solid var(--border)" : undefined,
+          }}>
+            <span className="text-xs flex-1 truncate pl-5" style={{ color: "var(--text-secondary)" }}>
+              {sp.name}
             </span>
-            <span className="text-xs font-semibold w-9 text-right" style={{ color: sp.color }}>
-              {sp.pct}%
-            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Visit Lokasi indicator — min 12/month */}
+              <span className="text-[10px] px-1 py-0.5 rounded font-medium"
+                style={{ background: `${lokasiColor}18`, color: lokasiColor, minWidth: 28, textAlign: "center" }}>
+                L:{sp.lokasi}
+              </span>
+              <MiniBar pct={sp.pct} color={sp.color} />
+              <span className="text-xs w-8 text-right" style={{ color: "var(--text-muted)" }}>
+                {sp.total}<span style={{ opacity: 0.6 }}>/{sp.target}</span>
+              </span>
+              <span className="text-xs font-semibold w-9 text-right" style={{ color: sp.color }}>
+                {sp.pct}%
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -180,84 +195,90 @@ export default function VisitPage() {
     const file = e.target.files?.[0]
     if (!file || !isAdmin) return
     setMsg(null)
+
     const data = await file.arrayBuffer()
     const wb = XLSX.read(data)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = XLSX.utils.sheet_to_json<any>(wb.Sheets[wb.SheetNames[0]])
+    // Read as array-of-arrays to handle the pivot header format
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], { header: 1 })
 
     const importMonth = month
     const importYear  = year
+    // Use first day of the import month as the visit_date placeholder
+    const visitDateStr = `${importYear}-${String(importMonth).padStart(2, "0")}-01`
 
-    // Build inserts grouped by userId so we can delete+insert per user
-    const byUser: Record<string, {
+    // Build case-insensitive lookup: lowercase(db name) → userId
+    // Also support substring match for full names (e.g. "Jimmy Darmadi" matches "JIMMY DARMADI TJENDRA")
+    const idMapLower: Record<string, string> = {}
+    for (const [name, id] of Object.entries(userIdMap)) {
+      idMapLower[name.toLowerCase()] = id
+    }
+    function resolveUserId(rawName: string): string | undefined {
+      const lower = rawName.toLowerCase()
+      // 1. Exact case-insensitive match
+      if (idMapLower[lower]) return idMapLower[lower]
+      // 2. DB name is a substring of Excel name (handles "Jimmy Darmadi" in "JIMMY DARMADI TJENDRA")
+      for (const [dbLower, id] of Object.entries(idMapLower)) {
+        if (lower.includes(dbLower)) return id
+      }
+      return undefined
+    }
+
+    const inserts: {
       user_id: string; visit_date: string; visit_type: "konsumen";
-      count: number; accompanied_count: number; notes: string | null;
-      week_number: number; month: number; year: number
-    }[]> = {}
-    const skippedNames = new Set<string>()
+      count: number; accompanied_count: number; visit_lokasi_count: number;
+      notes: null; week_number: number; month: number; year: number
+    }[] = []
+    const skippedNames: string[] = []
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const r of rows as Record<string, any>[]) {
-      // Identify which user this row belongs to via the "Nama" column
-      const namaRaw: string = (r["nama"] ?? r["Nama"] ?? r["NAMA"] ?? "").toString().trim()
-      if (!namaRaw) { skippedNames.add("(kosong)"); continue }
+    // Pivot format: row[0]=Name, row[1]=Visit Konsumen, row[2]=Accompanied, row[3]=Visit Lokasi
+    // Skip rows 0-4 (empty/header/total rows); skip rows where col[0] is "Total" or starts with "PT."
+    for (let i = 5; i < rawRows.length; i++) {
+      const row = rawRows[i] as (string | number | null | undefined)[]
+      const rawName = String(row[0] ?? "").trim()
+      if (!rawName || rawName === "Total") continue
+      // Skip agent company rows
+      if (rawName.startsWith("PT.") || rawName.startsWith("PT ")) continue
 
-      const userId = userIdMap[namaRaw]
-      if (!userId) { skippedNames.add(namaRaw); continue }
+      const userId = resolveUserId(rawName)
+      if (!userId) { skippedNames.push(rawName); continue }
 
-      const d = new Date(r.tanggal ?? r.Tanggal ?? Date.now())
-      const vk = Number(r["visit_konsumen"] ?? r["Visit Konsumen"] ?? r["VISIT KONSUMEN"] ?? 0)
-      const vl = Number(r["visit_lokasi"]   ?? r["Visit Lokasi"]   ?? r["VISIT LOKASI"]   ?? 0)
-      const count = vk + vl > 0
-        ? vk + vl
-        : Number(r.jumlah ?? r.VISIT ?? r.visit ?? r.total ?? 1)
-      const accompanied = Number(
-        r["didampingi_atasan"] ?? r["Didampingi Atasan"] ?? r["DIDAMPINGI ATASAN"] ?? 0
-      )
-      if (count <= 0) continue
+      const vk         = Number(row[1] ?? 0)  // Visit Konsumen
+      const accompanied = Number(row[2] ?? 0) // Accompanied Visit (Didampingi Atasan)
+      const vl         = Number(row[3] ?? 0)  // Visit Lokasi
+      // SP total visit = VK + VL + Accompanied
+      const count = vk + vl + accompanied
+      if (count <= 0 && accompanied <= 0) continue
 
-      if (!byUser[userId]) byUser[userId] = []
-      byUser[userId].push({
-        user_id:           userId,
-        visit_date:        d.toISOString().slice(0, 10),
-        visit_type:        "konsumen" as const,
-        count,
-        accompanied_count: accompanied,
-        notes:             (r.catatan ?? r.notes ?? null) as string | null,
-        week_number:       getWeekNumber(d),
-        month:             importMonth,
-        year:              importYear,
+      inserts.push({
+        user_id:            userId,
+        visit_date:         visitDateStr,
+        visit_type:         "konsumen" as const,
+        count,                     // SP total
+        accompanied_count:  accompanied,
+        visit_lokasi_count: vl,
+        notes:              null,
+        week_number:        1,
+        month:              importMonth,
+        year:               importYear,
       })
     }
 
-    const userIds = Object.keys(byUser)
-    if (userIds.length === 0) {
-      const hint = skippedNames.size > 0
-        ? ` Nama tidak dikenal: ${Array.from(skippedNames).join(", ")}`
-        : ""
+    if (inserts.length === 0) {
+      const hint = skippedNames.length > 0 ? ` Nama tidak cocok: ${skippedNames.join(", ")}` : ""
       setMsg({ type: "err", text: `Tidak ada data valid di file Excel.${hint}` })
       if (fileRef.current) fileRef.current.value = ""
       return
     }
 
-    // Delete existing records only for users present in this import batch
-    for (const uid of userIds) {
-      await supabase.from("visit_logs")
-        .delete()
-        .eq("user_id", uid)
-        .eq("month", importMonth)
-        .eq("year", importYear)
-    }
-
-    const allInserts = userIds.flatMap(uid => byUser[uid])
-    const { error } = await supabase.from("visit_logs").insert(allInserts)
+    // Additive: do NOT delete existing records — just insert new batch
+    const { error } = await supabase.from("visit_logs").insert(inserts)
     if (error) {
       setMsg({ type: "err", text: error.message })
     } else {
-      const skippedHint = skippedNames.size > 0
-        ? ` | Dilewati (nama tidak ditemukan): ${Array.from(skippedNames).join(", ")}`
+      const skippedHint = skippedNames.length > 0
+        ? ` | Tidak cocok: ${skippedNames.join(", ")}`
         : ""
-      setMsg({ type: "ok", text: `${allInserts.length} baris untuk ${userIds.length} user diimport.${skippedHint}` })
+      setMsg({ type: "ok", text: `${inserts.length} user diimport (data ditambahkan).${skippedHint}` })
       fetchData()
     }
     if (fileRef.current) fileRef.current.value = ""
