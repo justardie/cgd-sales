@@ -4,6 +4,7 @@ import { AuthUser } from '@/types'
 // Fallback aliases for renamed users — tries each variant until one matches the DB
 const NAME_ALIASES: Record<string, string[]> = {
   'Rika Sanusi': ['Rika Sanusi', 'Asun', 'Rika Sanusi (Asun)'],
+  'Andre':       ['Andre', 'Andriansyah'],
 }
 
 export async function loginUser(name: string, pin?: string): Promise<AuthUser | null> {
