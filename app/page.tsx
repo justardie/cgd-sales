@@ -215,7 +215,7 @@ export default function OverviewPage() {
     setLoading(true)
     try {
       const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes, activeSpsRes] = await Promise.all([
-        supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role").eq("status", "active"),
+        supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role,hunter_name").eq("status", "active"),
         supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
@@ -226,9 +226,16 @@ export default function OverviewPage() {
 
       const allUsers = usersRes.data || []
       const nameToUser: Record<string, { id: string; monthly_target: number; win_or_die_target: number; visit_target: number }> = {}
+      // Build DB-driven hunter → SP names map (replaces hardcoded spNames)
+      const hunterSpByDbName: Record<string, string[]> = {}
       allUsers.forEach(u => {
         nameToUser[u.name] = u
         nameToUser[u.name.toLowerCase()] = u
+        if ((u as { hunter_name?: string | null }).hunter_name) {
+          const hn = (u as { hunter_name: string }).hunter_name
+          if (!hunterSpByDbName[hn]) hunterSpByDbName[hn] = []
+          hunterSpByDbName[hn].push(u.name)
+        }
       })
 
       const list: HunterStat[] = HUNTER_GROUPS
@@ -248,7 +255,7 @@ export default function OverviewPage() {
           const omset_last = (closingsLast.data || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
 
           const memberIds = new Set(
-            [group.dbName, ...group.spNames].map(n => nameToUser[n]?.id).filter((id): id is string => !!id)
+            [group.dbName, ...(hunterSpByDbName[group.dbName] || [])].map(n => nameToUser[n]?.id).filter((id): id is string => !!id)
           )
           const visits = (visitsRes.data || []).filter(v => memberIds.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
 

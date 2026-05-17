@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
-import { formatRupiah, getMonthName, MONTHS, normalizeProject } from "@/lib/utils"
+import { formatRupiah, getMonthName, MONTHS, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Edit2, Trash2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
@@ -312,10 +312,9 @@ export default function ClosingPage() {
     ).sort()
     setDbProjects(uniqueProjects)
 
-    // Canonical cara bayar list — always present in this order, extras from DB appended
-    const CANONICAL_CARA_BAYAR = ["Cash Keras", "KPR Indent", "KPR UM", "KPR Express", "Cash Bertahap", "SOB"]
+    // Canonical cara bayar list from utils — always present in this order, extras from DB appended
     const dbCb = (cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[]
-    const extraCb = dbCb.filter(v => !CANONICAL_CARA_BAYAR.includes(v))
+    const extraCb = dbCb.filter(v => !(CANONICAL_CARA_BAYAR as readonly string[]).includes(v))
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     setHunters((usersRes.data || []) as User[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]

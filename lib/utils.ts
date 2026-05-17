@@ -45,6 +45,19 @@ export const MONTHS = [
   { value: 11, label: 'November' }, { value: 12, label: 'Desember' },
 ]
 
+/** Canonical payment methods — always shown in this fixed order; extra DB values appended */
+export const CANONICAL_CARA_BAYAR = [
+  "Cash Keras",
+  "KPR Indent",
+  "KPR UM",
+  "KPR Express",
+  "Cash Bertahap",
+  "SOB",
+] as const
+
+/** Annual team omset target (Rp 50 Miliar) */
+export const TEAM_TARGET_ANNUAL = 50_000_000_000
+
 /** Canonical project names — single source of truth for all pages & DB */
 export const PROJECT_NAMES = [
   "CH",

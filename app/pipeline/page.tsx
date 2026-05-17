@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah } from "@/lib/utils"
+import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Search, FileText } from "lucide-react"
 
@@ -107,10 +107,9 @@ export default function PipelinePage() {
     ).sort()
     setDbProjects(uniqueProjects)
 
-    // Canonical cara bayar list — always present in this order, extras from DB appended
-    const CANONICAL_CARA_BAYAR = ["Cash Keras", "KPR Indent", "KPR UM", "KPR Express", "Cash Bertahap", "SOB"]
+    // Canonical cara bayar list from utils — always present in this order, extras from DB appended
     const dbCb = (cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[]
-    const extraCb = dbCb.filter(v => !CANONICAL_CARA_BAYAR.includes(v))
+    const extraCb = dbCb.filter(v => !(CANONICAL_CARA_BAYAR as readonly string[]).includes(v))
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {

@@ -1,23 +1,10 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { loginUser, saveSession } from "@/lib/auth"
 import { useAuth } from "@/contexts/AuthContext"
-
-const TEAM_MEMBERS = [
-  "Ardie",
-  "Lyndon Sumarli",
-  "Jimmy Darmadi",
-  "Firyal Badriyyah",
-  "Aida (Rosmaida)",
-  "Aldo (Rinaldo)",
-  "Frans",
-  "Andriansyah (Andre)",
-  "Prediman",
-  "Ellen",
-  "Rika Sanusi",
-]
+import { supabase } from "@/lib/supabase"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -26,6 +13,19 @@ export default function LoginPage() {
   const [pin, setPin] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [teamMembers, setTeamMembers] = useState<string[]>([])
+
+  useEffect(() => {
+    supabase
+      .from("users")
+      .select("name")
+      .in("role", ["hunter", "admin"])
+      .eq("status", "active")
+      .order("name")
+      .then(({ data }) => {
+        if (data) setTeamMembers(data.map((u: { name: string }) => u.name))
+      })
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,7 +117,7 @@ export default function LoginPage() {
                 onBlur={(e) => (e.target.style.borderColor = "var(--border-medium)")}
               >
                 <option value="">— Pilih nama kamu —</option>
-                {TEAM_MEMBERS.map((m) => (
+                {teamMembers.map((m) => (
                   <option key={m} value={m}>
                     {m}
                   </option>

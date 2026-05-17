@@ -49,6 +49,7 @@ export default function TeamPage() {
   const [hunterClosingsMap, setHunterClosingsMap] = useState<SpClosingsMap>({})
   const [expandedSP, setExpandedSP] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hunterSpMap, setHunterSpMap] = useState<Record<string, string[]>>({})
   const [saving, setSaving] = useState<string | null>(null)
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -63,13 +64,11 @@ export default function TeamPage() {
   }
 
   const allHunterDbNames = new Set(HUNTER_GROUPS.map(h => h.dbName))
-  const allSpNames = new Set(HUNTER_GROUPS.flatMap(h => h.spNames))
-  const allDbNames = new Set([...allHunterDbNames, ...allSpNames])
 
   async function fetchData() {
     setLoading(true)
     const [usersRes, closingsRes] = await Promise.all([
-      supabase.from("users").select("id,name,monthly_target,sp_level").eq("status", "active"),
+      supabase.from("users").select("id,name,monthly_target,sp_level,hunter_name,role").eq("status", "active"),
       supabase.from("konsumen").select("user_id,nilai_hjr,sales_person,sales_hunter,name,project,unit").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
     ])
 
@@ -106,8 +105,22 @@ export default function TeamPage() {
     setSpClosingsMap(newSpClosingsMap)
     setHunterClosingsMap(newHunterClosingsMap)
 
+    // Build DB-driven hunter → SP names map
+    const newHunterSpMap: Record<string, string[]> = {}
+    ;(usersRes.data || []).forEach(u => {
+      if ((u as { hunter_name?: string | null }).hunter_name) {
+        const hn = (u as { hunter_name: string }).hunter_name
+        if (!newHunterSpMap[hn]) newHunterSpMap[hn] = []
+        newHunterSpMap[hn].push(u.name)
+      }
+    })
+    setHunterSpMap(newHunterSpMap)
+
+    const allSpNamesDb = new Set(Object.values(newHunterSpMap).flat())
+    const allDbNames = new Set([...allHunterDbNames, ...allSpNamesDb])
+
     const list: MemberStatus[] = (usersRes.data || [])
-      .filter(u => allDbNames.has(u.name))
+      .filter(u => allDbNames.has(u.name) || u.role === "hunter" || u.role === "sales_person")
       .map(u => {
         const isHunter = allHunterDbNames.has(u.name)
         const hunterDef = isHunter ? HUNTER_GROUPS.find(h => h.dbName === u.name) : null
@@ -219,7 +232,7 @@ export default function TeamPage() {
 
                   {/* Sales Persons / Solo Hunter */}
                   <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-                    {hunter.spNames.length === 0 && (() => {
+                    {(hunterSpMap[hunter.dbName] || []).length === 0 && (() => {
                       const isExpanded = expandedSP === hunter.name
                       const closings = hunterClosingsMap[hunter.name] || []
                       return (
@@ -271,7 +284,7 @@ export default function TeamPage() {
                         </div>
                       )
                     })()}
-                    {hunter.spNames.map(spName => {
+                    {(hunterSpMap[hunter.dbName] || []).map(spName => {
                       const sp = getMember(spName)
                       const spOmset = spOmsetMap[spName] || 0
                       const isExpanded = expandedSP === spName

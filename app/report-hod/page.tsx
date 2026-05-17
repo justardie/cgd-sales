@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { formatRupiah, getMonthName, pct, normalizeProject, PROJECT_NAMES } from "@/lib/utils"
+import { formatRupiah, getMonthName, pct, normalizeProject, PROJECT_NAMES, TEAM_TARGET_ANNUAL } from "@/lib/utils"
 import { Printer, ChevronLeft, ChevronRight, ChevronDown, FileText, Code2, Trophy, Target } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -21,6 +21,7 @@ interface UserRow {
   win_or_die_target: number
   visit_target: number
   role: string
+  hunter_name?: string | null
 }
 
 interface HunterStat {
@@ -102,7 +103,7 @@ export default function ReportHODPage() {
   async function fetchData() {
     setLoading(true)
     const [allUsersRes, closingsMtdRes, closingsYtdRes, visitsMtdRes, pipelineRes] = await Promise.all([
-      supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,role,status")
+      supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,role,status,hunter_name")
         .eq("status", "active").in("role", ["hunter", "sales_person"]),
       supabase.from("konsumen").select("nilai_hjr,project,cara_bayar,sales_hunter,sales_person")
         .eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
@@ -155,7 +156,16 @@ export default function ReportHODPage() {
     // --- Visit aggregation ---
     const nameToId: Record<string, string> = {}
     const idToUser: Record<string, UserRow> = {}
-    allUsers.forEach(u => { nameToId[u.name] = u.id; idToUser[u.id] = u })
+    // Build DB-driven hunter → SP names map (replaces hardcoded spNames)
+    const hunterSpByDbName: Record<string, string[]> = {}
+    allUsers.forEach(u => {
+      nameToId[u.name] = u.id
+      idToUser[u.id] = u
+      if (u.hunter_name) {
+        if (!hunterSpByDbName[u.hunter_name]) hunterSpByDbName[u.hunter_name] = []
+        hunterSpByDbName[u.hunter_name].push(u.name)
+      }
+    })
 
     const visitCountById:    Record<string, number> = {}
     const accompaniedById:   Record<string, number> = {}
@@ -169,7 +179,7 @@ export default function ReportHODPage() {
     HUNTER_GROUPS.forEach(hg => {
       const userRow = allUsers.find(u => u.name === hg.dbName)
       if (!userRow) return
-      const spIds = hg.spNames.map(n => nameToId[n]).filter(Boolean)
+      const spIds = (hunterSpByDbName[hg.dbName] || []).map(n => nameToId[n]).filter(Boolean)
       const visitReal = spIds.reduce((s, id) => s + (accompaniedById[id] || 0), 0)
       newHunters.push({
         id: userRow.id, name: hg.name, dbName: hg.dbName,
@@ -196,7 +206,7 @@ export default function ReportHODPage() {
     // SP visit stats
     const newSpVisits: SpVisitStat[] = []
     HUNTER_GROUPS.forEach(hg => {
-      hg.spNames.forEach(spName => {
+      ;(hunterSpByDbName[hg.dbName] || []).forEach(spName => {
         const userId  = nameToId[spName]
         const userRow = userId ? idToUser[userId] : undefined
         newSpVisits.push({
@@ -424,14 +434,14 @@ ${pipelineStats.map(p=>`<tr><td>${p.project}</td><td>${p.count}</td><td>${format
                 <div className="text-xs text-slate-500 mb-1">Total Omset MTD</div>
                 <div className="text-2xl font-bold text-white">{formatRupiah(totalMtd)}</div>
                 <div className="text-xs text-slate-500 mt-1">
-                  Target {formatRupiah(50_000_000_000)} ·{" "}
-                  <span className={`font-bold ${pct(totalMtd, 50_000_000_000) >= 100 ? "text-green-400" : pct(totalMtd, 50_000_000_000) >= 70 ? "text-orange-400" : "text-red-400"}`}>
-                    {pct(totalMtd, 50_000_000_000)}%
+                  Target {formatRupiah(TEAM_TARGET_ANNUAL)} ·{" "}
+                  <span className={`font-bold ${pct(totalMtd, TEAM_TARGET_ANNUAL) >= 100 ? "text-green-400" : pct(totalMtd, TEAM_TARGET_ANNUAL) >= 70 ? "text-orange-400" : "text-red-400"}`}>
+                    {pct(totalMtd, TEAM_TARGET_ANNUAL)}%
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 rounded-full bg-slate-800">
                   <div className="h-1.5 rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(pct(totalMtd, 50_000_000_000), 100)}%`, background: "#E84500" }} />
+                    style={{ width: `${Math.min(pct(totalMtd, TEAM_TARGET_ANNUAL), 100)}%`, background: "#E84500" }} />
                 </div>
               </div>
               <div className="kpi-card card-enter-2 rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>

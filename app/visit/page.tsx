@@ -112,6 +112,8 @@ export default function VisitPage() {
   const [userIdMap, setUserIdMap] = useState<Record<string, string>>({})
   const [userTargetMap, setUserTargetMap] = useState<Record<string, number>>({})
   const [userRoleMap, setUserRoleMap] = useState<Record<string, string>>({})
+  /** dbName (hunter) → SP names who have that hunter_name in DB */
+  const [hunterSpMap, setHunterSpMap] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [ytdMode, setYtdMode] = useState(false)
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
@@ -138,7 +140,7 @@ export default function VisitPage() {
 
     const [visitRes, userRes] = await Promise.all([
       visitQuery.order("visit_date", { ascending: false }),
-      supabase.from("users").select("id,name,visit_target,role").eq("status", "active"),
+      supabase.from("users").select("id,name,visit_target,role,hunter_name").eq("status", "active"),
     ])
     let allVisits = (visitRes.data || []) as Visit[]
     if (ytdMode) {
@@ -156,14 +158,21 @@ export default function VisitPage() {
     const idMap: Record<string, string> = {}
     const targetMap: Record<string, number> = {}
     const roleMap: Record<string, string> = {}
+    const spMap: Record<string, string[]> = {}
     for (const u of (userRes.data || [])) {
       idMap[u.name] = u.id
       targetMap[u.id] = u.visit_target || 40
       roleMap[u.id] = u.role
+      // Build hunter → [spNames] map from DB hunter_name field
+      if (u.hunter_name) {
+        if (!spMap[u.hunter_name]) spMap[u.hunter_name] = []
+        spMap[u.hunter_name].push(u.name)
+      }
     }
     setUserIdMap(idMap)
     setUserTargetMap(targetMap)
     setUserRoleMap(roleMap)
+    setHunterSpMap(spMap)
     setLoading(false)
   }
 
@@ -257,9 +266,14 @@ export default function VisitPage() {
   const spTargetTotal = Array.from(spIdSet).reduce((s, id) => s + (displayTargetMap[id] || 0), 0)
   const spPct = spTargetTotal > 0 ? Math.round((spVisitTotal / spTargetTotal) * 100) : 0
 
-  const hunterGroups = isAdmin
+  const hunterGroupsRaw = isAdmin
     ? HUNTER_GROUPS
     : HUNTER_GROUPS.filter(g => g.dbName === user?.name || g.name === user?.name)
+  // Merge DB-driven SP list into each group (falls back to empty array if not yet loaded)
+  const hunterGroups = hunterGroupsRaw.map(g => ({
+    ...g,
+    spNames: hunterSpMap[g.dbName] ?? [],
+  }))
 
   return (
     <DashboardShell>
