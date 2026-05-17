@@ -181,6 +181,11 @@ function ClosingFormFields({
   )
 }
 
+function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sortDir: "asc"|"desc" }) {
+  if (sortCol !== col) return <span className="ml-0.5 opacity-25" style={{ fontSize: 9 }}>↕</span>
+  return <span className="ml-0.5" style={{ fontSize: 9, color: "var(--accent)" }}>{sortDir === "asc" ? "↑" : "↓"}</span>
+}
+
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
@@ -235,6 +240,8 @@ export default function ClosingPage() {
   const [chartOpen,     setChartOpen]    = useState(true)
   const [chartProject,  setChartProject] = useState("")
   const [chartRawData,  setChartRawData] = useState<{ nilai_hjr: number; project: string | null; closing_month: number }[]>([])
+  const [sortCol, setSortCol] = useState("")
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc")
 
   const blankForm = {
     sales_hunter: isAdmin ? "" : (user?.name || ""),
@@ -446,6 +453,28 @@ export default function ClosingPage() {
     if (filterProject   && normalizeProject(c.project)  !== filterProject)  return false
     if (filterCaraBayar && c.cara_bayar !== filterCaraBayar) return false
     return true
+  })
+
+  function toggleSort(col: string) {
+    if (sortCol === col) {
+      setSortDir(d => d === "asc" ? "desc" : "asc")
+    } else {
+      setSortCol(col)
+      setSortDir("asc")
+    }
+  }
+
+  const displayed = [...filtered].sort((a, b) => {
+    if (!sortCol) return 0
+    let av: string | number = "", bv: string | number = ""
+    if      (sortCol === "hunter")    { av = a.sales_hunter || ""; bv = b.sales_hunter || "" }
+    else if (sortCol === "konsumen")  { av = a.name || ""; bv = b.name || "" }
+    else if (sortCol === "project")   { av = a.project || ""; bv = b.project || "" }
+    else if (sortCol === "nilai")     { av = a.nilai_hjr || 0; bv = b.nilai_hjr || 0 }
+    else if (sortCol === "cara_bayar"){ av = a.cara_bayar || ""; bv = b.cara_bayar || "" }
+    else if (sortCol === "closing")   { av = a.closing_date || ""; bv = b.closing_date || "" }
+    if (typeof av === "number") return sortDir === "asc" ? av - (bv as number) : (bv as number) - av
+    return sortDir === "asc" ? av.localeCompare(bv as string) : (bv as string).localeCompare(av)
   })
 
   const totalOmset = filtered.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
@@ -741,16 +770,28 @@ export default function ClosingPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Hunter</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Sales</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Konsumen</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Project</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Unit</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Nilai Omset</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Cara Bayar</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Closing</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Catatan</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Aksi</th>
+                  {([
+                    { key: "hunter",    label: "Hunter",      align: "left",   sortable: true  },
+                    { key: "sales",     label: "Sales",       align: "left",   sortable: false },
+                    { key: "konsumen",  label: "Konsumen",    align: "left",   sortable: true  },
+                    { key: "project",   label: "Project",     align: "left",   sortable: true  },
+                    { key: "unit",      label: "Unit",        align: "left",   sortable: false },
+                    { key: "nilai",     label: "Nilai Omset", align: "right",  sortable: true  },
+                    { key: "cara_bayar",label: "Cara Bayar",  align: "center", sortable: true  },
+                    { key: "closing",   label: "Closing",     align: "center", sortable: true  },
+                    { key: "catatan",   label: "Catatan",     align: "left",   sortable: false },
+                    { key: "aksi",      label: "Aksi",        align: "center", sortable: false },
+                  ] as { key: string; label: string; align: string; sortable: boolean }[]).map(col => (
+                    <th key={col.key}
+                      className={`px-4 py-3 text-xs font-medium whitespace-nowrap text-${col.align} ${col.sortable ? "cursor-pointer select-none hover:opacity-80" : ""}`}
+                      style={{ color: sortCol === col.key ? "var(--text-primary)" : "var(--text-muted)" }}
+                      onClick={col.sortable ? () => toggleSort(col.key) : undefined}>
+                      <span className={`inline-flex items-center ${col.align === "right" ? "justify-end w-full" : col.align === "center" ? "justify-center w-full" : ""}`}>
+                        {col.label}
+                        {col.sortable && <SortIcon col={col.key} sortCol={sortCol} sortDir={sortDir} />}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -760,7 +801,7 @@ export default function ClosingPage() {
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">
                     {ytdMode ? `Belum ada closing YTD ${year}` : `Belum ada closing ${getMonthName(month)} ${year}`}
                   </td></tr>
-                ) : filtered.map(c => (
+                ) : displayed.map(c => (
                   <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}
                     className="hover:bg-white/[0.02]">
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.sales_hunter || "—"}</td>

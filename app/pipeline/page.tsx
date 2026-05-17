@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Search } from "lucide-react"
+import { Plus, X, Search, FileText } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -32,6 +32,11 @@ const STATUSES = [
 
 const statusBadge = (s: string) =>
   STATUSES.find(x => x.value === s) || { label: s || "—", color: "bg-slate-500/20 text-slate-400" }
+
+function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sortDir: "asc"|"desc" }) {
+  if (sortCol !== col) return <span className="ml-0.5 opacity-25" style={{ fontSize: 9 }}>↕</span>
+  return <span className="ml-0.5" style={{ fontSize: 9, color: "var(--accent)" }}>{sortDir === "asc" ? "↑" : "↓"}</span>
+}
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
@@ -84,6 +89,8 @@ export default function PipelinePage() {
     cara_bayar:   "",
     closing_date: new Date().toISOString().slice(0, 10),
   })
+  const [sortCol, setSortCol] = useState("")
+  const [sortDir, setSortDir] = useState<"asc"|"desc">("asc")
 
   useEffect(() => { if (user) fetchData() }, [user, isAdmin])
 
@@ -213,6 +220,80 @@ export default function PipelinePage() {
     return matchSearch && matchStatus
   })
 
+  function toggleSort(col: string) {
+    if (sortCol === col) {
+      setSortDir(d => d === "asc" ? "desc" : "asc")
+    } else {
+      setSortCol(col)
+      setSortDir("asc")
+    }
+  }
+
+  function handleSharePDF() {
+    const data = displayed
+    const printDate = new Date().toLocaleString("id-ID")
+    const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>Pipeline Report — CGD Sales</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 20px; }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 10px; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #eee; padding: 6px 8px; font-size: 10px; color: #444; border: 1px solid #ccc; text-align: left; }
+  td { padding: 5px 8px; border: 1px solid #ddd; vertical-align: top; word-break: break-word; }
+  tr:nth-child(even) { background: #f9f9f9; }
+  .notes-col { min-width: 180px; white-space: pre-wrap; }
+  .right { text-align: right; }
+  @media print { body { margin: 8px; } }
+</style>
+</head><body>
+<h2>Pipeline Report — CGD Sales</h2>
+<p class="sub">Dicetak: ${printDate} · ${data.length} data</p>
+<table><thead>
+<tr><th>Hunter</th><th>Sales</th><th>Konsumen</th><th>Project</th><th>Unit</th><th>Status</th><th class="right">Nilai Potensi</th><th>Cara Bayar</th><th>Visit</th><th class="notes-col">Catatan</th></tr>
+</thead><tbody>
+${data.map(r => {
+  const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  const statusLabel: Record<string, string> = { warm: "Warm", hot: "Hot", tidak_potensial: "Tdk Potensial" }
+  const nilai = r.status !== "tidak_potensial" && r.potensi_closing
+    ? "Rp " + Number(r.potensi_closing).toLocaleString("id-ID") : "—"
+  return `<tr>
+<td>${esc(r.sales_hunter || "—")}</td>
+<td>${esc(r.sales_person || "—")}</td>
+<td><strong>${esc(r.name || "—")}</strong></td>
+<td>${esc(r.project || "—")}</td>
+<td>${esc(r.unit || "—")}</td>
+<td>${statusLabel[r.status] || esc(r.status || "—")}</td>
+<td class="right">${nilai}</td>
+<td>${esc(r.cara_bayar || "—")}</td>
+<td>${esc(r.visit_date || "—")}</td>
+<td class="notes-col">${r.notes ? esc(r.notes) : "—"}</td>
+</tr>`}).join("")}
+</tbody></table>
+</body></html>`
+    const w = window.open("", "_blank")
+    if (!w) return
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    setTimeout(() => w.print(), 600)
+  }
+
+  const displayed = [...filtered].sort((a, b) => {
+    if (!sortCol) return 0
+    let av: string | number = "", bv: string | number = ""
+    if      (sortCol === "hunter")   { av = a.sales_hunter || ""; bv = b.sales_hunter || "" }
+    else if (sortCol === "konsumen") { av = a.name || ""; bv = b.name || "" }
+    else if (sortCol === "project")  { av = a.project || ""; bv = b.project || "" }
+    else if (sortCol === "status")   { av = a.status || ""; bv = b.status || "" }
+    else if (sortCol === "nilai")    { av = Number(a.potensi_closing) || 0; bv = Number(b.potensi_closing) || 0 }
+    else if (sortCol === "visit")    { av = a.visit_date || ""; bv = b.visit_date || "" }
+    if (typeof av === "number") return sortDir === "asc" ? av - (bv as number) : (bv as number) - av
+    return sortDir === "asc" ? av.localeCompare(bv as string) : (bv as string).localeCompare(av)
+  })
+
   const activeRows = rows.filter(r => r.status !== "tidak_potensial")
   const stats = {
     total:      activeRows.length,
@@ -275,8 +356,14 @@ export default function PipelinePage() {
               </button>
             ))}
           </div>
-          <div className="ml-auto text-xs text-slate-500 self-center">
-            {filtered.length} hasil
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-slate-500">{filtered.length} hasil</span>
+            <button onClick={handleSharePDF}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+              title="Export ke PDF">
+              <FileText size={13} /> PDF
+            </button>
           </div>
         </div>
 
@@ -285,17 +372,29 @@ export default function PipelinePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Hunter</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Sales</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Konsumen</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Project</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Unit</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium whitespace-nowrap">Nilai Potensi</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Cara Bayar</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Visit</th>
-                  <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium whitespace-nowrap">Catatan</th>
-                  <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium whitespace-nowrap">Aksi</th>
+                  {([
+                    { key: "hunter",   label: "Hunter",       align: "left",   sortable: true  },
+                    { key: "sales",    label: "Sales",        align: "left",   sortable: false },
+                    { key: "konsumen", label: "Konsumen",     align: "left",   sortable: true  },
+                    { key: "project",  label: "Project",      align: "left",   sortable: true  },
+                    { key: "unit",     label: "Unit",         align: "left",   sortable: false },
+                    { key: "status",   label: "Status",       align: "center", sortable: true  },
+                    { key: "nilai",    label: "Nilai Potensi",align: "right",  sortable: true  },
+                    { key: "cara",     label: "Cara Bayar",   align: "center", sortable: false },
+                    { key: "visit",    label: "Visit",        align: "center", sortable: true  },
+                    { key: "catatan",  label: "Catatan",      align: "left",   sortable: false },
+                    { key: "aksi",     label: "Aksi",         align: "center", sortable: false },
+                  ] as { key: string; label: string; align: string; sortable: boolean }[]).map(col => (
+                    <th key={col.key}
+                      className={`px-4 py-3 text-xs font-medium whitespace-nowrap text-${col.align} ${col.sortable ? "cursor-pointer select-none hover:opacity-80" : ""}`}
+                      style={{ color: sortCol === col.key ? "var(--text-primary)" : "var(--text-muted)" }}
+                      onClick={col.sortable ? () => toggleSort(col.key) : undefined}>
+                      <span className={`inline-flex items-center ${col.align === "right" ? "justify-end w-full" : col.align === "center" ? "justify-center w-full" : ""}`}>
+                        {col.label}
+                        {col.sortable && <SortIcon col={col.key} sortCol={sortCol} sortDir={sortDir} />}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -303,7 +402,7 @@ export default function PipelinePage() {
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
-                ) : filtered.map(r => {
+                ) : displayed.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
                   const badge = statusBadge(r.status)
                   return (
