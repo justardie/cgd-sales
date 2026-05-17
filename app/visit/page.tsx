@@ -174,18 +174,8 @@ export default function VisitPage() {
       supabase.from("users").select("id,name,visit_target,role,hunter_name").eq("status", "active"),
     ])
     let allVisits = (visitRes.data || []) as Visit[]
-    if (ytdMode) {
-      // Aggregate multiple monthly records into one per user
-      const agg: Record<string, Visit> = {}
-      for (const v of allVisits) {
-        if (!agg[v.user_id]) agg[v.user_id] = { ...v, count: 0, accompanied_count: 0 }
-        agg[v.user_id].count = (agg[v.user_id].count || 0) + (v.count || 0)
-        agg[v.user_id].accompanied_count = (agg[v.user_id].accompanied_count || 0) + (v.accompanied_count || 0)
-      }
-      allVisits = Object.values(agg)
-    }
-    setVisits(isAdmin ? allVisits : allVisits.filter(v => v.user_id === user!.id))
 
+    // Build maps first — needed before filtering visits for non-admin
     const idMap: Record<string, string> = {}
     const targetMap: Record<string, number> = {}
     const roleMap: Record<string, string> = {}
@@ -194,7 +184,6 @@ export default function VisitPage() {
       idMap[u.name] = u.id
       targetMap[u.id] = u.visit_target || 40
       roleMap[u.id] = u.role
-      // Build hunter → [spNames] map from DB hunter_name field
       if (u.hunter_name) {
         if (!spMap[u.hunter_name]) spMap[u.hunter_name] = []
         spMap[u.hunter_name].push(u.name)
@@ -204,6 +193,33 @@ export default function VisitPage() {
     setUserTargetMap(targetMap)
     setUserRoleMap(roleMap)
     setHunterSpMap(spMap)
+
+    if (ytdMode) {
+      // Aggregate multiple monthly records into one per user
+      const agg: Record<string, Visit> = {}
+      for (const v of allVisits) {
+        if (!agg[v.user_id]) agg[v.user_id] = { ...v, count: 0, accompanied_count: 0, visit_lokasi_count: 0 }
+        agg[v.user_id].count              = (agg[v.user_id].count || 0)              + (v.count || 0)
+        agg[v.user_id].accompanied_count  = (agg[v.user_id].accompanied_count || 0)  + (v.accompanied_count || 0)
+        agg[v.user_id].visit_lokasi_count = (agg[v.user_id].visit_lokasi_count || 0) + (v.visit_lokasi_count || 0)
+      }
+      allVisits = Object.values(agg)
+    }
+
+    if (isAdmin) {
+      setVisits(allVisits)
+    } else {
+      // Non-admin: include own records AND all SP records under this hunter
+      // Hunters need SPs' visits because hunter visit = sum of SP accompanied_count
+      const relevantIds = new Set<string>([user!.id])
+      const mySpNames = spMap[user!.name] ?? []
+      for (const spName of mySpNames) {
+        const spId = idMap[spName]
+        if (spId) relevantIds.add(spId)
+      }
+      setVisits(allVisits.filter(v => relevantIds.has(v.user_id)))
+    }
+
     setLoading(false)
   }
 
@@ -318,7 +334,20 @@ export default function VisitPage() {
     Object.entries(userTargetMap).map(([k, v]) => [k, v * ytdM])
   )
 
-  const totalMonth = visits.filter(v => v.user_id === user?.id).reduce((s, v) => s + (v.count || 0), 0)
+  const isHunterUser = user ? userRoleMap[user.id] === "hunter" : false
+
+  // Hunter's personal KPI = sum of accompanied_count from their SPs' visits
+  // SP's personal KPI = sum of their own count
+  const totalMonth = (() => {
+    if (!user) return 0
+    if (isHunterUser) {
+      const mySpIds = new Set(
+        (hunterSpMap[user.name] ?? []).map(n => userIdMap[n]).filter(Boolean)
+      )
+      return visits.filter(v => mySpIds.has(v.user_id)).reduce((s, v) => s + (v.accompanied_count || 0), 0)
+    }
+    return visits.filter(v => v.user_id === user.id).reduce((s, v) => s + (v.count || 0), 0)
+  })()
   const myTarget = user ? ((displayTargetMap[user.id]) || 40) : 40
   const pctMonth = myTarget > 0 ? Math.round((totalMonth / myTarget) * 100) : 0
 
