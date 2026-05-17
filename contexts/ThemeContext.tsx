@@ -3,11 +3,12 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { supabase } from "@/lib/supabase"
 
 // ─── Types ───────────────────────────────────────────────────
-export type AppTheme = "dark" | "light"
+export type AppTheme = "dark" | "light" | "idul-adha"
 
 export const THEMES: { id: AppTheme; name: string; label: string; bg: string; accent: string }[] = [
-  { id: "dark",  name: "Dark",  label: "Midnight Glass", bg: "#0A0A0D", accent: "#FF6A3D" },
-  { id: "light", name: "Light", label: "Pearl Glass",    bg: "#C0BBB4", accent: "#FF6A3D" },
+  { id: "dark",      name: "Dark",      label: "Midnight Glass",  bg: "#0A0A0D", accent: "#FF6A3D" },
+  { id: "light",     name: "Light",     label: "Pearl Glass",     bg: "#C0BBB4", accent: "#FF6A3D" },
+  { id: "idul-adha", name: "Idul Adha", label: "Eid Mubarak 🌙", bg: "#071a08", accent: "#d4920a" },
 ]
 
 // ─── Context ─────────────────────────────────────────────────
@@ -19,8 +20,10 @@ const ThemeCtx = createContext<{
 
 // ─── Apply theme to <html> element ───────────────────────────
 function applyTheme(t: AppTheme) {
-  document.documentElement.classList.toggle("dark", t === "dark")
-  document.documentElement.classList.remove("light")
+  const html = document.documentElement
+  html.classList.remove("dark", "iduladha")
+  if (t === "dark")      html.classList.add("dark")
+  if (t === "idul-adha") html.classList.add("iduladha")
   localStorage.setItem("cgd-theme-v2", t)
 }
 
@@ -32,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // 1. Apply saved local theme immediately — avoid flash
     const saved = localStorage.getItem("cgd-theme-v2") as AppTheme | null
     const legacy = localStorage.getItem("cgd-theme")
-    if (saved === "dark" || saved === "light") {
+    if (saved === "dark" || saved === "light" || saved === "idul-adha") {
       applyTheme(saved); setThemeState(saved)
     } else if (legacy === "light") {
       applyTheme("light"); setThemeState("light")
@@ -50,6 +53,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // Map legacy 4-theme values to dark/light
         const raw = data?.value ?? ""
         const t: AppTheme =
+          raw === "idul-adha"                                       ? "idul-adha" :
           raw === "dark"  || raw === "midnight" || raw === "ocean"  ? "dark"  :
           raw === "light" || raw === "pearl"    || raw === "sand"   ? "light" :
           "dark"
@@ -67,6 +71,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }, (payload) => {
         const raw = (payload.new as { value: string }).value
         const t: AppTheme =
+          raw === "idul-adha"                                       ? "idul-adha" :
           raw === "dark"  || raw === "midnight" || raw === "ocean"  ? "dark"  :
           raw === "light" || raw === "pearl"    || raw === "sand"   ? "light" :
           "dark"

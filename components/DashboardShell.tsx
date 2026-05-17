@@ -2,12 +2,15 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTheme } from "@/contexts/ThemeContext"
 import Sidebar from "./Sidebar"
 import Header from "./Header"
+import IduladhaDecorations from "./IduladhaDecorations"
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const { theme } = useTheme()
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login")
@@ -23,6 +26,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <div className="app-layout">
+      {theme === "idul-adha" && <IduladhaDecorations />}
       <Sidebar />
       <div className="app-main">
         <Header />

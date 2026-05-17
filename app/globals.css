@@ -142,6 +142,66 @@ html.dark body {
     var(--bg);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   IDUL ADHA THEME — Deep forest green + warm gold
+═══════════════════════════════════════════════════════════════ */
+html.iduladha {
+  --bg:        #071a08;
+  --bg-warm:   #0c2410;
+
+  --surface:   rgba(10, 38, 14, 0.82);
+  --surface2:  rgba(16, 52, 22, 0.88);
+  --surface3:  rgba(24, 68, 30, 0.93);
+
+  --accent:        #c8860a;
+  --accent-start:  #e09820;
+  --accent-end:    #a87008;
+  --accent-soft:   rgba(200, 134, 10, 0.15);
+  --accent-medium: rgba(200, 134, 10, 0.25);
+
+  --text-primary:   #f5ecc8;
+  --text-secondary: #c8b468;
+  --text-muted:     #6b8850;
+
+  --border:        rgba(200, 170, 45, 0.22);
+  --border-medium: rgba(200, 170, 45, 0.35);
+  --border-strong: rgba(200, 170, 45, 0.55);
+
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.65);
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.58), 0 0 0 1px rgba(200,170,45,0.14);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.72), 0 0 0 1px rgba(200,170,45,0.16),
+               inset 0 1px 0 rgba(200,170,45,0.10);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.82), 0 0 0 1px rgba(200,170,45,0.13),
+               inset 0 1px 0 rgba(200,170,45,0.12);
+  --shadow-accent: 0 6px 28px rgba(200,134,10,0.42);
+
+  --sidebar-bg:      rgba(7, 24, 10, 0.88);
+  --sidebar-border:  rgba(200, 170, 45, 0.22);
+  --header-bg:       rgba(5, 16, 7, 0.94);
+  --nav-active-bg:   #d4920a;
+  --nav-active-text: #0a1a0a;
+  --toggle-bg:       rgba(200,170,45,0.16);
+
+  --green:      #22c55e;
+  --green-soft: rgba(34,197,94,0.18);
+  --red:        #ef4444;
+  --red-soft:   rgba(239,68,68,0.18);
+  --blue:       #60a5fa;
+  --blue-soft:  rgba(96,165,250,0.18);
+  --amber:      #f59e0b;
+  --amber-soft: rgba(245,158,11,0.18);
+}
+html.iduladha body {
+  background:
+    radial-gradient(ellipse 70% 60% at 0%   0%,   rgba(12,70,20,0.90)  0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at 100% 100%, rgba(160,100,8,0.28)  0%, transparent 50%),
+    radial-gradient(ellipse 50% 45% at 100% 5%,  rgba(100,65,5,0.18)  0%, transparent 45%),
+    radial-gradient(ellipse 55% 50% at 8%   90%, rgba(5,32,10,0.75)   0%, transparent 50%),
+    radial-gradient(ellipse 40% 38% at 50%  48%, rgba(8,45,14,0.45)   0%, transparent 55%),
+    var(--bg);
+}
+html.iduladha .text-white { color: #f5ecc8 !important; }
+
 /* ── Tailwind class resets for light-default ── */
 .text-white     { color: var(--text-primary)   !important; }
 .text-slate-100 { color: #06111E               !important; }
