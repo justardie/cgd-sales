@@ -53,6 +53,9 @@ export default function TeamPage() {
   /** Agent omset keyed by hunter dbName — for hasAgent hunters */
   const [agentOmsetByHunter, setAgentOmsetByHunter] = useState<Record<string, number>>({})
   const [agentClosingsByHunter, setAgentClosingsByHunter] = useState<SpClosingsMap>({})
+  /** Direct (no-SP, no-Agent) omset keyed by hunter dbName */
+  const [hunterDirectOmset, setHunterDirectOmset] = useState<Record<string, number>>({})
+  const [hunterDirectClosings, setHunterDirectClosings] = useState<SpClosingsMap>({})
   const [saving, setSaving] = useState<string | null>(null)
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -77,6 +80,9 @@ export default function TeamPage() {
 
     // Hunter omset keyed by dbName (= sales_hunter field in konsumen)
     const hunterOmsetByDbName: Record<string, number> = {}
+    // Direct = sales where sales_person is NOT 'Agent' (hunter sells himself or via SP)
+    const hunterDirectOmset: Record<string, number> = {}
+    const hunterDirectClosings: SpClosingsMap = {}
     const newSpOmsetMap: SpOmsetMap = {}
     const newSpClosingsMap: SpClosingsMap = {}
     const newHunterClosingsMap: SpClosingsMap = {}
@@ -89,17 +95,15 @@ export default function TeamPage() {
         name: c.name, project: c.project ?? null, unit: c.unit ?? null, nilai_hjr: val,
       }
 
-      // Aggregate hunter omset by sales_hunter name (dbName)
       if (c.sales_hunter) {
+        // Total hunter omset (all channels, for header badge)
         hunterOmsetByDbName[c.sales_hunter] = (hunterOmsetByDbName[c.sales_hunter] || 0) + val
-        // Store closings keyed by hunter display name for the expand panel
         const hunterDef = HUNTER_GROUPS.find(h => h.dbName === c.sales_hunter)
         const displayKey = hunterDef ? hunterDef.name : c.sales_hunter
         if (!newHunterClosingsMap[displayKey]) newHunterClosingsMap[displayKey] = []
         newHunterClosingsMap[displayKey].push(detail)
       }
 
-      // Aggregate SP omset by sales_person name
       const spName = c.sales_person
       if (spName === "Agent" && c.sales_hunter) {
         // Agent channel: track per-hunter
@@ -107,9 +111,18 @@ export default function TeamPage() {
         if (!newAgentClosings[c.sales_hunter]) newAgentClosings[c.sales_hunter] = []
         newAgentClosings[c.sales_hunter].push(detail)
       } else if (spName) {
+        // Named SP channel
         newSpOmsetMap[spName] = (newSpOmsetMap[spName] || 0) + val
         if (!newSpClosingsMap[spName]) newSpClosingsMap[spName] = []
         newSpClosingsMap[spName].push(detail)
+        // Also count as hunter direct if no SP (i.e. hunter sold personally)
+      } else if (c.sales_hunter) {
+        // No SP — hunter sold directly
+        hunterDirectOmset[c.sales_hunter] = (hunterDirectOmset[c.sales_hunter] || 0) + val
+        const hunterDef = HUNTER_GROUPS.find(h => h.dbName === c.sales_hunter)
+        const displayKey = hunterDef ? hunterDef.name : c.sales_hunter
+        if (!hunterDirectClosings[displayKey]) hunterDirectClosings[displayKey] = []
+        hunterDirectClosings[displayKey].push(detail)
       }
     })
 
@@ -118,6 +131,8 @@ export default function TeamPage() {
     setHunterClosingsMap(newHunterClosingsMap)
     setAgentOmsetByHunter(newAgentOmset)
     setAgentClosingsByHunter(newAgentClosings)
+    setHunterDirectOmset(hunterDirectOmset)
+    setHunterDirectClosings(hunterDirectClosings)
 
     // Build DB-driven hunter → SP names map
     const newHunterSpMap: Record<string, string[]> = {}
@@ -246,59 +261,7 @@ export default function TeamPage() {
 
                   {/* Sales Persons / Solo Hunter */}
                   <div className="divide-y" style={{ borderColor: "var(--border)" }}>
-                    {(hunterSpMap[hunter.dbName] || []).length === 0 && (() => {
-                      const isExpanded = expandedSP === hunter.name
-                      const closings = hunterClosingsMap[hunter.name] || []
-                      return (
-                        <div>
-                          <div
-                            className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition"
-                            onClick={() => setExpandedSP(isExpanded ? null : hunter.name)}>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium text-white">{hunter.name}</span>
-                                {m && m.omset > 0 && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
-                                )}
-                              </div>
-                              {m && m.omset > 0 && (
-                                <div className="text-xs text-slate-400 mt-0.5">{formatRupiah(m.omset)}</div>
-                              )}
-                            </div>
-                            <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
-                          </div>
-                          <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
-                            <div className="px-4 py-3">
-                              {closings.length === 0 ? (
-                                <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
-                              ) : (
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="text-slate-500">
-                                      <th className="text-left pb-2 font-medium">Konsumen</th>
-                                      <th className="text-left pb-2 font-medium">Project</th>
-                                      <th className="text-left pb-2 font-medium">Unit</th>
-                                      <th className="text-right pb-2 font-medium">Omset</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {closings.map((d, i) => (
-                                      <tr key={i} className="border-t" style={{ borderColor: "var(--border)" }}>
-                                        <td className="py-1.5 text-white pr-3">{d.name}</td>
-                                        <td className="py-1.5 text-slate-400 pr-3">{d.project || "—"}</td>
-                                        <td className="py-1.5 text-slate-400 pr-3">{d.unit || "—"}</td>
-                                        <td className="py-1.5 text-right text-green-400 font-semibold">{formatRupiah(d.nilai_hjr)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                    {/* Agent row — only for hunters with hasAgent: true */}
+                    {/* Agent row FIRST — only for hunters with hasAgent: true */}
                     {hunter.hasAgent && (() => {
                       const agentOmset = agentOmsetByHunter[hunter.dbName] || 0
                       const agentClosings = agentClosingsByHunter[hunter.dbName] || []
@@ -346,6 +309,67 @@ export default function TeamPage() {
                                   </thead>
                                   <tbody>
                                     {agentClosings.map((d, i) => (
+                                      <tr key={i} className="border-t" style={{ borderColor: "var(--border)" }}>
+                                        <td className="py-1.5 text-white pr-3">{d.name}</td>
+                                        <td className="py-1.5 text-slate-400 pr-3">{d.project || "—"}</td>
+                                        <td className="py-1.5 text-slate-400 pr-3">{d.unit || "—"}</td>
+                                        <td className="py-1.5 text-right text-green-400 font-semibold">{formatRupiah(d.nilai_hjr)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    {/* Hunter Langsung row — direct sales (no SP, no Agent) */}
+                    {(() => {
+                      const directOmset = hunterDirectOmset[hunter.dbName] || 0
+                      const directClosings = hunterDirectClosings[hunter.name] || []
+                      // Only show if there are actual direct sales
+                      if (directOmset === 0 && directClosings.length === 0) return null
+                      const directKey = `direct-${hunter.dbName}`
+                      const isExpanded = expandedSP === directKey
+                      return (
+                        <div key="direct">
+                          <div
+                            className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition"
+                            onClick={() => setExpandedSP(isExpanded ? null : directKey)}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-white">{hunter.name}</span>
+                                <span className="text-xs px-1.5 py-0.5 rounded font-medium"
+                                  style={{ background: "rgba(234,92,0,0.1)", color: "#fb923c", border: "1px solid rgba(234,92,0,0.25)" }}>
+                                  Hunter Langsung
+                                </span>
+                                {directOmset > 0 && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
+                                )}
+                              </div>
+                              {directOmset > 0 && (
+                                <div className="text-xs text-slate-400 mt-0.5">{formatRupiah(directOmset)}</div>
+                              )}
+                            </div>
+                            <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                          </div>
+                          <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
+                            <div className="px-4 py-3">
+                              {directClosings.length === 0 ? (
+                                <div className="text-xs text-slate-600 italic">Belum ada closing langsung bulan ini</div>
+                              ) : (
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-slate-500">
+                                      <th className="text-left pb-2 font-medium">Konsumen</th>
+                                      <th className="text-left pb-2 font-medium">Project</th>
+                                      <th className="text-left pb-2 font-medium">Unit</th>
+                                      <th className="text-right pb-2 font-medium">Omset</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {directClosings.map((d, i) => (
                                       <tr key={i} className="border-t" style={{ borderColor: "var(--border)" }}>
                                         <td className="py-1.5 text-white pr-3">{d.name}</td>
                                         <td className="py-1.5 text-slate-400 pr-3">{d.project || "—"}</td>
