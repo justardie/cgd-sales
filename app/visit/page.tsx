@@ -119,6 +119,22 @@ function HunterSection({ hunter, visits, userIdMap, userTargetMap }: HunterSecti
 
 const now = new Date()
 
+/** Levenshtein edit distance — used for fuzzy name matching on import */
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  )
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+    }
+  }
+  return dp[m][n]
+}
+
 export default function VisitPage() {
   const { user, isAdmin } = useAuth()
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -216,11 +232,24 @@ export default function VisitPage() {
       const lower = rawName.toLowerCase()
       // 1. Exact case-insensitive match
       if (idMapLower[lower]) return idMapLower[lower]
-      // 2. DB name is a substring of Excel name (handles "Jimmy Darmadi" in "JIMMY DARMADI TJENDRA")
+      // 2. DB name is a substring of Excel full name
+      //    e.g. "Jimmy Darmadi" matches "JIMMY DARMADI TJENDRA"
       for (const [dbLower, id] of Object.entries(idMapLower)) {
         if (lower.includes(dbLower)) return id
       }
-      return undefined
+      // 3. Fuzzy: Levenshtein distance ≤ 4 — catches spelling variants
+      //    e.g. "Dea Alvony Agista" vs "DEA ALVIONY AGISTA" (distance 1)
+      //    Guard: first word must match or be very close (≤ 1) to avoid false positives
+      const excelFirstWord = lower.split(" ")[0]
+      let bestId: string | undefined
+      let bestDist = 5 // threshold: accept up to 4 differences
+      for (const [dbLower, id] of Object.entries(idMapLower)) {
+        const dbFirstWord = dbLower.split(" ")[0]
+        if (excelFirstWord !== dbFirstWord && levenshtein(excelFirstWord, dbFirstWord) > 1) continue
+        const dist = levenshtein(lower, dbLower)
+        if (dist <= 4 && dist < bestDist) { bestDist = dist; bestId = id }
+      }
+      return bestId
     }
 
     const inserts: {
