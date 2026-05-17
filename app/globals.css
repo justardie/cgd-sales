@@ -143,68 +143,71 @@ html.dark body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   IDUL ADHA THEME — Starbucks-inspired deep forest + warm gold
-   Palette philosophy: near-black with green undertone, warm cream
-   text, muted gold accents. Exclusive, minimal, readable.
+   IDUL ADHA THEME — Rich forest green + warm gold celebration
+   Palette: Starbucks #1E3932 as reference. Visible green, not
+   black. Warm golden light bleeds in from bottom-right to feel
+   festive without being garish. Exclusive, warm, readable.
 ═══════════════════════════════════════════════════════════════ */
 html.iduladha {
-  /* Background — very dark, desaturated green (Starbucks #1E3932 taken darker) */
-  --bg:      #0B1710;
-  --bg-warm: #101D14;
+  /* Background — true rich forest green, visible and warm */
+  --bg:      #1A2E1E;
+  --bg-warm: #213825;
 
-  /* Glass surfaces — low-saturation dark green */
-  --surface:   rgba(14, 30, 19, 0.80);
-  --surface2:  rgba(18, 38, 24, 0.86);
-  --surface3:  rgba(24, 48, 30, 0.92);
+  /* Glass surfaces — saturated enough to read as green */
+  --surface:   rgba(24, 52, 30, 0.76);
+  --surface2:  rgba(30, 62, 38, 0.83);
+  --surface3:  rgba(36, 72, 44, 0.90);
 
-  /* Accent — muted warm gold (Starbucks tan #CBA258) */
-  --accent:        #B89255;
-  --accent-start:  #CBA268;
-  --accent-end:    #9A7A42;
-  --accent-soft:   rgba(184, 146, 85, 0.13);
-  --accent-medium: rgba(184, 146, 85, 0.22);
+  /* Accent — warm bright gold, festive but refined */
+  --accent:        #D4A84A;
+  --accent-start:  #E8C060;
+  --accent-end:    #B88C30;
+  --accent-soft:   rgba(212, 168, 74, 0.15);
+  --accent-medium: rgba(212, 168, 74, 0.26);
 
-  /* Text — warm cream. ALWAYS readable on dark green. */
-  --text-primary:   #F0EAD8;
-  --text-secondary: rgba(240, 234, 216, 0.65);
-  --text-muted:     rgba(240, 234, 216, 0.38);
+  /* Text — warm cream, legible at every level */
+  --text-primary:   #F2EDD8;
+  --text-secondary: rgba(242, 237, 216, 0.68);
+  --text-muted:     rgba(242, 237, 216, 0.40);
 
-  /* Borders — subtle gold */
-  --border:        rgba(184, 146, 85, 0.16);
-  --border-medium: rgba(184, 146, 85, 0.26);
-  --border-strong: rgba(184, 146, 85, 0.45);
+  /* Borders — warm gold */
+  --border:        rgba(212, 168, 74, 0.20);
+  --border-medium: rgba(212, 168, 74, 0.32);
+  --border-strong: rgba(212, 168, 74, 0.55);
 
-  --shadow-xs: 0 1px 3px rgba(0,0,0,0.60);
-  --shadow-sm: 0 2px 10px rgba(0,0,0,0.55), 0 0 0 1px rgba(184,146,85,0.10);
-  --shadow-md: 0 4px 24px rgba(0,0,0,0.70), 0 0 0 1px rgba(184,146,85,0.12),
-               inset 0 1px 0 rgba(255,255,255,0.04);
-  --shadow-lg: 0 8px 48px rgba(0,0,0,0.80), 0 0 0 1px rgba(184,146,85,0.10),
-               inset 0 1px 0 rgba(255,255,255,0.05);
-  --shadow-accent: 0 6px 28px rgba(184,146,85,0.32);
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.50);
+  --shadow-sm: 0 2px 10px rgba(0,0,0,0.48), 0 0 0 1px rgba(212,168,74,0.12);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.60), 0 0 0 1px rgba(212,168,74,0.15),
+               inset 0 1px 0 rgba(255,255,255,0.06);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.70), 0 0 0 1px rgba(212,168,74,0.12),
+               inset 0 1px 0 rgba(255,255,255,0.07);
+  --shadow-accent: 0 6px 28px rgba(212,168,74,0.38);
 
-  --sidebar-bg:      rgba(10, 22, 14, 0.90);
-  --sidebar-border:  rgba(184, 146, 85, 0.18);
-  --header-bg:       rgba(8, 18, 11, 0.95);
-  --nav-active-bg:   #B89255;
-  --nav-active-text: #0B1710;
-  --toggle-bg:       rgba(184, 146, 85, 0.14);
+  --sidebar-bg:      rgba(20, 42, 25, 0.88);
+  --sidebar-border:  rgba(212, 168, 74, 0.22);
+  --header-bg:       rgba(18, 36, 22, 0.94);
+  --nav-active-bg:   #D4A84A;
+  --nav-active-text: #1A2E1E;
+  --toggle-bg:       rgba(212, 168, 74, 0.16);
 
-  /* Status colors — bright enough to stand out on very dark green */
+  /* Status — vivid so they pop on rich green */
   --green:      #4ade80;
-  --green-soft: rgba(74, 222, 128, 0.14);
+  --green-soft: rgba(74, 222, 128, 0.15);
   --red:        #f87171;
-  --red-soft:   rgba(248, 113, 113, 0.14);
+  --red-soft:   rgba(248, 113, 113, 0.15);
   --blue:       #93c5fd;
-  --blue-soft:  rgba(147, 197, 253, 0.14);
+  --blue-soft:  rgba(147, 197, 253, 0.15);
   --amber:      #fbbf24;
-  --amber-soft: rgba(251, 191, 36, 0.14);
+  --amber-soft: rgba(251, 191, 36, 0.15);
 }
 html.iduladha body {
+  /* Rich forest top-left, warm golden glow bottom-right — festive depth */
   background:
-    radial-gradient(ellipse 65% 55% at 0%   0%,   rgba(30,57,40,0.65)  0%, transparent 55%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgba(80,52,16,0.22)  0%, transparent 50%),
-    radial-gradient(ellipse 40% 38% at 88%  8%,   rgba(50,34,10,0.14)  0%, transparent 44%),
-    radial-gradient(ellipse 45% 50% at 10%  88%,  rgba(12,28,18,0.60)  0%, transparent 50%),
+    radial-gradient(ellipse 70% 60% at 0%   0%,   rgba(30, 80, 45, 0.80)  0%, transparent 55%),
+    radial-gradient(ellipse 55% 50% at 100% 100%, rgba(180, 120, 24, 0.42) 0%, transparent 52%),
+    radial-gradient(ellipse 45% 42% at 80%  85%,  rgba(200, 140, 30, 0.24) 0%, transparent 48%),
+    radial-gradient(ellipse 40% 38% at 90%  8%,   rgba(100, 72, 16, 0.18)  0%, transparent 44%),
+    radial-gradient(ellipse 50% 55% at 10%  85%,  rgba(18, 48, 24, 0.65)   0%, transparent 52%),
     var(--bg);
 }
 
@@ -373,9 +376,9 @@ html.dark .sidebar-float {
   box-shadow: 0 8px 40px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,255,255,0.10);
 }
 html.iduladha .sidebar-float {
-  background: rgba(10, 22, 14, 0.88);
-  border-color: rgba(184,146,85,0.22);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.70), inset 0 1px 0 rgba(184,146,85,0.08);
+  background: rgba(20, 42, 25, 0.88);
+  border-color: rgba(212,168,74,0.24);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.60), inset 0 1px 0 rgba(212,168,74,0.10);
 }
 
 .sidebar-divider {
@@ -467,7 +470,7 @@ html.theme-ocean .app-header {
   box-shadow: 0 1px 0 rgba(100,200,255,0.07), 0 4px 24px rgba(0,0,30,0.55);
 }
 html.iduladha .app-header {
-  box-shadow: 0 1px 0 rgba(184,146,85,0.10), 0 4px 24px rgba(0,0,0,0.50);
+  box-shadow: 0 1px 0 rgba(212,168,74,0.14), 0 4px 24px rgba(0,0,0,0.45);
 }
 
 .header-logo {

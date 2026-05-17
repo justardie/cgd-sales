@@ -10,8 +10,8 @@ export default function IduladhaDecorations() {
     <>
       <style>{`
         @keyframes eid-moon-pulse {
-          0%,100% { opacity: 0.90; filter: drop-shadow(0 0 10px rgba(184,146,85,0.50)); }
-          50%      { opacity: 1.00; filter: drop-shadow(0 0 22px rgba(184,146,85,0.75)) drop-shadow(0 0 40px rgba(184,146,85,0.30)); }
+          0%,100% { opacity: 0.88; filter: drop-shadow(0 0 12px rgba(212,168,74,0.55)); }
+          50%      { opacity: 1.00; filter: drop-shadow(0 0 26px rgba(212,168,74,0.80)) drop-shadow(0 0 48px rgba(212,168,74,0.35)); }
         }
         @keyframes eid-star-fade {
           0%,100% { opacity: 0.30; }
@@ -50,8 +50,8 @@ export default function IduladhaDecorations() {
           {/* Clean geometric crescent */}
           <path
             d="M64 18 A26 26 0 1 0 64 68 A19 19 0 1 1 64 18Z"
-            fill="#B89255"
-            opacity="0.88"
+            fill="#D4A84A"
+            opacity="0.92"
           />
         </svg>
       </div>
@@ -76,7 +76,7 @@ export default function IduladhaDecorations() {
           <svg width={st.s * 2} height={st.s * 2} viewBox="0 0 14 14" fill="none">
             <path
               d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z"
-              fill="#CBA268"
+              fill="#E8C060"
               opacity="0.75"
             />
           </svg>
@@ -103,7 +103,7 @@ export default function IduladhaDecorations() {
             <polygon
               points="14,1 27,14 14,27 1,14"
               fill="none"
-              stroke="#B89255"
+              stroke="#D4A84A"
               strokeWidth="1.4"
               opacity={k.op}
             />
@@ -111,7 +111,7 @@ export default function IduladhaDecorations() {
             <polygon
               points="14,6 22,14 14,22 6,14"
               fill="none"
-              stroke="#B89255"
+              stroke="#D4A84A"
               strokeWidth="0.8"
               opacity={k.op * 0.6}
             />
