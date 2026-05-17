@@ -1,228 +1,237 @@
 "use client"
 
 // ─── Idul Adha decorative overlay ───────────────────────────────────────────
-// Only rendered when theme === "idul-adha".
-// Contains: crescent moon + stars (top-right), a relaxed goat (bottom-right),
-// and 5 floating ketupat (diamond shapes) scattered around the edges.
+// Starbucks-green / warm-gold palette — minimalist, exclusive.
+// Elements: elegant crescent moon (top-right), scattered diamond stars,
+// 4 floating ketupat outlines, and a relaxed goat (bottom-LEFT).
 
 export default function IduladhaDecorations() {
   return (
     <>
       <style>{`
-        @keyframes eid-moon-glow {
-          0%,100% { filter: drop-shadow(0 0 12px #d4920a88) drop-shadow(0 0 32px #d4920a44); }
-          50%      { filter: drop-shadow(0 0 24px #d4920acc) drop-shadow(0 0 56px #d4920a66); }
+        @keyframes eid-moon-pulse {
+          0%,100% { opacity: 0.90; filter: drop-shadow(0 0 10px rgba(184,146,85,0.50)); }
+          50%      { opacity: 1.00; filter: drop-shadow(0 0 22px rgba(184,146,85,0.75)) drop-shadow(0 0 40px rgba(184,146,85,0.30)); }
         }
-        @keyframes eid-star-twinkle {
-          0%,100% { opacity: 0.7; transform: scale(1); }
-          50%      { opacity: 1;   transform: scale(1.35); }
+        @keyframes eid-star-fade {
+          0%,100% { opacity: 0.30; }
+          50%      { opacity: 0.80; }
         }
         @keyframes eid-ketupat-float {
-          0%,100% { transform: translateY(0) rotate(45deg); }
-          50%      { transform: translateY(-14px) rotate(45deg); }
+          0%,100% { transform: translateY(0px) rotate(45deg); }
+          50%      { transform: translateY(-10px) rotate(45deg); }
         }
         @keyframes eid-goat-breathe {
-          0%,100% { transform: scaleY(1); }
-          50%      { transform: scaleY(1.025); }
+          0%,100% { transform: scaleY(1.000); }
+          50%      { transform: scaleY(1.018); }
         }
-        @keyframes eid-goat-tail {
-          0%,100% { transform: rotate(-8deg); }
-          50%      { transform: rotate(12deg); }
+        @keyframes eid-tail-wag {
+          0%,100% { transform: rotate(-6deg); }
+          50%      { transform: rotate(10deg); }
         }
-        @keyframes eid-goat-ear {
-          0%,100% { transform: rotate(0deg); }
-          30%      { transform: rotate(-12deg); }
-          60%      { transform: rotate(6deg); }
+        @keyframes eid-ear-twitch {
+          0%,70%,100% { transform: rotate(0deg); }
+          80%          { transform: rotate(-10deg); }
+          90%          { transform: rotate(5deg); }
         }
         @keyframes eid-blink {
-          0%,92%,100% { transform: scaleY(1); }
-          95%         { transform: scaleY(0.08); }
+          0%,90%,100% { transform: scaleY(1); }
+          95%         { transform: scaleY(0.06); }
         }
       `}</style>
 
-      {/* ── Crescent moon + stars ── top-right corner */}
+      {/* ── Crescent moon — top-right, flat geometric, muted gold ── */}
       <div style={{
-        position: "fixed", top: 24, right: 28,
+        position: "fixed", top: 20, right: 24,
         zIndex: 40, pointerEvents: "none",
-        animation: "eid-moon-glow 4s ease-in-out infinite",
+        animation: "eid-moon-pulse 5s ease-in-out infinite",
       }}>
-        <svg width="110" height="110" viewBox="0 0 110 110" fill="none">
-          {/* Moon crescent */}
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+          {/* Clean geometric crescent */}
           <path
-            d="M72 20 A30 30 0 1 0 72 76 A22 22 0 1 1 72 20Z"
-            fill="#d4920a"
-            opacity="0.92"
+            d="M64 18 A26 26 0 1 0 64 68 A19 19 0 1 1 64 18Z"
+            fill="#B89255"
+            opacity="0.88"
           />
-          {/* Star 1 — large */}
-          <g transform="translate(20,18)" style={{ animation: "eid-star-twinkle 2.1s ease-in-out infinite" }}>
-            <polygon points="6,0 7.5,4.5 12,4.5 8.5,7 9.8,12 6,9 2.2,12 3.5,7 0,4.5 4.5,4.5"
-              fill="#e8b84b" opacity="0.9" />
-          </g>
-          {/* Star 2 — small */}
-          <g transform="translate(10,50)" style={{ animation: "eid-star-twinkle 2.8s ease-in-out infinite 0.5s" }}>
-            <polygon points="4,0 5,3 8,3 5.5,4.8 6.5,8 4,6 1.5,8 2.5,4.8 0,3 3,3"
-              fill="#e8b84b" opacity="0.75" />
-          </g>
-          {/* Star 3 — tiny */}
-          <g transform="translate(35,8)" style={{ animation: "eid-star-twinkle 1.7s ease-in-out infinite 1.1s" }}>
-            <polygon points="3,0 3.8,2.2 6,2.2 4.2,3.6 5,6 3,4.5 1,6 1.8,3.6 0,2.2 2.2,2.2"
-              fill="#f5cc70" opacity="0.8" />
-          </g>
-          {/* Star 4 */}
-          <g transform="translate(3,30)" style={{ animation: "eid-star-twinkle 3.2s ease-in-out infinite 0.3s" }}>
-            <polygon points="3,0 3.8,2.2 6,2.2 4.2,3.6 5,6 3,4.5 1,6 1.8,3.6 0,2.2 2.2,2.2"
-              fill="#e8b84b" opacity="0.65" />
-          </g>
         </svg>
       </div>
 
-      {/* ── Floating ketupat (rice cakes) ── */}
+      {/* ── Scattered diamond stars — 4-pointed, minimalist ── */}
       {([
-        { top: "12%",   left: "2%",   size: 32, delay: "0s",   dur: "3.8s", opacity: 0.55 },
-        { top: "35%",   left: "1%",   size: 22, delay: "0.8s", dur: "4.5s", opacity: 0.45 },
-        { top: "60%",   right: "2%",  size: 28, delay: "1.4s", dur: "3.2s", opacity: 0.50 },
-        { top: "20%",   right: "5%",  size: 18, delay: "0.3s", dur: "5.0s", opacity: 0.40 },
-        { bottom: "18%",left: "3%",   size: 24, delay: "2.0s", dur: "4.2s", opacity: 0.48 },
-      ] as { top?: string; left?: string; right?: string; bottom?: string; size: number; delay: string; dur: string; opacity: number }[]).map((k, i) => (
-        <div
-          key={i}
-          style={{
-            position: "fixed",
-            top: k.top, left: k.left, right: k.right, bottom: k.bottom,
-            zIndex: 35, pointerEvents: "none",
-            width: k.size, height: k.size,
-            animation: `eid-ketupat-float ${k.dur} ease-in-out infinite`,
-            animationDelay: k.delay,
-          }}
-        >
-          <svg width={k.size} height={k.size} viewBox="0 0 32 32" fill="none">
-            <polygon
-              points="16,2 30,16 16,30 2,16"
-              fill="#d4920a"
-              opacity={k.opacity}
-              stroke="#e8b84b"
-              strokeWidth="1.5"
-              strokeOpacity="0.6"
+        { x: 18,  y: 22,  s: 7,  delay: "0s",    dur: "2.8s" },
+        { x: 38,  y: 12,  s: 5,  delay: "0.6s",  dur: "3.5s" },
+        { x: 10,  y: 48,  s: 4,  delay: "1.2s",  dur: "2.2s" },
+        { x: 55,  y: 28,  s: 6,  delay: "0.3s",  dur: "4.0s" },
+        { x: 30,  y: 38,  s: 3,  delay: "1.8s",  dur: "3.1s" },
+        { x: 14,  y: 68,  s: 5,  delay: "0.9s",  dur: "2.6s" },
+      ] as { x: number; y: number; s: number; delay: string; dur: string }[]).map((st, i) => (
+        <div key={i} style={{
+          position: "fixed",
+          top: st.y, right: st.x,
+          zIndex: 39, pointerEvents: "none",
+          animation: `eid-star-fade ${st.dur} ease-in-out infinite`,
+          animationDelay: st.delay,
+        }}>
+          {/* 4-pointed diamond star */}
+          <svg width={st.s * 2} height={st.s * 2} viewBox="0 0 14 14" fill="none">
+            <path
+              d="M7 0 L8.2 5.8 L14 7 L8.2 8.2 L7 14 L5.8 8.2 L0 7 L5.8 5.8 Z"
+              fill="#CBA268"
+              opacity="0.75"
             />
-            <line x1="16" y1="2"  x2="16" y2="30" stroke="#e8b84b" strokeWidth="1"   strokeOpacity="0.4" />
-            <line x1="2"  y1="16" x2="30" y2="16" stroke="#e8b84b" strokeWidth="1"   strokeOpacity="0.4" />
-            <line x1="7"  y1="7"  x2="25" y2="25" stroke="#e8b84b" strokeWidth="0.8" strokeOpacity="0.25" />
-            <line x1="25" y1="7"  x2="7"  y2="25" stroke="#e8b84b" strokeWidth="0.8" strokeOpacity="0.25" />
           </svg>
         </div>
       ))}
 
-      {/* ── Relaxed goat (santai) ── bottom-right */}
+      {/* ── Floating ketupat — outline only, minimal ── */}
+      {([
+        { top: "14%",   left: "2.5%", size: 28, delay: "0s",   dur: "4.2s", op: 0.35 },
+        { top: "38%",   left: "1.5%", size: 20, delay: "1.0s", dur: "5.0s", op: 0.28 },
+        { top: "62%",   right: "2%",  size: 24, delay: "0.5s", dur: "3.8s", op: 0.32 },
+        { bottom: "20%",left: "3%",   size: 18, delay: "1.8s", dur: "4.6s", op: 0.26 },
+      ] as { top?: string; left?: string; right?: string; bottom?: string; size: number; delay: string; dur: string; op: number }[]).map((k, i) => (
+        <div key={i} style={{
+          position: "fixed",
+          top: k.top, left: k.left, right: k.right, bottom: k.bottom,
+          zIndex: 35, pointerEvents: "none",
+          width: k.size, height: k.size,
+          animation: `eid-ketupat-float ${k.dur} ease-in-out infinite`,
+          animationDelay: k.delay,
+        }}>
+          <svg width={k.size} height={k.size} viewBox="0 0 28 28" fill="none">
+            {/* Outline only — clean and minimal */}
+            <polygon
+              points="14,1 27,14 14,27 1,14"
+              fill="none"
+              stroke="#B89255"
+              strokeWidth="1.4"
+              opacity={k.op}
+            />
+            {/* Inner diamond */}
+            <polygon
+              points="14,6 22,14 14,22 6,14"
+              fill="none"
+              stroke="#B89255"
+              strokeWidth="0.8"
+              opacity={k.op * 0.6}
+            />
+          </svg>
+        </div>
+      ))}
+
+      {/* ── Relaxed goat — bottom-LEFT ── */}
       <div style={{
-        position: "fixed", bottom: 0, right: 16,
+        position: "fixed", bottom: 0, left: 88, /* offset right of sidebar */
         zIndex: 38, pointerEvents: "none",
-        animation: "eid-goat-breathe 3.5s ease-in-out infinite",
+        animation: "eid-goat-breathe 4s ease-in-out infinite",
         transformOrigin: "bottom center",
       }}>
-        <svg width="160" height="172" viewBox="0 0 160 172" fill="none">
+        <svg width="148" height="158" viewBox="0 0 148 158" fill="none">
 
           {/* ── Flower garland collar ── */}
-          <g opacity="0.9">
-            <path d="M38 110 Q50 120 65 118 Q80 115 95 118 Q110 120 120 112"
-              stroke="#5a8a2a" strokeWidth="2" fill="none" strokeDasharray="3 2" />
+          <g opacity="0.85">
+            <path d="M28 108 Q42 118 58 116 Q73 113 88 116 Q103 118 114 110"
+              stroke="#3a6830" strokeWidth="1.8" fill="none" strokeDasharray="3 2" />
             {[
-              { cx: 42, cy: 116, c: "#e84393" },
-              { cx: 56, cy: 121, c: "#f59e0b" },
-              { cx: 70, cy: 118, c: "#ec4899" },
-              { cx: 84, cy: 120, c: "#f97316" },
-              { cx: 98, cy: 118, c: "#e84393" },
-              { cx: 112, cy: 114, c: "#f59e0b" },
+              { cx: 33,  cy: 114, c: "#c084fc" },
+              { cx: 48,  cy: 119, c: "#fbbf24" },
+              { cx: 63,  cy: 116, c: "#f472b6" },
+              { cx: 78,  cy: 118, c: "#fb923c" },
+              { cx: 93,  cy: 116, c: "#c084fc" },
+              { cx: 107, cy: 112, c: "#fbbf24" },
             ].map((fl, i) => (
               <g key={i}>
-                {[0, 60, 120, 180, 240, 300].map(a => (
+                {[0, 72, 144, 216, 288].map(a => (
                   <ellipse key={a}
-                    cx={fl.cx + 3.5 * Math.cos(a * Math.PI / 180)}
-                    cy={fl.cy + 3.5 * Math.sin(a * Math.PI / 180)}
-                    rx="2.2" ry="1.5"
+                    cx={fl.cx + 3.2 * Math.cos(a * Math.PI / 180)}
+                    cy={fl.cy + 3.2 * Math.sin(a * Math.PI / 180)}
+                    rx="2" ry="1.4"
                     transform={`rotate(${a} ${fl.cx} ${fl.cy})`}
-                    fill={fl.c} opacity="0.9"
+                    fill={fl.c}
+                    opacity="0.85"
                   />
                 ))}
-                <circle cx={fl.cx} cy={fl.cy} r="1.8" fill="#fef3c7" />
+                <circle cx={fl.cx} cy={fl.cy} r="1.6" fill="#fef3c7" />
               </g>
             ))}
           </g>
 
           {/* ── Body ── */}
-          <ellipse cx="79" cy="120" rx="42" ry="28"
-            fill="#e8dcc8" stroke="#c8b89a" strokeWidth="1.2" />
+          <ellipse cx="72" cy="118" rx="40" ry="26"
+            fill="#D8CEBA" stroke="#BCA898" strokeWidth="1.1" />
 
-          {/* ── Legs (tucked under, sitting) ── */}
-          <rect x="50" y="140" width="10" height="22" rx="5" fill="#ddd0b8" stroke="#c0aa90" strokeWidth="1" />
-          <rect x="66" y="142" width="10" height="20" rx="5" fill="#ddd0b8" stroke="#c0aa90" strokeWidth="1" />
-          <rect x="90" y="140" width="10" height="22" rx="5" fill="#d4c8b0" stroke="#bca888" strokeWidth="1" />
-          <rect x="104" y="138" width="10" height="24" rx="5" fill="#d4c8b0" stroke="#bca888" strokeWidth="1" />
+          {/* ── Wool texture ── */}
+          {[
+            {cx:56,cy:106},{cx:70,cy:101},{cx:84,cy:104},
+            {cx:98,cy:108},{cx:64,cy:114},{cx:80,cy:116},
+            {cx:92,cy:114},{cx:54,cy:116},
+          ].map((w,i) => (
+            <circle key={i} cx={w.cx} cy={w.cy} r="4.5" fill="white" opacity="0.22" />
+          ))}
+
+          {/* ── Legs (sitting, tucked) ── */}
+          <rect x="44" y="137" width="9"  height="19" rx="4.5" fill="#CEC0A8" stroke="#B4A090" strokeWidth="1" />
+          <rect x="59" y="139" width="9"  height="17" rx="4.5" fill="#CEC0A8" stroke="#B4A090" strokeWidth="1" />
+          <rect x="83" y="137" width="9"  height="19" rx="4.5" fill="#C4B6A0" stroke="#AA9880" strokeWidth="1" />
+          <rect x="97" y="135" width="9"  height="21" rx="4.5" fill="#C4B6A0" stroke="#AA9880" strokeWidth="1" />
 
           {/* ── Hooves ── */}
-          <ellipse cx="55"  cy="162" rx="6" ry="3" fill="#5c4a2a" />
-          <ellipse cx="71"  cy="162" rx="6" ry="3" fill="#5c4a2a" />
-          <ellipse cx="95"  cy="162" rx="6" ry="3" fill="#5c4a2a" />
-          <ellipse cx="109" cy="162" rx="6" ry="3" fill="#5c4a2a" />
+          <ellipse cx="48"  cy="156" rx="5.5" ry="2.8" fill="#4A3820" />
+          <ellipse cx="63"  cy="156" rx="5.5" ry="2.8" fill="#4A3820" />
+          <ellipse cx="87"  cy="156" rx="5.5" ry="2.8" fill="#4A3820" />
+          <ellipse cx="101" cy="156" rx="5.5" ry="2.8" fill="#4A3820" />
 
-          {/* ── Tail (wagging) ── */}
-          <g style={{ animation: "eid-goat-tail 1.8s ease-in-out infinite", transformOrigin: "122px 112px" }}>
-            <path d="M120 112 Q132 104 128 96 Q126 90 130 86"
-              stroke="#c8b89a" strokeWidth="5" strokeLinecap="round" fill="none" />
-            <circle cx="130" cy="85" r="5" fill="#e8dcc8" />
+          {/* ── Tail ── */}
+          <g style={{ animation:"eid-tail-wag 2s ease-in-out infinite", transformOrigin:"112px 110px" }}>
+            <path d="M110 110 Q122 102 118 94 Q116 88 120 84"
+              stroke="#BCA898" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+            <circle cx="120" cy="83" r="4.5" fill="#D8CEBA" />
           </g>
 
           {/* ── Neck ── */}
-          <ellipse cx="54" cy="104" rx="14" ry="18" fill="#e8dcc8" stroke="#c8b89a" strokeWidth="1" />
+          <ellipse cx="46" cy="103" rx="13" ry="17" fill="#DDD0BC" stroke="#BCA898" strokeWidth="1" />
 
           {/* ── Head ── */}
-          <ellipse cx="44" cy="82" rx="22" ry="18" fill="#f0e6d2" stroke="#c8b89a" strokeWidth="1.2" />
+          <ellipse cx="36" cy="80" rx="21" ry="17" fill="#EAE0CC" stroke="#BCA898" strokeWidth="1.1" />
 
           {/* ── Snout ── */}
-          <ellipse cx="26" cy="86" rx="11" ry="8" fill="#f5d5c0" stroke="#d4b8a0" strokeWidth="1" />
-          <ellipse cx="22" cy="87" rx="2"  ry="1.5" fill="#c49080" />
-          <ellipse cx="29" cy="87" rx="2"  ry="1.5" fill="#c49080" />
-          {/* Happy mouth */}
-          <path d="M21 91 Q25 95 31 91" stroke="#c49080" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+          <ellipse cx="18" cy="84" rx="10.5" ry="7.5" fill="#F0C8B0" stroke="#D0A890" strokeWidth="0.9" />
+          <ellipse cx="14" cy="85" rx="2"    ry="1.5"  fill="#B88878" />
+          <ellipse cx="21" cy="85" rx="2"    ry="1.5"  fill="#B88878" />
+          {/* Gentle smile */}
+          <path d="M13 89 Q17.5 93.5 24 89" stroke="#B88878" strokeWidth="1.4"
+            strokeLinecap="round" fill="none" />
 
-          {/* ── Eyes (blink) ── */}
-          <g style={{ animation: "eid-blink 4s ease-in-out infinite", transformOrigin: "36px 80px" }}>
-            <ellipse cx="36" cy="80" rx="4"   ry="4.5" fill="#4a3520" />
-            <ellipse cx="37.2" cy="78.5" rx="1.4" ry="1.4" fill="white" opacity="0.7" />
+          {/* ── Eyes ── */}
+          <g style={{ animation:"eid-blink 5s ease-in-out infinite", transformOrigin:"28px 78px" }}>
+            <ellipse cx="28" cy="78" rx="3.8" ry="4.2" fill="#3C2C18" />
+            <ellipse cx="29.2" cy="76.5" rx="1.3" ry="1.3" fill="white" opacity="0.65" />
           </g>
-          <g style={{ animation: "eid-blink 4s ease-in-out infinite 2.1s", transformOrigin: "50px 79px" }}>
-            <ellipse cx="50" cy="79" rx="3.5" ry="4" fill="#4a3520" />
-            <ellipse cx="51.2" cy="77.5" rx="1.2" ry="1.2" fill="white" opacity="0.7" />
-          </g>
-
-          {/* ── Ears (wiggle) ── */}
-          <g style={{ animation: "eid-goat-ear 3s ease-in-out infinite", transformOrigin: "32px 72px" }}>
-            <ellipse cx="28" cy="68" rx="7" ry="12" transform="rotate(-25 28 68)"
-              fill="#f0d5c0" stroke="#c8b0a0" strokeWidth="1" />
-            <ellipse cx="28" cy="68" rx="4" ry="8"  transform="rotate(-25 28 68)"
-              fill="#f5c0b0" opacity="0.6" />
-          </g>
-          <g style={{ animation: "eid-goat-ear 3s ease-in-out infinite 1.5s", transformOrigin: "56px 71px" }}>
-            <ellipse cx="58" cy="68" rx="7" ry="11" transform="rotate(20 58 68)"
-              fill="#f0d5c0" stroke="#c8b0a0" strokeWidth="1" />
-            <ellipse cx="58" cy="68" rx="4" ry="7"  transform="rotate(20 58 68)"
-              fill="#f5c0b0" opacity="0.6" />
+          <g style={{ animation:"eid-blink 5s ease-in-out infinite 2.4s", transformOrigin:"42px 77px" }}>
+            <ellipse cx="42" cy="77" rx="3.2" ry="3.8" fill="#3C2C18" />
+            <ellipse cx="43.2" cy="75.6" rx="1.1" ry="1.1" fill="white" opacity="0.65" />
           </g>
 
-          {/* ── Horns (small cute) ── */}
-          <path d="M38 68 Q34 56 38 50 Q42 56 40 66Z" fill="#c8a060" stroke="#a07840" strokeWidth="0.8" />
-          <path d="M52 66 Q54 54 58 50 Q60 57 56 65Z" fill="#c8a060" stroke="#a07840" strokeWidth="0.8" />
+          {/* ── Ears ── */}
+          <g style={{ animation:"eid-ear-twitch 4s ease-in-out infinite", transformOrigin:"24px 70px" }}>
+            <ellipse cx="20" cy="66" rx="6.5" ry="11.5" transform="rotate(-22 20 66)"
+              fill="#EAD4BC" stroke="#C4A898" strokeWidth="0.9" />
+            <ellipse cx="20" cy="66" rx="3.8" ry="7.5" transform="rotate(-22 20 66)"
+              fill="#F0B8A8" opacity="0.55" />
+          </g>
+          <g style={{ animation:"eid-ear-twitch 4s ease-in-out infinite 2s", transformOrigin:"50px 69px" }}>
+            <ellipse cx="50" cy="66" rx="6.5" ry="10.5" transform="rotate(18 50 66)"
+              fill="#EAD4BC" stroke="#C4A898" strokeWidth="0.9" />
+            <ellipse cx="50" cy="66" rx="3.8" ry="7"  transform="rotate(18 50 66)"
+              fill="#F0B8A8" opacity="0.55" />
+          </g>
 
-          {/* ── Beard tuft ── */}
-          <path d="M24 92 Q22 100 26 104 Q28 100 24 92Z" fill="#e8d8c0" stroke="#c8b0a0" strokeWidth="0.8" />
+          {/* ── Horns ── */}
+          <path d="M30 66 Q26 55 30 49 Q34 55 32 64Z" fill="#C09858" stroke="#987840" strokeWidth="0.7" />
+          <path d="M44 64 Q46 53 50 49 Q52 56 48 63Z" fill="#C09858" stroke="#987840" strokeWidth="0.7" />
 
-          {/* ── Wool bumps on body ── */}
-          {[
-            { cx: 62, cy: 108 }, { cx: 76, cy: 103 }, { cx: 90, cy: 106 },
-            { cx: 104, cy: 110 }, { cx: 70, cy: 116 }, { cx: 86, cy: 118 },
-            { cx: 98, cy: 116 }, { cx: 60, cy: 118 },
-          ].map((w, i) => (
-            <circle key={i} cx={w.cx} cy={w.cy} r="5" fill="white" opacity="0.28" />
-          ))}
+          {/* ── Beard ── */}
+          <path d="M16 90 Q14 98 18 102 Q20 98 16 90Z" fill="#E0D0B8" stroke="#C4B098" strokeWidth="0.7" />
         </svg>
       </div>
     </>
