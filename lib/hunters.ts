@@ -65,11 +65,10 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   },
   {
     name: "Andriansyah (Andre)",
-    dbName: "Andre",
+    dbName: "Andriansyah (Andre)",
     hasAgent: false,
     spNames: [
       "Riezkya Adella",
-      "Risa Opiani",
       "Ari Kurnia Sandy",
       "Syarah Mustika",
       "Kanigia Lubis",
