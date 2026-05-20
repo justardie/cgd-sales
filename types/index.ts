@@ -1,4 +1,36 @@
-﻿export type Role = 'admin' | 'hunter' | 'sales_person'
+﻿export type Role = 'admin' | 'hunter' | 'sales_person' | 'telemarketing' | 'dgm'
+
+export type LeadStatus =
+  | 'new'
+  | 'tidak_aktif'
+  | 'bisa_dihub_tidak_angkat'
+  | 'angkat_tertarik'
+  | 'angkat_tidak_tertarik'
+
+export const LEAD_STATUS_CONFIG: Record<
+  LeadStatus,
+  { label: string; result: string; color: string }
+> = {
+  new:                     { label: 'Belum Dihubungi',         result: 'Belum Dihubungi',   color: 'slate'  },
+  tidak_aktif:             { label: 'Tidak Aktif',              result: 'Unqualified',        color: 'red'    },
+  bisa_dihub_tidak_angkat: { label: 'Bisa Dihub Tidak Angkat', result: 'Follow Up Lagi',     color: 'amber'  },
+  angkat_tertarik:         { label: 'Angkat & Tertarik',        result: 'Segera Ajak Visit',  color: 'green'  },
+  angkat_tidak_tertarik:   { label: 'Angkat & Tidak Tertarik',  result: 'Cold',               color: 'blue'   },
+}
+
+export interface Lead {
+  id: string
+  assigned_to: string
+  name: string
+  phone: string
+  project: string
+  status: LeadStatus
+  notes: string
+  uploaded_by: string | null
+  period: string
+  created_at: string
+  updated_at: string
+}
 export type UserStatus = 'active' | 'resigned'
 export type ActivityStatus = 'pending' | 'in_progress' | 'completed' | 'overdue'
 export type SPLevel = 'SP0' | 'SP1' | 'SP2' | 'SP3' | 'SP4' | 'SP5'

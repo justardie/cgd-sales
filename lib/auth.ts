@@ -17,7 +17,8 @@ export async function loginUser(name: string, pin?: string): Promise<AuthUser | 
       .eq('status', 'active')
       .single()
     if (error || !data) continue
-    if ((data.role === 'hunter' || data.role === 'admin') && data.pin_hash) {
+    // All roles with a pin_hash set require PIN verification
+    if (data.pin_hash) {
       if (!pin || pin !== data.pin_hash) return null
     }
     return { id: data.id, name: data.name, role: data.role, status: data.status }
