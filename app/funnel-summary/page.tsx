@@ -66,7 +66,8 @@ function StatPill({ value, color, label }: { value: number; color: string; label
 export default function FunnelSummaryPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
-  const isDgm    = role === "dgm"
+  const isAdmin  = role === "admin"
+  const isDgm    = role === "dgm" || isAdmin   // admin sees everything DGM sees
   const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
 

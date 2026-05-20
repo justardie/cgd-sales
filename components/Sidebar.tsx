@@ -39,7 +39,7 @@ export default function Sidebar() {
     ? TM_NAV
     : SALES_NAV.filter((item) => {
         if (item.adminOnly   && !isAdmin)                           return false
-        if (item.funnelAccess && role !== "hunter" && !hasTmAccess) return false
+        if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin) return false
         return true
       })
 

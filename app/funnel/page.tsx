@@ -357,7 +357,8 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
 export default function FunnelPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
-  const isDgm    = role === "dgm"
+  const isAdmin  = role === "admin"
+  const isDgm    = role === "dgm" || isAdmin   // admin sees everything DGM sees
   const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
   const canEdit  = isTm || isDgm

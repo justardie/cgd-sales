@@ -22,10 +22,11 @@ export default function LoginPage() {
   useEffect(() => {
     supabase.from("users").select("name")
       .in("role", ["hunter", "admin"]).eq("status", "active").order("name")
-      .then(({ data }) => { if (data) setSalesMembers(data.map((u: { name: string }) => u.name)) })
+      .then(({ data }) => { if (data) setSalesMembers([...new Set(data.map((u: { name: string }) => u.name))]) })
+    // TM toggle: sales_person with has_tm_access=true  +  Kadek (role=dgm)
     supabase.from("users").select("name")
-      .in("role", ["telemarketing", "dgm"]).eq("status", "active").order("name")
-      .then(({ data }) => { if (data) setTmMembers(data.map((u: { name: string }) => u.name)) })
+      .or("has_tm_access.eq.true,role.eq.dgm").eq("status", "active").order("name")
+      .then(({ data }) => { if (data) setTmMembers([...new Set(data.map((u: { name: string }) => u.name))]) })
   }, [])
 
   const teamMembers = mode === "sales" ? salesMembers : tmMembers
@@ -46,8 +47,8 @@ export default function LoginPage() {
     }
     saveSession(user)
     setUser(user)
-    const isTm = user.role === "telemarketing" || user.role === "dgm"
-    router.push(isTm ? "/funnel" : "/")
+    // Only DGM (Kadek) is restricted to funnel pages; all others go to main dashboard
+    router.push(user.role === "dgm" ? "/funnel" : "/")
   }
 
   return (
