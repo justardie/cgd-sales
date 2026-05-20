@@ -12,7 +12,7 @@ export async function loginUser(name: string, pin?: string): Promise<AuthUser | 
   for (const n of namesToTry) {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, role, status, pin_hash')
+      .select('id, name, role, status, pin_hash, has_tm_access')
       .ilike('name', n.trim())
       .eq('status', 'active')
       .single()
@@ -21,7 +21,7 @@ export async function loginUser(name: string, pin?: string): Promise<AuthUser | 
     if (data.pin_hash) {
       if (!pin || pin !== data.pin_hash) return null
     }
-    return { id: data.id, name: data.name, role: data.role, status: data.status }
+    return { id: data.id, name: data.name, role: data.role, status: data.status, has_tm_access: data.has_tm_access ?? false }
   }
   return null
 }

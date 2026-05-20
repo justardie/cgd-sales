@@ -9,17 +9,17 @@ import {
 } from "lucide-react"
 
 const SALES_NAV = [
-  { href: "/",               label: "Overview",       icon: LayoutDashboard                    },
-  { href: "/visit",          label: "Visit",          icon: MapPin                             },
-  { href: "/pipeline",       label: "Pipeline",       icon: TrendingUp                         },
-  { href: "/closing",        label: "Closing",        icon: DollarSign                         },
-  { href: "/activities",     label: "Activities",     icon: CheckSquare                        },
-  { href: "/team",           label: "Team Status",    icon: Users                              },
-  { href: "/funnel",         label: "Leads Funnel",   icon: Filter,     hunterOnly: true       },
-  { href: "/funnel-summary", label: "Funnel Summary", icon: PieChart,   hunterOnly: true       },
-  { href: "/lapor-mas",      label: "Lapor Mas",      icon: MessageSquare, adminOnly: true     },
-  { href: "/report-hod",     label: "Report HOD",     icon: BarChart2,     adminOnly: true     },
-  { href: "/admin",          label: "Admin",          icon: Shield,        adminOnly: true     },
+  { href: "/",               label: "Overview",       icon: LayoutDashboard                      },
+  { href: "/visit",          label: "Visit",          icon: MapPin                               },
+  { href: "/pipeline",       label: "Pipeline",       icon: TrendingUp                           },
+  { href: "/closing",        label: "Closing",        icon: DollarSign                           },
+  { href: "/activities",     label: "Activities",     icon: CheckSquare                          },
+  { href: "/team",           label: "Team Status",    icon: Users                                },
+  { href: "/funnel",         label: "Leads Funnel",   icon: Filter,     funnelAccess: true       },
+  { href: "/funnel-summary", label: "Funnel Summary", icon: PieChart,   funnelAccess: true       },
+  { href: "/lapor-mas",      label: "Lapor Mas",      icon: MessageSquare, adminOnly: true       },
+  { href: "/report-hod",     label: "Report HOD",     icon: BarChart2,     adminOnly: true       },
+  { href: "/admin",          label: "Admin",          icon: Shield,        adminOnly: true       },
 ]
 
 const TM_NAV = [
@@ -33,11 +33,13 @@ export default function Sidebar() {
   const role = user?.role ?? ""
   const isTm = role === "telemarketing" || role === "dgm"
 
+  const hasTmAccess = user?.has_tm_access ?? false
+
   const items = isTm
     ? TM_NAV
     : SALES_NAV.filter((item) => {
-        if (item.adminOnly  && !isAdmin)             return false
-        if (item.hunterOnly && role !== "hunter")     return false
+        if (item.adminOnly   && !isAdmin)                           return false
+        if (item.funnelAccess && role !== "hunter" && !hasTmAccess) return false
         return true
       })
 

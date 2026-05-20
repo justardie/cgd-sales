@@ -59,7 +59,7 @@ export default function FunnelSummaryPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
   const isDgm    = role === "dgm"
-  const isTm     = role === "telemarketing"
+  const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
 
   const now = new Date()
@@ -75,7 +75,7 @@ export default function FunnelSummaryPage() {
     let tmQuery = supabase
       .from("users")
       .select("id, name, hunter_name")
-      .eq("role", "telemarketing")
+      .eq("has_tm_access", true)
       .eq("status", "active")
       .order("name")
     if (isTm)     tmQuery = tmQuery.eq("id", user.id)

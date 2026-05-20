@@ -18,8 +18,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!loading && !user) { router.replace("/login"); return }
     if (!user) return
-    const isTm = user.role === "telemarketing" || user.role === "dgm"
-    if (isTm && !TM_ALLOWED.some((p) => pathname.startsWith(p))) {
+    // Only pure DGM/telemarketing roles are restricted to funnel pages.
+    // sales_person with has_tm_access keeps full access to all sales pages.
+    const isTmOnly = user.role === "telemarketing" || user.role === "dgm"
+    if (isTmOnly && !TM_ALLOWED.some((p) => pathname.startsWith(p))) {
       router.replace("/funnel")
     }
   }, [user, loading, pathname, router])

@@ -146,4 +146,5 @@ export interface AuthUser {
   name: string
   role: Role
   status: UserStatus
+  has_tm_access?: boolean
 }

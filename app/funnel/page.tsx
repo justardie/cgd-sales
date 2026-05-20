@@ -150,7 +150,7 @@ export default function FunnelPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
   const isDgm    = role === "dgm"
-  const isTm     = role === "telemarketing"
+  const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
 
   const now = new Date()
@@ -163,7 +163,7 @@ export default function FunnelPage() {
 
   useEffect(() => {
     if (!user) return
-    let q = supabase.from("users").select("id, name, hunter_name").eq("role", "telemarketing").eq("status", "active").order("name")
+    let q = supabase.from("users").select("id, name, hunter_name").eq("has_tm_access", true).eq("status", "active").order("name")
     if (isHunter) q = q.eq("hunter_name", user.name)
     q.then(({ data }) => { if (data) setTmUsers(data as TmUser[]) })
   }, [user, isHunter])
@@ -175,10 +175,10 @@ export default function FunnelPage() {
     if (isTm) {
       ids = [user.id]
     } else if (isDgm) {
-      const { data } = await supabase.from("users").select("id").eq("role", "telemarketing").eq("status", "active")
+      const { data } = await supabase.from("users").select("id").eq("has_tm_access", true).eq("status", "active")
       ids = (data ?? []).map((u: { id: string }) => u.id)
     } else if (isHunter) {
-      const { data } = await supabase.from("users").select("id").eq("role", "telemarketing").eq("hunter_name", user.name).eq("status", "active")
+      const { data } = await supabase.from("users").select("id").eq("has_tm_access", true).eq("hunter_name", user.name).eq("status", "active")
       ids = (data ?? []).map((u: { id: string }) => u.id)
     }
     if (ids.length === 0) { setLeads([]); setLoading(false); return }
