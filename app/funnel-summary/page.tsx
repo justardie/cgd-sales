@@ -14,14 +14,22 @@ interface TmStat {
   bisa_dihub_tidak_angkat: number
   angkat_tertarik: number
   angkat_tidak_tertarik: number
+  visit_dijadwalkan: number
+  sudah_visit: number
+  closing: number
+  lost: number
 }
 
 const STATUS_COLS: { key: LeadStatus; color: string }[] = [
   { key: "new",                     color: "#94a3b8" },
   { key: "bisa_dihub_tidak_angkat", color: "#fbbf24" },
   { key: "angkat_tertarik",         color: "#4ade80" },
+  { key: "visit_dijadwalkan",       color: "#a78bfa" },
+  { key: "sudah_visit",             color: "#2dd4bf" },
+  { key: "closing",                 color: "#34d399" },
   { key: "angkat_tidak_tertarik",   color: "#93c5fd" },
   { key: "tidak_aktif",             color: "#f87171" },
+  { key: "lost",                    color: "#9ca3af" },
 ]
 
 function ProgressBar({ stat }: { stat: TmStat }) {
@@ -106,6 +114,10 @@ export default function FunnelSummaryPage() {
         bisa_dihub_tidak_angkat:  mine.filter((l) => l.status === "bisa_dihub_tidak_angkat").length,
         angkat_tertarik:          mine.filter((l) => l.status === "angkat_tertarik").length,
         angkat_tidak_tertarik:    mine.filter((l) => l.status === "angkat_tidak_tertarik").length,
+        visit_dijadwalkan:        mine.filter((l) => l.status === "visit_dijadwalkan").length,
+        sudah_visit:              mine.filter((l) => l.status === "sudah_visit").length,
+        closing:                  mine.filter((l) => l.status === "closing").length,
+        lost:                     mine.filter((l) => l.status === "lost").length,
       }
     })
 
@@ -123,6 +135,10 @@ export default function FunnelSummaryPage() {
     bisa_dihub_tidak_angkat:  stats.reduce((s, t) => s + t.bisa_dihub_tidak_angkat, 0),
     angkat_tertarik:          stats.reduce((s, t) => s + t.angkat_tertarik, 0),
     angkat_tidak_tertarik:    stats.reduce((s, t) => s + t.angkat_tidak_tertarik, 0),
+    visit_dijadwalkan:        stats.reduce((s, t) => s + t.visit_dijadwalkan, 0),
+    sudah_visit:              stats.reduce((s, t) => s + t.sudah_visit, 0),
+    closing:                  stats.reduce((s, t) => s + t.closing, 0),
+    lost:                     stats.reduce((s, t) => s + t.lost, 0),
   }
 
   const card: React.CSSProperties = {
@@ -186,11 +202,11 @@ export default function FunnelSummaryPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
-              <StatPill value={teamTotal.new}                     color="#94a3b8" label="Belum Dihubungi" />
+              <StatPill value={teamTotal.new}                     color="#94a3b8" label="Belum" />
               <StatPill value={teamTotal.bisa_dihub_tidak_angkat} color="#fbbf24" label="Follow Up" />
-              <StatPill value={teamTotal.angkat_tertarik}          color="#4ade80" label="Segera Visit" />
-              <StatPill value={teamTotal.angkat_tidak_tertarik}    color="#93c5fd" label="Cold" />
-              <StatPill value={teamTotal.tidak_aktif}              color="#f87171" label="Unqualified" />
+              <StatPill value={teamTotal.angkat_tertarik + teamTotal.visit_dijadwalkan + teamTotal.sudah_visit} color="#a78bfa" label="Pipeline" />
+              <StatPill value={teamTotal.closing}                  color="#34d399" label="Closing" />
+              <StatPill value={teamTotal.angkat_tidak_tertarik + teamTotal.tidak_aktif + teamTotal.lost} color="#f87171" label="Dead" />
             </div>
           </div>
           {teamTotal.total > 0 && (
@@ -215,7 +231,8 @@ export default function FunnelSummaryPage() {
           {stats.map((stat) => {
             const contacted    = stat.total - stat.new
             const contactedPct = stat.total > 0 ? Math.round((contacted / stat.total) * 100) : 0
-            const visitPct     = stat.total > 0 ? Math.round((stat.angkat_tertarik / stat.total) * 100) : 0
+            const pipeline     = stat.angkat_tertarik + stat.visit_dijadwalkan + stat.sudah_visit + stat.closing
+            const visitPct     = stat.total > 0 ? Math.round((pipeline / stat.total) * 100) : 0
 
             return (
               <div key={stat.tm.id} style={{ ...card, padding: "18px 22px" }}>
@@ -249,9 +266,9 @@ export default function FunnelSummaryPage() {
 
                     <StatPill value={stat.new}                    color="#94a3b8" label="Belum" />
                     <StatPill value={stat.bisa_dihub_tidak_angkat} color="#fbbf24" label="Follow Up" />
-                    <StatPill value={stat.angkat_tertarik}         color="#4ade80" label="Segera Visit" />
-                    <StatPill value={stat.angkat_tidak_tertarik}   color="#93c5fd" label="Cold" />
-                    <StatPill value={stat.tidak_aktif}             color="#f87171" label="Unqualified" />
+                    <StatPill value={stat.angkat_tertarik + stat.visit_dijadwalkan + stat.sudah_visit} color="#a78bfa" label="Pipeline" />
+                    <StatPill value={stat.closing}                 color="#34d399" label="Closing" />
+                    <StatPill value={stat.angkat_tidak_tertarik + stat.tidak_aktif + stat.lost} color="#f87171" label="Dead" />
 
                     <div style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
 

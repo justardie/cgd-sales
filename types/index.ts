@@ -6,16 +6,24 @@ export type LeadStatus =
   | 'bisa_dihub_tidak_angkat'
   | 'angkat_tertarik'
   | 'angkat_tidak_tertarik'
+  | 'visit_dijadwalkan'
+  | 'sudah_visit'
+  | 'closing'
+  | 'lost'
 
 export const LEAD_STATUS_CONFIG: Record<
   LeadStatus,
   { label: string; result: string; color: string }
 > = {
-  new:                     { label: 'Belum Dihubungi',         result: 'Belum Dihubungi',   color: 'slate'  },
-  tidak_aktif:             { label: 'Tidak Aktif',              result: 'Unqualified',        color: 'red'    },
-  bisa_dihub_tidak_angkat: { label: 'Bisa Dihub Tidak Angkat', result: 'Follow Up Lagi',     color: 'amber'  },
-  angkat_tertarik:         { label: 'Angkat & Tertarik',        result: 'Segera Ajak Visit',  color: 'green'  },
-  angkat_tidak_tertarik:   { label: 'Angkat & Tidak Tertarik',  result: 'Cold',               color: 'blue'   },
+  new:                     { label: 'Belum Dihubungi',         result: 'Belum Dihubungi',    color: 'slate'   },
+  tidak_aktif:             { label: 'Tidak Aktif',              result: 'Unqualified',         color: 'red'     },
+  bisa_dihub_tidak_angkat: { label: 'Tdk Angkat',               result: 'Follow Up',           color: 'amber'   },
+  angkat_tidak_tertarik:   { label: 'Tdk Tertarik',             result: 'Cold',                color: 'blue'    },
+  angkat_tertarik:         { label: 'Tertarik & Mau Visit',     result: 'Segera Visit',        color: 'green'   },
+  visit_dijadwalkan:       { label: 'Visit Dijadwalkan',        result: 'Visit Dijadwalkan',   color: 'purple'  },
+  sudah_visit:             { label: 'Sudah Visit',              result: 'Sudah Visit',         color: 'teal'    },
+  closing:                 { label: 'Closing',                  result: 'Closing ✓',           color: 'emerald' },
+  lost:                    { label: 'Tidak Potensial',          result: 'Lost',                color: 'gray'    },
 }
 
 export interface Lead {
