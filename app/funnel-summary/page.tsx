@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
+import DashboardShell from "@/components/DashboardShell"
 
 interface TmUser { id: string; name: string; hunter_name: string }
 
@@ -67,7 +68,7 @@ export default function FunnelSummaryPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
   const isAdmin  = role === "admin"
-  const isDgm    = role === "dgm" || isAdmin   // admin sees everything DGM sees
+  const isDgm    = role === "dgm" || role === "admin_dgm" || isAdmin
   const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
 
@@ -152,6 +153,7 @@ export default function FunnelSummaryPage() {
   }
 
   return (
+    <DashboardShell>
     <div>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
@@ -299,5 +301,6 @@ export default function FunnelSummaryPage() {
         </div>
       )}
     </div>
+    </DashboardShell>
   )
 }

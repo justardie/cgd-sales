@@ -1,4 +1,4 @@
-﻿export type Role = 'admin' | 'hunter' | 'sales_person' | 'telemarketing' | 'dgm'
+﻿export type Role = 'admin' | 'hunter' | 'sales_person' | 'telemarketing' | 'dgm' | 'admin_dgm'
 
 export type LeadStatus =
   | 'new'

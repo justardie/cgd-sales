@@ -31,7 +31,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { user, isAdmin } = useAuth()
   const role = user?.role ?? ""
-  const isTm = role === "telemarketing" || role === "dgm"
+  const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
 
   const hasTmAccess = user?.has_tm_access ?? false
 

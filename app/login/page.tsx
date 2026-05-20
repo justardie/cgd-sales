@@ -23,9 +23,9 @@ export default function LoginPage() {
     supabase.from("users").select("name")
       .in("role", ["hunter", "admin"]).eq("status", "active").order("name")
       .then(({ data }) => { if (data) setSalesMembers([...new Set(data.map((u: { name: string }) => u.name))]) })
-    // TM toggle: sales_person with has_tm_access=true  +  Kadek (role=dgm)
+    // TM toggle: sales_person with has_tm_access=true  +  Kadek (role=admin_dgm)
     supabase.from("users").select("name")
-      .or("has_tm_access.eq.true,role.eq.dgm").eq("status", "active").order("name")
+      .or("has_tm_access.eq.true,role.eq.dgm,role.eq.admin_dgm").eq("status", "active").order("name")
       .then(({ data }) => { if (data) setTmMembers([...new Set(data.map((u: { name: string }) => u.name))]) })
   }, [])
 
@@ -48,7 +48,7 @@ export default function LoginPage() {
     saveSession(user)
     setUser(user)
     // Only DGM (Kadek) is restricted to funnel pages; all others go to main dashboard
-    router.push(user.role === "dgm" ? "/funnel" : "/")
+    router.push(user.role === "dgm" || user.role === "admin_dgm" ? "/funnel" : "/")
   }
 
   return (

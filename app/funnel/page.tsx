@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { Lead, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search } from "lucide-react"
+import DashboardShell from "@/components/DashboardShell"
 
 const PROJECTS = ["CH", "SCC", "CT", "MRD"]
 
@@ -358,7 +359,7 @@ export default function FunnelPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
   const isAdmin  = role === "admin"
-  const isDgm    = role === "dgm" || isAdmin   // admin sees everything DGM sees
+  const isDgm    = role === "dgm" || role === "admin_dgm" || isAdmin
   const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
   const canEdit  = isTm || isDgm
@@ -428,6 +429,7 @@ export default function FunnelPage() {
   ]
 
   return (
+    <DashboardShell>
     <div>
       {showUpload && <UploadModal tmUsers={tmUsers} onClose={() => setShowUpload(false)} onUploaded={fetchLeads} />}
       {activeLead && (
@@ -525,5 +527,6 @@ export default function FunnelPage() {
         </div>
       )}
     </div>
+    </DashboardShell>
   )
 }
