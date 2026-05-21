@@ -57,6 +57,13 @@ interface ClosingFormProps {
   submitLabel: string
 }
 
+function fmtRp(raw: string): string {
+  if (!raw) return ""
+  const n = Number(raw.replace(/\D/g, ""))
+  return isNaN(n) ? "" : n.toLocaleString("id-ID")
+}
+function parseRp(val: string): string { return val.replace(/\D/g, "") }
+
 function ClosingFormFields({
   isAdmin, form, setForm, spOptions, projects, caraBayarOptions, saving, onCancel, onSubmit, title, submitLabel,
 }: ClosingFormProps) {
@@ -125,8 +132,10 @@ function ClosingFormFields({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
-            <input type="number" value={form.nilai_hjr} required
-              onChange={e => setForm(f => ({ ...f, nilai_hjr: e.target.value }))}
+            <input type="text" inputMode="numeric"
+              value={fmtRp(form.nilai_hjr)}
+              onChange={e => setForm(f => ({ ...f, nilai_hjr: parseRp(e.target.value) }))}
+              placeholder="Contoh: 500.000.000"
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
           </div>
@@ -142,19 +151,19 @@ function ClosingFormFields({
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div>
+          <div style={{ overflow: "hidden", minWidth: 0 }}>
             <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
             <input type="date" value={form.visit_date}
               onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
-              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              className="w-full min-w-0 text-sm px-3 py-2 rounded-lg text-white outline-none appearance-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none", display: "block" }} />
           </div>
-          <div>
+          <div style={{ overflow: "hidden", minWidth: 0 }}>
             <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
             <input type="date" value={form.closing_date} required
               onChange={e => setForm(f => ({ ...f, closing_date: e.target.value }))}
-              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              className="w-full min-w-0 text-sm px-3 py-2 rounded-lg text-white outline-none appearance-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none", display: "block" }} />
           </div>
         </div>
         <div>
