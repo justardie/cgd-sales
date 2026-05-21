@@ -3,9 +3,9 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
+import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Search, FileText } from "lucide-react"
+import { Plus, X, Search, FileText, Pencil, CheckCircle2 } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -19,6 +19,8 @@ interface KonsumenRow {
   sumber_leads: string | null
   cara_bayar: string | null
   visit_date: string | null
+  sudah_visit: boolean
+  sudah_booking_fee: boolean
   status: string
   notes: string | null
   created_at?: string
@@ -30,8 +32,25 @@ const STATUSES = [
   { value: "tidak_potensial", label: "Tdk Potensial", color: "bg-slate-500/20 text-slate-400" },
 ]
 
+// "Aktif" = Warm + Hot combined (no Tidak Potensial)
+const FILTER_OPTIONS = [
+  { value: "all",             label: "Semua" },
+  { value: "aktif",           label: "Aktif" },
+  { value: "warm",            label: "Warm" },
+  { value: "hot",             label: "Hot" },
+  { value: "tidak_potensial", label: "Tdk Potensial" },
+]
+
 const statusBadge = (s: string) =>
   STATUSES.find(x => x.value === s) || { label: s || "—", color: "bg-slate-500/20 text-slate-400" }
+
+function YNBadge({ value }: { value: boolean }) {
+  return (
+    <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${value ? "bg-green-500/20 text-green-400" : "bg-slate-500/15 text-slate-500"}`}>
+      {value ? "Y" : "N"}
+    </span>
+  )
+}
 
 function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sortDir: "asc"|"desc" }) {
   if (sortCol !== col) return <span className="ml-0.5 opacity-25" style={{ fontSize: 9 }}>↕</span>
@@ -54,17 +73,19 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 }
 
 const emptyForm = {
-  sales_hunter: "",
-  sales_person: "",
-  name: "",
-  project: "",
-  unit: "",
-  potensi_closing: "",
-  sumber_leads: "",
-  cara_bayar: "",
-  visit_date: "",
-  status: "warm",
-  notes: "",
+  sales_hunter:      "",
+  sales_person:      "",
+  name:              "",
+  project:           "",
+  unit:              "",
+  potensi_closing:   "",
+  sumber_leads:      "",
+  cara_bayar:        "",
+  visit_date:        "",
+  sudah_visit:       "false",
+  sudah_booking_fee: "false",
+  status:            "warm",
+  notes:             "",
 }
 
 export default function PipelinePage() {
@@ -107,10 +128,11 @@ export default function PipelinePage() {
     ).sort()
     setDbProjects(uniqueProjects)
 
-    // Canonical cara bayar list from utils — always present in this order, extras from DB appended
+    // Canonical cara bayar — filter out KPR Bank (replaced by KPR Indent)
     const dbCb = (cbRes.data || []).map((r: { cara_bayar: string | null }) => r.cara_bayar).filter(Boolean) as string[]
-    const extraCb = dbCb.filter(v => !(CANONICAL_CARA_BAYAR as readonly string[]).includes(v))
+    const extraCb = dbCb.filter(v => v !== "KPR Bank" && !(CANONICAL_CARA_BAYAR as readonly string[]).includes(v))
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
+
     const all = (data || []) as KonsumenRow[]
     if (isAdmin) {
       setRows(all)
@@ -137,17 +159,19 @@ export default function PipelinePage() {
   function openEdit(r: KonsumenRow) {
     setEditing(r)
     setForm({
-      sales_hunter:    r.sales_hunter || "",
-      sales_person:    r.sales_person || "",
-      name:            r.name || "",
-      project:         r.project || "",
-      unit:            r.unit || "",
-      potensi_closing: r.potensi_closing?.toString() || "",
-      sumber_leads:    r.sumber_leads || "",
-      cara_bayar:      r.cara_bayar || "",
-      visit_date:      r.visit_date || "",
-      status:          r.status || "warm",
-      notes:           r.notes || "",
+      sales_hunter:      r.sales_hunter || "",
+      sales_person:      r.sales_person || "",
+      name:              r.name || "",
+      project:           r.project || "",
+      unit:              r.unit || "",
+      potensi_closing:   r.potensi_closing?.toString() || "",
+      sumber_leads:      r.sumber_leads || "",
+      cara_bayar:        r.cara_bayar || "",
+      visit_date:        r.visit_date || "",
+      sudah_visit:       String(r.sudah_visit ?? false),
+      sudah_booking_fee: String(r.sudah_booking_fee ?? false),
+      status:            r.status || "warm",
+      notes:             r.notes || "",
     })
     setShowModal(true)
   }
@@ -187,18 +211,20 @@ export default function PipelinePage() {
     e.preventDefault()
     setSaving(true)
     const payload = {
-      name:            form.name,
-      sales_hunter:    isAdmin ? form.sales_hunter : user!.name,
-      sales_person:    form.sales_person || null,
-      project:         form.project || null,
-      unit:            form.unit || null,
-      potensi_closing: form.potensi_closing ? Number(form.potensi_closing) : null,
-      sumber_leads:    form.sumber_leads || null,
-      cara_bayar:      form.cara_bayar || null,
-      visit_date:      form.visit_date || null,
-      status:          form.status,
-      notes:           form.notes || null,
-      user_id:         user!.id,
+      name:              form.name,
+      sales_hunter:      isAdmin ? form.sales_hunter : user!.name,
+      sales_person:      form.sales_person || null,
+      project:           form.project || null,
+      unit:              form.unit || null,
+      potensi_closing:   form.potensi_closing ? Number(form.potensi_closing) : null,
+      sumber_leads:      form.sumber_leads || null,
+      cara_bayar:        form.cara_bayar || null,
+      visit_date:        form.visit_date || null,
+      sudah_visit:       form.sudah_visit === "true",
+      sudah_booking_fee: form.sudah_booking_fee === "true",
+      status:            form.status,
+      notes:             form.notes || null,
+      user_id:           user!.id,
     }
     if (editing) {
       await supabase.from("konsumen").update(payload).eq("id", editing.id)
@@ -215,7 +241,10 @@ export default function PipelinePage() {
       (r.name || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.project || "").toLowerCase().includes(search.toLowerCase()) ||
       (r.sales_hunter || "").toLowerCase().includes(search.toLowerCase())
-    const matchStatus = filterStatus === "all" || r.status === filterStatus
+    const matchStatus =
+      filterStatus === "all"    ? true :
+      filterStatus === "aktif"  ? r.status !== "tidak_potensial" :
+      r.status === filterStatus
     return matchSearch && matchStatus
   })
 
@@ -230,7 +259,7 @@ export default function PipelinePage() {
 
   function handleSharePDF() {
     const data = displayed
-    const printDate = new Date().toLocaleString("id-ID")
+    const printDate = fmtDDMMYYYY(new Date().toISOString())
     const html = `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
@@ -245,13 +274,14 @@ export default function PipelinePage() {
   tr:nth-child(even) { background: #f9f9f9; }
   .notes-col { min-width: 180px; white-space: pre-wrap; }
   .right { text-align: right; }
+  .center { text-align: center; }
   @media print { body { margin: 8px; } }
 </style>
 </head><body>
 <h2>Pipeline Report — CGD Sales</h2>
 <p class="sub">Dicetak: ${printDate} · ${data.length} data</p>
 <table><thead>
-<tr><th>Hunter</th><th>Sales</th><th>Konsumen</th><th>Project</th><th>Unit</th><th>Status</th><th class="right">Nilai Potensi</th><th>Cara Bayar</th><th>Visit</th><th class="notes-col">Catatan</th></tr>
+<tr><th>Hunter</th><th>Sales</th><th>Konsumen</th><th>Project</th><th>Unit</th><th>Status</th><th class="right">Nilai Potensi</th><th>Cara Bayar</th><th class="center">Visit</th><th class="center">BF</th><th class="notes-col">Catatan</th></tr>
 </thead><tbody>
 ${data.map(r => {
   const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
@@ -267,7 +297,8 @@ ${data.map(r => {
 <td>${statusLabel[r.status] || esc(r.status || "—")}</td>
 <td class="right">${nilai}</td>
 <td>${esc(r.cara_bayar || "—")}</td>
-<td>${esc(r.visit_date || "—")}</td>
+<td class="center">${r.sudah_visit ? "Y" : "N"}</td>
+<td class="center">${r.sudah_booking_fee ? "Y" : "N"}</td>
 <td class="notes-col">${r.notes ? esc(r.notes) : "—"}</td>
 </tr>`}).join("")}
 </tbody></table>
@@ -323,8 +354,8 @@ ${data.map(r => {
 
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Total Prospek", val: stats.total,               color: "text-blue-400" },
-            { label: "Hot",           val: stats.hot,                  color: "text-orange-400" },
+            { label: "Total Prospek", val: stats.total,                   color: "text-blue-400" },
+            { label: "Hot",           val: stats.hot,                      color: "text-orange-400" },
             { label: "Est. Nilai",    val: formatRupiah(stats.totalValue), color: "text-green-400" },
           ].map((s, i) => (
             <div key={i} className="rounded-xl p-4"
@@ -344,7 +375,7 @@ ${data.map(r => {
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
           </div>
           <div className="flex gap-1 flex-wrap">
-            {[{ value: "all", label: "Semua" }, ...STATUSES].map(s => (
+            {FILTER_OPTIONS.map(s => (
               <button key={s.value} onClick={() => setFilterStatus(s.value)}
                 className={`text-xs px-3 py-1.5 rounded-lg transition ${
                   filterStatus === s.value ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
@@ -372,21 +403,22 @@ ${data.map(r => {
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                   {([
-                    { key: "hunter",   label: "Hunter",       align: "left",   sortable: true  },
-                    { key: "sales",    label: "Sales",        align: "left",   sortable: false },
-                    { key: "konsumen", label: "Konsumen",     align: "left",   sortable: true  },
-                    { key: "project",  label: "Project",      align: "left",   sortable: true  },
-                    { key: "unit",     label: "Unit",         align: "left",   sortable: false },
-                    { key: "status",   label: "Status",       align: "center", sortable: true  },
-                    { key: "nilai",    label: "Nilai Potensi",align: "right",  sortable: true  },
-                    { key: "cara",     label: "Cara Bayar",   align: "center", sortable: false },
-                    { key: "visit",    label: "Visit",        align: "center", sortable: true  },
-                    { key: "catatan",  label: "Catatan",      align: "left",   sortable: false },
-                    { key: "aksi",     label: "Aksi",         align: "center", sortable: false },
+                    { key: "hunter",   label: "Hunter",        align: "left",   sortable: true  },
+                    { key: "sales",    label: "Sales",         align: "left",   sortable: false },
+                    { key: "konsumen", label: "Konsumen",      align: "left",   sortable: true  },
+                    { key: "project",  label: "Project",       align: "left",   sortable: true  },
+                    { key: "unit",     label: "Unit",          align: "left",   sortable: false },
+                    { key: "status",   label: "Status",        align: "center", sortable: true  },
+                    { key: "nilai",    label: "Nilai Potensi", align: "right",  sortable: true  },
+                    { key: "cara",     label: "Cara Bayar",    align: "center", sortable: false },
+                    { key: "visit",    label: "Visit",         align: "center", sortable: false },
+                    { key: "bf",       label: "BF",            align: "center", sortable: false },
+                    { key: "catatan",  label: "Catatan",       align: "left",   sortable: false },
+                    { key: "aksi",     label: "",              align: "center", sortable: false },
                   ] as { key: string; label: string; align: string; sortable: boolean }[]).map(col => (
                     <th key={col.key}
-                      className={`px-4 py-3 text-xs font-medium whitespace-nowrap text-${col.align} ${col.sortable ? "cursor-pointer select-none hover:opacity-80" : ""}`}
-                      style={{ color: sortCol === col.key ? "var(--text-primary)" : "var(--text-muted)" }}
+                      className={`px-3 py-3 text-xs font-medium whitespace-nowrap ${col.sortable ? "cursor-pointer select-none hover:opacity-80" : ""}`}
+                      style={{ color: sortCol === col.key ? "var(--text-primary)" : "var(--text-muted)", textAlign: col.align as React.CSSProperties["textAlign"] }}
                       onClick={col.sortable ? () => toggleSort(col.key) : undefined}>
                       <span className={`inline-flex items-center ${col.align === "right" ? "justify-end w-full" : col.align === "center" ? "justify-center w-full" : ""}`}>
                         {col.label}
@@ -398,46 +430,47 @@ ${data.map(r => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                  <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
+                  <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
                 ) : displayed.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
                   const badge = statusBadge(r.status)
                   return (
                   <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}
                     className={`hover:bg-white/[0.02] ${isTidakPotensial ? "opacity-50" : ""}`}>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_hunter || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_person || "—"}</td>
-                    <td className="px-4 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.project || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{r.unit || "—"}</td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_hunter || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_person || "—"}</td>
+                    <td className="px-3 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.project || "—"}</td>
+                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.unit || "—"}</td>
+                    <td className="px-3 py-3 text-center whitespace-nowrap">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 text-xs whitespace-nowrap">
+                    <td className="px-3 py-3 text-right text-slate-300 text-xs whitespace-nowrap">
                       {!isTidakPotensial && r.potensi_closing ? formatRupiah(Number(r.potensi_closing)) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-center text-xs text-slate-400 whitespace-nowrap">
+                    <td className="px-3 py-3 text-center text-xs text-slate-400 whitespace-nowrap">
                       {r.cara_bayar || "—"}
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-500 text-xs whitespace-nowrap">
-                      {r.visit_date || "—"}
+                    <td className="px-3 py-3 text-center whitespace-nowrap">
+                      <YNBadge value={r.sudah_visit} />
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {r.notes
-                        ? <span className="notes-cell" data-tooltip={r.notes}>{r.notes}</span>
-                        : "—"}
+                    <td className="px-3 py-3 text-center whitespace-nowrap">
+                      <YNBadge value={r.sudah_booking_fee} />
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-3 text-xs text-slate-500 max-w-[140px] truncate">
+                      {r.notes || "—"}
+                    </td>
+                    <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center gap-3">
                         <button onClick={() => openEdit(r)}
-                          className="text-xs text-blue-400 hover:text-blue-300 transition">
-                          Edit
+                          className="text-blue-400 hover:text-blue-300 transition" title="Edit">
+                          <Pencil size={13} />
                         </button>
                         <button onClick={() => openClosingConfirm(r)}
-                          className="text-xs text-green-400 hover:text-green-300 transition whitespace-nowrap">
-                          Closing
+                          className="text-green-400 hover:text-green-300 transition" title="Closing">
+                          <CheckCircle2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -447,7 +480,7 @@ ${data.map(r => {
               {!loading && filtered.length > 0 && (
                 <tfoot>
                   <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
-                    <td colSpan={6} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    <td colSpan={6} className="px-3 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
                       {filtered.filter(r => r.status !== "tidak_potensial").length} prospek aktif
                       {filtered.filter(r => r.status === "tidak_potensial").length > 0 &&
                         <span className="text-slate-600 ml-1">
@@ -455,10 +488,10 @@ ${data.map(r => {
                         </span>
                       }
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-bold whitespace-nowrap" style={{ color: "var(--accent)" }}>
+                    <td className="px-3 py-3 text-right text-sm font-bold whitespace-nowrap" style={{ color: "var(--accent)" }}>
                       {formatRupiah(filtered.filter(r => r.status !== "tidak_potensial").reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0))}
                     </td>
-                    <td colSpan={4} />
+                    <td colSpan={5} />
                   </tr>
                 </tfoot>
               )}
@@ -472,9 +505,7 @@ ${data.map(r => {
         <Modal onClose={() => setShowClosingModal(false)}>
           <div className="p-5">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-semibold">
-                Closing!
-              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-semibold">Closing!</span>
               <h3 className="text-sm font-semibold text-white">Konfirmasi Closing</h3>
             </div>
             <p className="text-xs text-slate-500 mb-4">
@@ -491,9 +522,7 @@ ${data.map(r => {
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">
-                  Nilai HJR (Rp) <span className="text-red-400">*</span>
-                </label>
+                <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
                 <input type="number" value={closingForm.nilai_hjr} required
                   onChange={e => setClosingForm(f => ({ ...f, nilai_hjr: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -510,9 +539,7 @@ ${data.map(r => {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">
-                  Tanggal Closing <span className="text-red-400">*</span>
-                </label>
+                <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
                 <input type="date" value={closingForm.closing_date} required
                   onChange={e => setClosingForm(f => ({ ...f, closing_date: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -521,9 +548,7 @@ ${data.map(r => {
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowClosingModal(false)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  Batal
-                </button>
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>Batal</button>
                 <button type="submit" disabled={savingClosing}
                   className="flex-1 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition"
                   style={{ background: "#E84500" }}>
@@ -551,9 +576,7 @@ ${data.map(r => {
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                     <option value="">— Pilih Hunter —</option>
-                    {HUNTER_GROUPS.map(g => (
-                      <option key={g.dbName} value={g.dbName}>{g.name}</option>
-                    ))}
+                    {HUNTER_GROUPS.map(g => <option key={g.dbName} value={g.dbName}>{g.name}</option>)}
                   </select>
                 ) : (
                   <div className="w-full text-sm px-3 py-2 rounded-lg text-slate-400"
@@ -581,9 +604,7 @@ ${data.map(r => {
                 )}
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">
-                  Nama Konsumen <span className="text-red-400">*</span>
-                </label>
+                <label className="text-xs text-slate-500 block mb-1">Nama Konsumen <span className="text-red-400">*</span></label>
                 <input type="text" value={form.name} required
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
@@ -632,6 +653,29 @@ ${data.map(r => {
                   {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
+              {/* Sudah Visit & Booking Fee (Y/N) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Sudah Visit?</label>
+                  <select value={form.sudah_visit}
+                    onChange={e => setForm(f => ({ ...f, sudah_visit: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="false">Belum (N)</option>
+                    <option value="true">Sudah (Y)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Sudah Booking Fee?</label>
+                  <select value={form.sudah_booking_fee}
+                    onChange={e => setForm(f => ({ ...f, sudah_booking_fee: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="false">Belum (N)</option>
+                    <option value="true">Sudah (Y)</option>
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
                 <input type="date" value={form.visit_date}
@@ -659,9 +703,7 @@ ${data.map(r => {
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  Batal
-                </button>
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>Batal</button>
                 <button type="submit" disabled={saving}
                   className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
                   {saving ? "Menyimpan..." : "Simpan"}

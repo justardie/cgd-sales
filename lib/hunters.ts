@@ -34,8 +34,8 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     spNames: ["Adi Chandra"],
   },
   {
-    name: "Aida (Rosmaida)",
-    dbName: "Aida (Rosmaida)",
+    name: "Aida",
+    dbName: "Aida",
     hasAgent: false,
     spNames: [
       "M. Fadjri Saputra",
@@ -46,8 +46,8 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     ],
   },
   {
-    name: "Rinaldo (Aldo)",
-    dbName: "Aldo (Rinaldo)",
+    name: "Aldo",
+    dbName: "Aldo",
     hasAgent: false,
     spNames: [
       "Yossi Eka Nofrita",
@@ -64,8 +64,8 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     spNames: ["M. Amirullah", "Shinta Okvianti", "Nisa Nur fadhila"],
   },
   {
-    name: "Andriansyah (Andre)",
-    dbName: "Andriansyah (Andre)",
+    name: "Andre",
+    dbName: "Andre",
     hasAgent: false,
     spNames: [
       "Riezkya Adella",

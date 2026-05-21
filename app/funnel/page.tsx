@@ -4,8 +4,9 @@ import * as XLSX from "xlsx"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { Lead, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
-import { Upload, X, Phone, Clock, ChevronDown, Search } from "lucide-react"
+import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2 } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
+import { fmtDDMMYYYY } from "@/lib/utils"
 
 const PROJECTS = ["CH", "SCC", "CT", "MRD"]
 
@@ -46,7 +47,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function fmtDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+  return fmtDDMMYYYY(dateStr)
 }
 
 // ── Lead card ─────────────────────────────────────────────────────────────────
@@ -97,12 +98,14 @@ function LeadCard({ lead, tmName, onTap }: { lead: Lead; tmName?: string; onTap:
 }
 
 // ── Detail bottom sheet ───────────────────────────────────────────────────────
-function DetailSheet({ lead, canEdit, onClose, onSaved }: {
-  lead: Lead; canEdit: boolean; onClose: () => void; onSaved: (updated: Lead) => void
+function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: {
+  lead: Lead; canEdit: boolean; canDelete: boolean
+  onClose: () => void; onSaved: (updated: Lead) => void; onDeleted: (id: string) => void
 }) {
-  const [status, setStatus] = useState<LeadStatus>(lead.status)
-  const [notes,  setNotes]  = useState(lead.notes || "")
-  const [saving, setSaving] = useState(false)
+  const [status, setStatus]   = useState<LeadStatus>(lead.status)
+  const [notes,  setNotes]    = useState(lead.notes || "")
+  const [saving, setSaving]   = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const isDirty = status !== lead.status || notes !== (lead.notes || "")
 
   const handleSave = async () => {
@@ -112,6 +115,15 @@ function DetailSheet({ lead, canEdit, onClose, onSaved }: {
     await supabase.from("leads").update({ status, notes, updated_at: now }).eq("id", lead.id)
     setSaving(false)
     onSaved({ ...lead, status, notes, updated_at: now })
+    onClose()
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Hapus lead "${lead.name}"? Tindakan ini tidak dapat dibatalkan.`)) return
+    setDeleting(true)
+    await supabase.from("leads").delete().eq("id", lead.id)
+    setDeleting(false)
+    onDeleted(lead.id)
     onClose()
   }
 
@@ -140,13 +152,34 @@ function DetailSheet({ lead, canEdit, onClose, onSaved }: {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
           <div>
             <div style={{ fontSize: "19px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "5px" }}>{lead.name}</div>
-            <a href={`tel:${lead.phone}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--accent)", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
-              <Phone size={14} /> {lead.phone}
-            </a>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <a href={`tel:${lead.phone}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--accent)", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
+                <Phone size={14} /> {lead.phone}
+              </a>
+              <a
+                href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`}
+                target="_blank" rel="noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(37,211,102,0.15)", color: "#25d366", padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+              >
+                <MessageCircle size={12} /> WhatsApp
+              </a>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: "var(--surface3)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <X size={16} />
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                title="Hapus lead ini"
+                style={{ background: "rgba(248,113,113,0.15)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+            <button onClick={onClose} style={{ background: "var(--surface3)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Meta */}
@@ -266,7 +299,7 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
       const wb  = XLSX.read(ev.target?.result, { type: "array" })
       const raw = XLSX.utils.sheet_to_json<Record<string, string>>(wb.Sheets[wb.SheetNames[0]], { defval: "" })
       setRows(raw.map((r) => {
-        const nk = Object.keys(r).find((k) => /nama/i.test(k)) ?? ""
+        const nk = Object.keys(r).find((k) => /leads[\s._-]?name|nama/i.test(k)) ?? ""
         const pk = Object.keys(r).find((k) => /telp|telepon|hp|phone|no\./i.test(k)) ?? ""
         return { name: String(r[nk] ?? "").trim(), phone: String(r[pk] ?? "").trim() }
       }).filter((r) => r.name))
@@ -408,6 +441,10 @@ export default function FunnelPage() {
     setLeads((prev) => prev.map((l) => l.id === updated.id ? updated : l))
   }
 
+  const handleDeleted = (id: string) => {
+    setLeads((prev) => prev.filter((l) => l.id !== id))
+  }
+
   // Filtered leads for display
   const displayed = search.trim()
     ? leads.filter((l) =>
@@ -436,8 +473,10 @@ export default function FunnelPage() {
         <DetailSheet
           lead={activeLead}
           canEdit={canEdit}
+          canDelete={isDgm || isAdmin}
           onClose={() => setActiveLead(null)}
           onSaved={handleSaved}
+          onDeleted={handleDeleted}
         />
       )}
 

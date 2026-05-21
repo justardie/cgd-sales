@@ -1,4 +1,12 @@
-﻿export function formatRupiah(value: number): string {
+﻿/** Format date string to DD-MM-YYYY */
+export function fmtDDMMYYYY(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—"
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`
+}
+
+export function formatRupiah(value: number): string {
   if (value >= 1_000_000_000) return `Rp${(value / 1_000_000_000).toFixed(1)}M`
   if (value >= 1_000_000) return `Rp${(value / 1_000_000).toFixed(0)}Jt`
   return `Rp${value.toLocaleString('id-ID')}`

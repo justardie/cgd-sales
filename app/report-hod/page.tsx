@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { formatRupiah, getMonthName, pct, normalizeProject, PROJECT_NAMES, TEAM_TARGET_ANNUAL } from "@/lib/utils"
+import { formatRupiah, getMonthName, pct, normalizeProject, PROJECT_NAMES, TEAM_TARGET_ANNUAL, fmtDDMMYYYY } from "@/lib/utils"
 import { Printer, ChevronLeft, ChevronRight, ChevronDown, FileText, Code2, Trophy, Target } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -286,7 +286,7 @@ export default function ReportHODPage() {
 </head>
 <body>
 <h1>PT Central Group Development — MASCOL Division</h1>
-<p style="color:#666;font-size:13px">Report HOD · ${getMonthName(month)} ${year} · Diekspor ${new Date().toLocaleDateString("id-ID")}</p>
+<p style="color:#666;font-size:13px">Report HOD · ${getMonthName(month)} ${year} · Diekspor ${fmtDDMMYYYY(new Date().toISOString())}</p>
 
 <h2>Total Omset</h2>
 <div class="kpi-row">

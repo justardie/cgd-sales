@@ -4,6 +4,7 @@ import { supabaseLapor } from "@/lib/supabase-lapor"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { X, Image, ChevronDown, ChevronUp } from "lucide-react"
+import { fmtDDMMYYYY } from "@/lib/utils"
 
 interface Laporan {
   id: number
@@ -54,7 +55,7 @@ function DetailModal({ laporan, onClose, onStatusChange }: {
             <span className={`text-xs px-2 py-0.5 rounded-full border ${jenis.color}`}>{jenis.label}</span>
             <span className="text-xs text-slate-500">{laporan.proyek}</span>
             <span className="text-xs text-slate-600 ml-auto">
-              {new Date(laporan.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              {fmtDDMMYYYY(laporan.created_at)} {new Date(laporan.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
         </div>
@@ -250,7 +251,7 @@ export default function LaporMasPage() {
                           </span>
                         )}
                         <span className="text-xs text-slate-600 ml-auto">
-                          {new Date(r.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                          {fmtDDMMYYYY(r.created_at)}
                         </span>
                       </div>
 
