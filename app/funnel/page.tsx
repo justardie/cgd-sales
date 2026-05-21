@@ -102,10 +102,11 @@ function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: 
   lead: Lead; canEdit: boolean; canDelete: boolean
   onClose: () => void; onSaved: (updated: Lead) => void; onDeleted: (id: string) => void
 }) {
-  const [status, setStatus]   = useState<LeadStatus>(lead.status)
-  const [notes,  setNotes]    = useState(lead.notes || "")
-  const [saving, setSaving]   = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [status, setStatus]         = useState<LeadStatus>(lead.status)
+  const [notes,  setNotes]          = useState(lead.notes || "")
+  const [saving, setSaving]         = useState(false)
+  const [deleting, setDeleting]     = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
   const isDirty = status !== lead.status || notes !== (lead.notes || "")
 
   const handleSave = async () => {
@@ -119,7 +120,6 @@ function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: 
   }
 
   const handleDelete = async () => {
-    if (!window.confirm(`Hapus lead "${lead.name}"? Tindakan ini tidak dapat dibatalkan.`)) return
     setDeleting(true)
     await supabase.from("leads").delete().eq("id", lead.id)
     setDeleting(false)
@@ -172,8 +172,7 @@ function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: 
           <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
             {canDelete && (
               <button
-                onClick={handleDelete}
-                disabled={deleting}
+                onClick={() => setConfirmDel(true)}
                 title="Hapus lead ini"
                 style={{ background: "rgba(248,113,113,0.15)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
@@ -252,6 +251,36 @@ function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: 
             }}
           />
         </div>
+
+        {/* Delete confirmation panel */}
+        {confirmDel && (
+          <div style={{
+            marginBottom: "16px", padding: "16px", borderRadius: "14px",
+            background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)",
+          }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "#f87171", marginBottom: "6px" }}>
+              Hapus lead ini?
+            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "14px" }}>
+              <strong style={{ color: "var(--text-primary)" }}>{lead.name}</strong> akan dihapus permanen dan tidak bisa dikembalikan.
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => setConfirmDel(false)}
+                style={{ flex: 1, padding: "10px", borderRadius: "10px", fontSize: "13px", fontWeight: 600, background: "var(--surface3)", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{ flex: 1, padding: "10px", borderRadius: "10px", fontSize: "13px", fontWeight: 700, background: "rgba(248,113,113,0.2)", border: "1px solid rgba(248,113,113,0.4)", color: "#f87171", cursor: deleting ? "not-allowed" : "pointer" }}
+              >
+                {deleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Save */}
         {canEdit && (

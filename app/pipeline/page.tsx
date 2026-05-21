@@ -111,6 +111,7 @@ export default function PipelinePage() {
   })
   const [sortCol, setSortCol] = useState("")
   const [sortDir, setSortDir] = useState<"asc"|"desc">("asc")
+  const [formError, setFormError] = useState("")
 
   useEffect(() => { if (user) fetchData() }, [user, isAdmin])
 
@@ -152,6 +153,7 @@ export default function PipelinePage() {
   function openNew() {
     setEditing(null)
     setForm({ ...emptyForm, sales_hunter: isAdmin ? "" : (user?.name || "") })
+    setFormError("")
     setShowModal(true)
   }
 
@@ -171,6 +173,7 @@ export default function PipelinePage() {
       status:            r.status || "warm",
       notes:             r.notes || "",
     })
+    setFormError("")
     setShowModal(true)
   }
 
@@ -205,8 +208,30 @@ export default function PipelinePage() {
     fetchData()
   }
 
+  function validateForm(): boolean {
+    const checks: [string, string][] = [
+      [isAdmin ? form.sales_hunter : "ok", "Hunter"],
+      [form.sales_person, "Sales Person"],
+      [form.name, "Nama Konsumen"],
+      [form.project, "Proyek"],
+      [form.unit, "Klaster / Unit"],
+      [form.potensi_closing, "Potensi Closing"],
+      [form.sumber_leads, "Sumber Leads"],
+      [form.cara_bayar, "Cara Bayar"],
+      [form.visit_date, "Tanggal Visit"],
+    ]
+    const missing = checks.filter(([v]) => !v?.trim()).map(([, label]) => label)
+    if (missing.length > 0) {
+      setFormError(`Wajib diisi: ${missing.join(", ")}`)
+      return false
+    }
+    setFormError("")
+    return true
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (!validateForm()) return
     setSaving(true)
     const payload = {
       name:              form.name,
@@ -565,7 +590,14 @@ ${data.map(r => {
             <h3 className="text-sm font-semibold text-white mb-4">
               {editing ? "Edit Pipeline" : "Tambah Pipeline"}
             </h3>
-            <form onSubmit={handleSave} className="space-y-3">
+            <form onSubmit={handleSave} noValidate className="space-y-3">
+              {formError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-xs font-medium"
+                  style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171" }}>
+                  <span className="mt-0.5 shrink-0">⚠</span>
+                  <span>{formError}</span>
+                </div>
+              )}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Hunter <span className="text-red-400">*</span></label>
                 {isAdmin ? (
@@ -608,23 +640,25 @@ ${data.map(r => {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Proyek <span className="text-red-400">*</span></label>
-                <select value={form.project} required
-                  onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  <option value="">— Pilih Proyek —</option>
-                  {dbProjects.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Klaster / Unit <span className="text-red-400">*</span></label>
-                <input type="text" value={form.unit} required
-                  onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
-                  placeholder="Contoh: Kavling 8A, Type 45"
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Proyek <span className="text-red-400">*</span></label>
+                  <select value={form.project}
+                    onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="">— Pilih —</option>
+                    {dbProjects.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Klaster / Unit <span className="text-red-400">*</span></label>
+                  <input type="text" value={form.unit}
+                    onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
+                    placeholder="Type 45, Kav 8A"
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                </div>
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Potensi Closing (Rp) <span className="text-red-400">*</span></label>
@@ -641,41 +675,45 @@ ${data.map(r => {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Cara Bayar <span className="text-red-400">*</span></label>
-                <select value={form.cara_bayar} required
-                  onChange={e => setForm(f => ({ ...f, cara_bayar: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  <option value="">— Pilih —</option>
-                  {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Cara Bayar <span className="text-red-400">*</span></label>
+                  <select value={form.cara_bayar}
+                    onChange={e => setForm(f => ({ ...f, cara_bayar: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="">— Pilih —</option>
+                    {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Tanggal Visit <span className="text-red-400">*</span></label>
+                  <input type="date" value={form.visit_date}
+                    onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark" }} />
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Tanggal Visit <span className="text-red-400">*</span></label>
-                <input type="date" value={form.visit_date} required
-                  onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Sudah Booking Fee? <span className="text-red-400">*</span></label>
-                <select value={form.sudah_booking_fee}
-                  onChange={e => setForm(f => ({ ...f, sudah_booking_fee: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  <option value="false">Belum (N)</option>
-                  <option value="true">Sudah (Y)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Status <span className="text-red-400">*</span></label>
-                <select value={form.status}
-                  onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Sudah Booking Fee? <span className="text-red-400">*</span></label>
+                  <select value={form.sudah_booking_fee}
+                    onChange={e => setForm(f => ({ ...f, sudah_booking_fee: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <option value="false">Belum (N)</option>
+                    <option value="true">Sudah (Y)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Status <span className="text-red-400">*</span></label>
+                  <select value={form.status}
+                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Catatan</label>
