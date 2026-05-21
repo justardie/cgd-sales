@@ -238,12 +238,15 @@ export default function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      u.role === "admin"        ? "bg-purple-500/20 text-purple-400" :
-                      u.role === "hunter"       ? "bg-blue-500/20 text-blue-400" :
-                      u.role === "sales_person" ? "bg-green-500/20 text-green-400" :
-                                                  "bg-slate-500/20 text-slate-400"
+                      u.role === "admin"          ? "bg-purple-500/20 text-purple-400" :
+                      u.role === "hunter"         ? "bg-blue-500/20 text-blue-400" :
+                      u.role === "sales_person"   ? "bg-green-500/20 text-green-400" :
+                      u.role === "telemarketing"  ? "bg-amber-500/20 text-amber-400" :
+                                                    "bg-slate-500/20 text-slate-400"
                     }`}>
-                      {u.role === "hunter" ? "Sales Hunter" : u.role === "sales_person" ? "Sales Person" : u.role}
+                      {u.role === "hunter"        ? "Sales Hunter"   :
+                       u.role === "sales_person"  ? "Sales Person"   :
+                       u.role === "telemarketing" ? "Telemarketing"  : u.role}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-400">
@@ -303,8 +306,14 @@ export default function AdminPage() {
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   <option value="hunter">Sales Hunter</option>
                   <option value="sales_person">Sales Person</option>
+                  <option value="telemarketing">Telemarketing</option>
                   <option value="admin">Admin</option>
                 </select>
+                {form.role === "telemarketing" && (
+                  <p className="text-xs text-amber-400/80 mt-1">
+                    Hanya dapat akses Leads Funnel &amp; Funnel Summary
+                  </p>
+                )}
               </div>
               {form.role === "sales_person" && (
                 <div>
@@ -341,7 +350,7 @@ export default function AdminPage() {
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
-              {(form.role === "hunter" || form.role === "admin") && (
+              {(form.role === "hunter" || form.role === "admin" || form.role === "telemarketing") && (
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">PIN {editing ? "(kosongkan jika tidak diubah)" : ""}</label>
                   <input
