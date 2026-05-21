@@ -64,6 +64,29 @@ function fmtRp(raw: string): string {
 }
 function parseRp(val: string): string { return val.replace(/\D/g, "") }
 
+/** Rupiah input: shows raw digits while focused (no cursor jump), formatted on blur */
+function RupiahInput({ value, onChange, placeholder, required, className, style }: {
+  value: string; onChange: (raw: string) => void
+  placeholder?: string; required?: boolean
+  className?: string; style?: React.CSSProperties
+}) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={focused ? value : fmtRp(value)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={e => onChange(parseRp(e.target.value))}
+      placeholder={placeholder}
+      required={required}
+      className={className}
+      style={style}
+    />
+  )
+}
+
 function ClosingFormFields({
   isAdmin, form, setForm, spOptions, projects, caraBayarOptions, saving, onCancel, onSubmit, title, submitLabel,
 }: ClosingFormProps) {
@@ -132,12 +155,13 @@ function ClosingFormFields({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
-            <input type="text" inputMode="numeric"
-              value={fmtRp(form.nilai_hjr)}
-              onChange={e => setForm(f => ({ ...f, nilai_hjr: parseRp(e.target.value) }))}
+            <RupiahInput
+              value={form.nilai_hjr}
+              onChange={raw => setForm(f => ({ ...f, nilai_hjr: raw }))}
               placeholder="Contoh: 500.000.000"
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+            />
           </div>
           <div>
             <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>

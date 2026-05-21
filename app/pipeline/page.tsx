@@ -55,6 +55,29 @@ function parseRp(val: string): string {
   return val.replace(/\D/g, "")
 }
 
+/** Rupiah input: shows raw digits while focused (no cursor jump), formatted on blur */
+function RupiahInput({ value, onChange, placeholder, required, className, style }: {
+  value: string; onChange: (raw: string) => void
+  placeholder?: string; required?: boolean
+  className?: string; style?: React.CSSProperties
+}) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={focused ? value : fmtRp(value)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={e => onChange(parseRp(e.target.value))}
+      placeholder={placeholder}
+      required={required}
+      className={className}
+      style={style}
+    />
+  )
+}
+
 function YNBadge({ value }: { value: boolean }) {
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${value ? "bg-green-500/20 text-green-400" : "bg-slate-500/15 text-slate-500"}`}>
@@ -557,12 +580,13 @@ ${data.map(r => {
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
-                <input type="text" inputMode="numeric"
-                  value={fmtRp(closingForm.nilai_hjr)}
-                  onChange={e => setClosingForm(f => ({ ...f, nilai_hjr: parseRp(e.target.value) }))}
+                <RupiahInput
+                  value={closingForm.nilai_hjr}
+                  onChange={raw => setClosingForm(f => ({ ...f, nilai_hjr: raw }))}
                   placeholder="Contoh: 500.000.000"
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+                />
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>
@@ -675,12 +699,13 @@ ${data.map(r => {
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Potensi Closing (Rp) <span className="text-red-400">*</span></label>
-                <input type="text" inputMode="numeric"
-                  value={fmtRp(form.potensi_closing)}
-                  onChange={e => setForm(f => ({ ...f, potensi_closing: parseRp(e.target.value) }))}
+                <RupiahInput
+                  value={form.potensi_closing}
+                  onChange={raw => setForm(f => ({ ...f, potensi_closing: raw }))}
                   placeholder="Contoh: 500.000.000"
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+                />
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Sumber Leads <span className="text-red-400">*</span></label>
