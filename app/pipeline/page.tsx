@@ -44,6 +44,17 @@ const FILTER_OPTIONS = [
 const statusBadge = (s: string) =>
   STATUSES.find(x => x.value === s) || { label: s || "—", color: "bg-slate-500/20 text-slate-400" }
 
+/** Format raw digit string → "1.234.567" (Indonesian thousand separators, no decimals) */
+function fmtRp(raw: string): string {
+  if (!raw) return ""
+  const n = Number(raw.replace(/\D/g, ""))
+  return isNaN(n) ? "" : n.toLocaleString("id-ID")
+}
+/** Strip everything except digits from a user-typed rupiah string */
+function parseRp(val: string): string {
+  return val.replace(/\D/g, "")
+}
+
 function YNBadge({ value }: { value: boolean }) {
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${value ? "bg-green-500/20 text-green-400" : "bg-slate-500/15 text-slate-500"}`}>
@@ -546,8 +557,10 @@ ${data.map(r => {
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Nilai HJR (Rp) <span className="text-red-400">*</span></label>
-                <input type="number" value={closingForm.nilai_hjr} required
-                  onChange={e => setClosingForm(f => ({ ...f, nilai_hjr: e.target.value }))}
+                <input type="text" inputMode="numeric"
+                  value={fmtRp(closingForm.nilai_hjr)}
+                  onChange={e => setClosingForm(f => ({ ...f, nilai_hjr: parseRp(e.target.value) }))}
+                  placeholder="Contoh: 500.000.000"
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
@@ -561,12 +574,12 @@ ${data.map(r => {
                   {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-              <div>
+              <div style={{ overflow: "hidden" }}>
                 <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
                 <input type="date" value={closingForm.closing_date} required
                   onChange={e => setClosingForm(f => ({ ...f, closing_date: e.target.value }))}
                   className="w-full min-w-0 text-sm px-3 py-2 rounded-lg text-white outline-none appearance-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none" }} />
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none", display: "block" }} />
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowClosingModal(false)}
@@ -662,8 +675,10 @@ ${data.map(r => {
               </div>
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Potensi Closing (Rp) <span className="text-red-400">*</span></label>
-                <input type="number" value={form.potensi_closing} required min="1"
-                  onChange={e => setForm(f => ({ ...f, potensi_closing: e.target.value }))}
+                <input type="text" inputMode="numeric"
+                  value={fmtRp(form.potensi_closing)}
+                  onChange={e => setForm(f => ({ ...f, potensi_closing: parseRp(e.target.value) }))}
+                  placeholder="Contoh: 500.000.000"
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
@@ -686,12 +701,12 @@ ${data.map(r => {
                     {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 </div>
-                <div>
+                <div style={{ overflow: "hidden", minWidth: 0 }}>
                   <label className="text-xs text-slate-500 block mb-1">Tanggal Visit <span className="text-red-400">*</span></label>
                   <input type="date" value={form.visit_date}
                     onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
                     className="w-full min-w-0 text-sm px-3 py-2 rounded-lg text-white outline-none appearance-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none" }} />
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none", display: "block" }} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
