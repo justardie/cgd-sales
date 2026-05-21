@@ -565,8 +565,8 @@ ${data.map(r => {
                 <label className="text-xs text-slate-500 block mb-1">Tanggal Closing <span className="text-red-400">*</span></label>
                 <input type="date" value={closingForm.closing_date} required
                   onChange={e => setClosingForm(f => ({ ...f, closing_date: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+                  className="w-full min-w-0 text-sm px-3 py-2 rounded-lg text-white outline-none appearance-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none" }} />
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowClosingModal(false)}
@@ -690,8 +690,8 @@ ${data.map(r => {
                   <label className="text-xs text-slate-500 block mb-1">Tanggal Visit <span className="text-red-400">*</span></label>
                   <input type="date" value={form.visit_date}
                     onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark" }} />
+                    className="w-full min-w-0 text-sm px-3 py-2 rounded-lg text-white outline-none appearance-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark", boxSizing: "border-box", WebkitAppearance: "none" }} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
