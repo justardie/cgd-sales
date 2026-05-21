@@ -143,93 +143,96 @@ html.dark body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   IDUL ADHA THEME — Starbucks palette: deep forest green + cream
-   + espresso brown + warm amber gold. Festive, rich, readable.
+   IDUL ADHA THEME — Warm cream parchment + deep forest green
+   + espresso brown + burnished gold. Festive, elegant, readable.
+   Reference palette: CGD Dashboard Idul Adha (offline HTML)
 ═══════════════════════════════════════════════════════════════ */
 html.iduladha {
-  /* Background — Starbucks signature deep forest green */
-  --bg:      #1E3932;
-  --bg-warm: #163028;
+  /* Background — warm cream parchment */
+  --bg:      #F5EFE0;
+  --bg-warm: #EFE8D5;
 
-  /* Glass surfaces — coffee-tinted dark green glass */
-  --surface:   rgba(26, 50, 40, 0.78);
-  --surface2:  rgba(22, 44, 35, 0.86);
-  --surface3:  rgba(18, 38, 30, 0.92);
+  /* Glass surfaces — layered cream */
+  --surface:   rgba(251, 247, 236, 0.88);
+  --surface2:  rgba(248, 242, 224, 0.92);
+  --surface3:  rgba(237, 229, 206, 0.96);
 
-  /* Accent — warm amber gold (Starbucks star / coffee tone) */
-  --accent:        #C8963E;
-  --accent-start:  #DBA84A;
-  --accent-end:    #A87830;
-  --accent-soft:   rgba(200, 150, 62, 0.15);
-  --accent-medium: rgba(200, 150, 62, 0.26);
+  /* Accent — burnished gold */
+  --accent:        #B8954C;
+  --accent-start:  #D4AF65;
+  --accent-end:    #8E6E2A;
+  --accent-soft:   rgba(184, 149, 76, 0.12);
+  --accent-medium: rgba(184, 149, 76, 0.22);
 
-  /* Text — Starbucks cream #F2EDE3 */
-  --text-primary:   #F2EDE3;
-  --text-secondary: rgba(242, 237, 227, 0.70);
-  --text-muted:     rgba(242, 237, 227, 0.42);
+  /* Text — deep forest green ink on cream */
+  --text-primary:   #1C2B22;
+  --text-secondary: #3D4F44;
+  --text-muted:     #6E7C72;
 
-  /* Borders — amber gold tint */
-  --border:        rgba(200, 150, 62, 0.22);
-  --border-medium: rgba(200, 150, 62, 0.36);
-  --border-strong: rgba(200, 150, 62, 0.58);
+  /* Borders — forest green tint */
+  --border:        rgba(28, 68, 46, 0.10);
+  --border-medium: rgba(28, 68, 46, 0.18);
+  --border-strong: rgba(28, 68, 46, 0.30);
 
-  --shadow-xs: 0 1px 3px rgba(0,0,0,0.55);
-  --shadow-sm: 0 2px 10px rgba(0,0,0,0.52), 0 0 0 1px rgba(200,150,62,0.12);
-  --shadow-md: 0 4px 24px rgba(0,0,0,0.64), 0 0 0 1px rgba(200,150,62,0.16),
-               inset 0 1px 0 rgba(242,237,227,0.06);
-  --shadow-lg: 0 8px 48px rgba(0,0,0,0.72), 0 0 0 1px rgba(200,150,62,0.12),
-               inset 0 1px 0 rgba(242,237,227,0.07);
-  --shadow-accent: 0 6px 28px rgba(200,150,62,0.42);
+  --shadow-xs: 0 1px 3px rgba(28,68,46,0.08), 0 0 0 1px rgba(28,68,46,0.05);
+  --shadow-sm: 0 2px 10px rgba(28,68,46,0.10), 0 0 0 1px rgba(28,68,46,0.06);
+  --shadow-md: 0 4px 24px rgba(28,68,46,0.12), 0 1px 4px rgba(28,68,46,0.08),
+               0 0 0 1px rgba(28,68,46,0.06),
+               inset 0 1px 0 rgba(255,255,255,0.70);
+  --shadow-lg: 0 8px 40px rgba(28,68,46,0.14), 0 2px 8px rgba(28,68,46,0.10),
+               0 0 0 1px rgba(28,68,46,0.06),
+               inset 0 1px 0 rgba(255,255,255,0.80);
+  --shadow-accent: 0 6px 28px rgba(184,149,76,0.36);
 
-  --sidebar-bg:      rgba(22, 44, 34, 0.90);
-  --sidebar-border:  rgba(200, 150, 62, 0.24);
-  --header-bg:       rgba(18, 36, 28, 0.95);
-  --nav-active-bg:   #C8963E;
-  --nav-active-text: #1E3932;
-  --toggle-bg:       rgba(200, 150, 62, 0.16);
+  --sidebar-bg:      rgba(251, 247, 236, 0.90);
+  --sidebar-border:  rgba(28, 68, 46, 0.14);
+  --header-bg:       rgba(245, 239, 224, 0.94);
+  --nav-active-bg:   #1E5A3D;
+  --nav-active-text: #FBF7EC;
+  --toggle-bg:       rgba(28, 68, 46, 0.07);
 
-  /* Status — vivid so they pop on deep green */
-  --green:      #4ade80;
-  --green-soft: rgba(74, 222, 128, 0.15);
-  --red:        #f87171;
-  --red-soft:   rgba(248, 113, 113, 0.15);
-  --blue:       #93c5fd;
-  --blue-soft:  rgba(147, 197, 253, 0.15);
-  --amber:      #fbbf24;
-  --amber-soft: rgba(251, 191, 36, 0.15);
+  /* Status — rich, readable on cream */
+  --green:      #1E5A3D;
+  --green-soft: rgba(30, 90, 61, 0.10);
+  --red:        #C44848;
+  --red-soft:   rgba(196, 72, 72, 0.10);
+  --blue:       #2A6FAD;
+  --blue-soft:  rgba(42, 111, 173, 0.10);
+  --amber:      #C77514;
+  --amber-soft: rgba(199, 117, 20, 0.12);
 }
 html.iduladha body {
-  /* Deep Starbucks green top-left, espresso-warm amber glow bottom-right */
+  /* Subtle forest green top-left, warm gold glow bottom-right on cream */
   background:
-    radial-gradient(ellipse 65% 55% at 0%   0%,   rgba(0, 98, 65, 0.75)   0%, transparent 55%),
-    radial-gradient(ellipse 55% 48% at 100% 100%, rgba(168, 100, 20, 0.45) 0%, transparent 52%),
-    radial-gradient(ellipse 40% 40% at 75%  80%,  rgba(140, 80, 18, 0.28)  0%, transparent 48%),
-    radial-gradient(ellipse 38% 35% at 88%  6%,   rgba(59, 35, 20, 0.22)   0%, transparent 44%),
-    radial-gradient(ellipse 50% 55% at 10%  85%,  rgba(18, 48, 24, 0.65)   0%, transparent 52%),
+    radial-gradient(ellipse 55% 50% at 0%   0%,   rgba(30, 90, 61, 0.07)   0%, transparent 55%),
+    radial-gradient(ellipse 50% 45% at 100% 100%, rgba(184,149, 76, 0.12)  0%, transparent 52%),
+    radial-gradient(ellipse 40% 35% at 80%  8%,   rgba(184,149, 76, 0.07)  0%, transparent 48%),
+    radial-gradient(ellipse 35% 40% at 15%  85%,  rgba(30, 90, 61, 0.06)   0%, transparent 44%),
     var(--bg);
 }
 
-/* Text overrides for iduladha — keep cream/status colors readable on dark green */
-html.iduladha .text-white       { color: #F0EAD8 !important; }
-html.iduladha .text-slate-100   { color: #F0EAD8 !important; }
-html.iduladha .text-slate-200   { color: rgba(240,234,216,0.85) !important; }
-html.iduladha .text-slate-300   { color: rgba(240,234,216,0.70) !important; }
-html.iduladha .text-slate-400   { color: rgba(240,234,216,0.55) !important; }
-html.iduladha .text-slate-500   { color: rgba(240,234,216,0.40) !important; }
-html.iduladha .text-green-400   { color: #4ade80 !important; }
-html.iduladha .text-green-300   { color: #86efac !important; }
-html.iduladha .text-red-400     { color: #f87171 !important; }
-html.iduladha .text-red-300     { color: #fca5a5 !important; }
-html.iduladha .text-blue-400    { color: #93c5fd !important; }
-html.iduladha .text-blue-300    { color: #bfdbfe !important; }
-html.iduladha .text-amber-400   { color: #fbbf24 !important; }
-html.iduladha .text-yellow-400  { color: #facc15 !important; }
-html.iduladha .text-orange-400  { color: #fb923c !important; }
-html.iduladha .text-purple-400  { color: #c084fc !important; }
-html.iduladha .text-pink-400    { color: #f472b6 !important; }
-html.iduladha .text-cyan-400    { color: #22d3ee !important; }
-html.iduladha .text-teal-400    { color: #2dd4bf !important; }
-html.iduladha .text-indigo-400  { color: #818cf8 !important; }
+/* Text overrides for iduladha — dark forest ink on cream (light-style rules) */
+html.iduladha .text-white       { color: #1C2B22 !important; }
+html.iduladha .text-slate-100   { color: #0E1C14 !important; }
+html.iduladha .text-slate-200   { color: #1C2B22 !important; }
+html.iduladha .text-slate-300   { color: #2A4038 !important; }
+html.iduladha .text-slate-400   { color: #3D4F44 !important; }
+html.iduladha .text-slate-500   { color: #6E7C72 !important; }
+html.iduladha .text-slate-600   { color: #8A9A90 !important; }
+html.iduladha .text-green-400   { color: #1E5A3D !important; }
+html.iduladha .text-green-300   { color: #2D7A53 !important; }
+html.iduladha .text-red-400     { color: #C44848 !important; }
+html.iduladha .text-red-300     { color: #A03030 !important; }
+html.iduladha .text-blue-400    { color: #2A6FAD !important; }
+html.iduladha .text-blue-300    { color: #1A5A96 !important; }
+html.iduladha .text-amber-400   { color: #C77514 !important; }
+html.iduladha .text-yellow-400  { color: #A87820 !important; }
+html.iduladha .text-orange-400  { color: #A05E10 !important; }
+html.iduladha .text-purple-400  { color: #7C4A8C !important; }
+html.iduladha .text-pink-400    { color: #9A3068 !important; }
+html.iduladha .text-cyan-400    { color: #1A7A90 !important; }
+html.iduladha .text-teal-400    { color: #1A6E62 !important; }
+html.iduladha .text-indigo-400  { color: #4A42A0 !important; }
 
 /* ── Tailwind class resets for light-default (not dark, not iduladha) ── */
 html:not(.dark):not(.iduladha) .text-white     { color: var(--text-primary)   !important; }
@@ -374,9 +377,9 @@ html.dark .sidebar-float {
   box-shadow: 0 8px 40px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,255,255,0.10);
 }
 html.iduladha .sidebar-float {
-  background: rgba(22, 44, 34, 0.90);
-  border-color: rgba(200,150,62,0.24);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.60), inset 0 1px 0 rgba(200,150,62,0.10);
+  background: rgba(251, 247, 236, 0.92);
+  border-color: rgba(28,68,46,0.16);
+  box-shadow: 0 8px 40px rgba(28,68,46,0.12), inset 0 1px 0 rgba(255,255,255,0.80);
 }
 
 .sidebar-divider {
@@ -468,7 +471,7 @@ html.theme-ocean .app-header {
   box-shadow: 0 1px 0 rgba(100,200,255,0.07), 0 4px 24px rgba(0,0,30,0.55);
 }
 html.iduladha .app-header {
-  box-shadow: 0 1px 0 rgba(200,150,62,0.14), 0 4px 24px rgba(0,0,0,0.45);
+  box-shadow: 0 1px 0 rgba(28,68,46,0.10), 0 4px 24px rgba(28,68,46,0.08);
 }
 
 .header-logo {
@@ -724,6 +727,12 @@ html.dark .greeting-title {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+html.iduladha .greeting-title {
+  background: linear-gradient(135deg, #1C2B22 0%, #1E5A3D 55%, #B8954C 160%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 .greeting-sub {
   font-size: 15px;
@@ -787,6 +796,9 @@ html:not(.dark) .kpi-card:hover {
 }
 html.dark .kpi-card:hover {
   border-color: rgba(255,255,255,0.22) !important;
+}
+html.iduladha .kpi-card:hover {
+  border-color: rgba(184,149,76,0.40) !important;
 }
 
 /* Smooth expand / collapse panel (replace conditional render with this) */
