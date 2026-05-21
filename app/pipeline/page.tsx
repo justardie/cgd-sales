@@ -82,7 +82,6 @@ const emptyForm = {
   sumber_leads:      "",
   cara_bayar:        "",
   visit_date:        "",
-  sudah_visit:       "false",
   sudah_booking_fee: "false",
   status:            "warm",
   notes:             "",
@@ -168,7 +167,6 @@ export default function PipelinePage() {
       sumber_leads:      r.sumber_leads || "",
       cara_bayar:        r.cara_bayar || "",
       visit_date:        r.visit_date || "",
-      sudah_visit:       String(r.sudah_visit ?? false),
       sudah_booking_fee: String(r.sudah_booking_fee ?? false),
       status:            r.status || "warm",
       notes:             r.notes || "",
@@ -220,7 +218,7 @@ export default function PipelinePage() {
       sumber_leads:      form.sumber_leads || null,
       cara_bayar:        form.cara_bayar || null,
       visit_date:        form.visit_date || null,
-      sudah_visit:       form.sudah_visit === "true",
+      sudah_visit:       !!form.visit_date,
       sudah_booking_fee: form.sudah_booking_fee === "true",
       status:            form.status,
       notes:             form.notes || null,
@@ -569,9 +567,9 @@ ${data.map(r => {
             </h3>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Hunter</label>
+                <label className="text-xs text-slate-500 block mb-1">Hunter <span className="text-red-400">*</span></label>
                 {isAdmin ? (
-                  <select value={form.sales_hunter}
+                  <select value={form.sales_hunter} required
                     onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "" }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -586,19 +584,19 @@ ${data.map(r => {
                 )}
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
+                <label className="text-xs text-slate-500 block mb-1">Sales Person <span className="text-red-400">*</span></label>
                 {spOptions.length > 0 ? (
-                  <select value={form.sales_person}
+                  <select value={form.sales_person} required
                     onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <option value="">— Tanpa SP —</option>
+                    <option value="">— Pilih SP —</option>
                     {spOptions.map(sp => <option key={sp} value={sp}>{sp}</option>)}
                   </select>
                 ) : (
-                  <input type="text" value={form.sales_person}
+                  <input type="text" value={form.sales_person} required
                     onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
-                    placeholder="Nama sales person (opsional)"
+                    placeholder="Nama sales person"
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
                 )}
@@ -611,8 +609,8 @@ ${data.map(r => {
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Proyek</label>
-                <select value={form.project}
+                <label className="text-xs text-slate-500 block mb-1">Proyek <span className="text-red-400">*</span></label>
+                <select value={form.project} required
                   onChange={e => setForm(f => ({ ...f, project: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -621,31 +619,31 @@ ${data.map(r => {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Klaster / Unit</label>
-                <input type="text" value={form.unit}
+                <label className="text-xs text-slate-500 block mb-1">Klaster / Unit <span className="text-red-400">*</span></label>
+                <input type="text" value={form.unit} required
                   onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
                   placeholder="Contoh: Kavling 8A, Type 45"
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Potensi Closing (Rp)</label>
-                <input type="number" value={form.potensi_closing}
+                <label className="text-xs text-slate-500 block mb-1">Potensi Closing (Rp) <span className="text-red-400">*</span></label>
+                <input type="number" value={form.potensi_closing} required min="1"
                   onChange={e => setForm(f => ({ ...f, potensi_closing: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Sumber Leads</label>
-                <input type="text" value={form.sumber_leads}
+                <label className="text-xs text-slate-500 block mb-1">Sumber Leads <span className="text-red-400">*</span></label>
+                <input type="text" value={form.sumber_leads} required
                   onChange={e => setForm(f => ({ ...f, sumber_leads: e.target.value }))}
                   placeholder="Contoh: Referral, Digital, Walk-in"
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Cara Bayar</label>
-                <select value={form.cara_bayar}
+                <label className="text-xs text-slate-500 block mb-1">Cara Bayar <span className="text-red-400">*</span></label>
+                <select value={form.cara_bayar} required
                   onChange={e => setForm(f => ({ ...f, cara_bayar: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -653,38 +651,25 @@ ${data.map(r => {
                   {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-              {/* Sudah Visit & Booking Fee (Y/N) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">Sudah Visit?</label>
-                  <select value={form.sudah_visit}
-                    onChange={e => setForm(f => ({ ...f, sudah_visit: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <option value="false">Belum (N)</option>
-                    <option value="true">Sudah (Y)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">Sudah Booking Fee?</label>
-                  <select value={form.sudah_booking_fee}
-                    onChange={e => setForm(f => ({ ...f, sudah_booking_fee: e.target.value }))}
-                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                    <option value="false">Belum (N)</option>
-                    <option value="true">Sudah (Y)</option>
-                  </select>
-                </div>
-              </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Tanggal Visit</label>
-                <input type="date" value={form.visit_date}
+                <label className="text-xs text-slate-500 block mb-1">Tanggal Visit <span className="text-red-400">*</span></label>
+                <input type="date" value={form.visit_date} required
                   onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
               </div>
               <div>
-                <label className="text-xs text-slate-500 block mb-1">Status</label>
+                <label className="text-xs text-slate-500 block mb-1">Sudah Booking Fee? <span className="text-red-400">*</span></label>
+                <select value={form.sudah_booking_fee}
+                  onChange={e => setForm(f => ({ ...f, sudah_booking_fee: e.target.value }))}
+                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <option value="false">Belum (N)</option>
+                  <option value="true">Sudah (Y)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Status <span className="text-red-400">*</span></label>
                 <select value={form.status}
                   onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
