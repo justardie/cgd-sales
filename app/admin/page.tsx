@@ -104,7 +104,7 @@ export default function AdminPage() {
     if (editing) {
       await supabase.from("users").update(payload).eq("id", editing.id)
     } else {
-      await supabase.from("users").insert({ ...payload, pin_hash: form.pin.trim() || null, status: "active" })
+      await supabase.from("users").insert({ ...payload, pin_hash: form.pin.trim() || "1234", status: "active" })
     }
     setSaving(false)
     setShowModal(false)
