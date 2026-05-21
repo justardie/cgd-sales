@@ -8,21 +8,23 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { Bell, Sun, Moon, LogOut } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
-
-const BASE_NAV = [
-  { href: "/",           label: "Overview"    },
-  { href: "/visit",      label: "Visit"       },
-  { href: "/pipeline",   label: "Pipeline"    },
-  { href: "/potensi",    label: "Potensi"     },
-  { href: "/closing",    label: "Closing"     },
-  { href: "/activities", label: "Activities"  },
-  { href: "/team",       label: "Team Status" },
+const SALES_NAV = [
+  { href: "/",               label: "Overview"                           },
+  { href: "/visit",          label: "Visit"                              },
+  { href: "/pipeline",       label: "Pipeline"                           },
+  { href: "/closing",        label: "Closing"                            },
+  { href: "/activities",     label: "Activities"                         },
+  { href: "/team",           label: "Team Status"                        },
+  { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
+  { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
+  { href: "/lapor-mas",      label: "Lapor Mas",     adminOnly: true     },
+  { href: "/report-hod",     label: "Report HOD",    adminOnly: true     },
+  { href: "/admin",          label: "Admin",         adminOnly: true     },
 ]
 
-const ADMIN_NAV = [
-  { href: "/lapor-mas",  label: "Lapor Mas"  },
-  { href: "/report-hod", label: "Report HOD" },
-  { href: "/admin",      label: "Admin"      },
+const TM_NAV = [
+  { href: "/funnel",         label: "Leads Funnel"   },
+  { href: "/funnel-summary", label: "Funnel Summary" },
 ]
 
 export default function Header() {
@@ -35,7 +37,17 @@ export default function Header() {
   const [taskCount,   setTaskCount]   = useState(0)
   const profileRef = useRef<HTMLDivElement>(null)
 
-  const navItems = [...BASE_NAV, ...(isAdmin ? ADMIN_NAV : [])]
+  const role = user?.role ?? ""
+  const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
+  const hasTmAccess = user?.has_tm_access ?? false
+
+  const navItems = isTm
+    ? TM_NAV
+    : SALES_NAV.filter((item) => {
+        if (item.adminOnly    && !isAdmin)                                        return false
+        if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin)  return false
+        return true
+      })
   const initials = user?.name
     ?.split(" ")
     .map((w) => w[0])
