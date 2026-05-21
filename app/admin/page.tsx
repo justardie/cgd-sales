@@ -157,7 +157,7 @@ export default function AdminPage() {
             <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Tema Global</span>
             <span className="text-xs ml-1" style={{ color: "var(--text-muted)" }}>— berlaku untuk semua user secara real-time</span>
           </div>
-          <div className="grid grid-cols-2 gap-3 max-w-xs">
+          <div className="flex flex-wrap gap-3">
             {THEMES.map(t => {
               const isActive = activeTheme === t.id
               return (
