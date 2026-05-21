@@ -8,7 +8,7 @@ export type AppTheme = "dark" | "light" | "idul-adha"
 export const THEMES: { id: AppTheme; name: string; label: string; bg: string; accent: string }[] = [
   { id: "dark",      name: "Dark",      label: "Midnight Glass",  bg: "#0A0A0D", accent: "#FF6A3D" },
   { id: "light",     name: "Light",     label: "Pearl Glass",     bg: "#C0BBB4", accent: "#FF6A3D" },
-  { id: "idul-adha", name: "Idul Adha", label: "Eid Mubarak 🌙", bg: "#1A2E1E", accent: "#D4A84A" },
+  { id: "idul-adha", name: "Idul Adha", label: "Eid Mubarak 🌙", bg: "#1E3932", accent: "#C8963E" },
 ]
 
 // ─── Context ─────────────────────────────────────────────────
