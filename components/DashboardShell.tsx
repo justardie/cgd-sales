@@ -34,8 +34,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   if (!user) return null
 
+  const tickerText = "🌙 Selamat Hari Raya Idul Adha 1447 H · ✦ Eid Mubarak ✦ · Periode 18 Mei – 9 Juni 2026 · Allahu Akbar, Allahu Akbar, Allahu Akbar, Walillahil Hamd"
+
   return (
     <div className="app-layout">
+      {/* Idul Adha sticky news ticker — only visible when idul-adha theme */}
+      <div className="eid-ticker" aria-hidden="true">
+        <div className="eid-ticker-track">
+          <span>{tickerText}</span>
+          <span className="eid-ticker-sep">✦</span>
+          <span>{tickerText}</span>
+          <span className="eid-ticker-sep">✦</span>
+        </div>
+      </div>
+
       {theme === "idul-adha" && <IduladhaDecorations />}
       <Sidebar />
       <div className="app-main">

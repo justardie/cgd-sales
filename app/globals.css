@@ -801,6 +801,155 @@ html.iduladha .kpi-card:hover {
   border-color: rgba(184,149,76,0.40) !important;
 }
 
+/* ── Idul Adha News Ticker ─────────────────────────────────────────── */
+.eid-ticker {
+  display: none;
+}
+html.iduladha .eid-ticker {
+  display: flex;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  z-index: 100;
+  background: linear-gradient(90deg, #1C2B22 0%, #1E5A3D 50%, #1C2B22 100%);
+  border-bottom: 1px solid rgba(184,149,76,0.35);
+  overflow: hidden;
+  gap: 0;
+}
+html.iduladha .eid-ticker-track {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: eid-ticker-scroll 28s linear infinite;
+  gap: 0;
+  color: #FBF7EC;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+html.iduladha .eid-ticker-track:hover {
+  animation-play-state: paused;
+}
+html.iduladha .eid-ticker-sep {
+  color: #B8954C;
+  margin: 0 18px;
+  font-size: 14px;
+}
+html.iduladha .eid-ticker-moon {
+  font-size: 14px;
+  margin-right: 6px;
+  display: inline-block;
+  animation: eid-moon-sway 3s ease-in-out infinite;
+}
+@keyframes eid-ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes eid-moon-sway {
+  0%,100% { transform: rotate(-8deg); }
+  50%     { transform: rotate(8deg); }
+}
+
+/* Offset header + layout when ticker is visible */
+html.iduladha .app-header {
+  top: 36px !important;
+}
+html.iduladha .app-layout {
+  padding-top: 36px;
+}
+html.iduladha .sidebar-float {
+  top: calc(50% + 18px) !important;
+}
+
+/* ── Idul Adha Greeting Hero Card ─────────────────────────────────── */
+.eid-hero-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 28px 32px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #EEE3C4 0%, #F5EFE0 40%, #E8DDB8 100%);
+  border: 1.5px solid rgba(184,149,76,0.30);
+  box-shadow: 0 4px 24px rgba(28,68,46,0.10), inset 0 1px 0 rgba(255,255,255,0.70);
+}
+.eid-hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(184,149,76,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 15% 80%, rgba(30,90,61,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.eid-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(184,149,76,0.15);
+  border: 1px solid rgba(184,149,76,0.30);
+  border-radius: 100px;
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #8E6E2A;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.eid-hero-title {
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 700;
+  color: #1C2B22;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.eid-hero-title em {
+  font-style: normal;
+  color: #1E5A3D;
+}
+.eid-hero-subtitle {
+  font-size: 14px;
+  color: #3D4F44;
+  line-height: 1.65;
+  max-width: 480px;
+  margin-bottom: 16px;
+}
+.eid-hero-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6E7C72;
+  letter-spacing: 0.04em;
+}
+.eid-hero-date .eid-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1E5A3D;
+  animation: eid-pulse 2s ease-in-out infinite;
+}
+@keyframes eid-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.5; transform: scale(0.75); }
+}
+.eid-hero-goat-wrap {
+  position: absolute;
+  right: 24px;
+  bottom: 0;
+  width: 160px;
+  height: 140px;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .eid-hero-goat-wrap { display: none; }
+  .eid-hero-card { padding: 20px 20px; }
+}
+
 /* Smooth expand / collapse panel (replace conditional render with this) */
 .expand-panel {
   overflow: hidden;

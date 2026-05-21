@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTheme } from "@/contexts/ThemeContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import {
@@ -27,6 +28,139 @@ interface HunterStat {
   rank?: number
 }
 
+
+/* ─── Idul Adha Greeting Hero ───────────────────── */
+function IduladhaGreetingHero({ name }: { name: string }) {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`
+  const dateStr = now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+
+  return (
+    <div className="eid-hero-card">
+      <style>{`
+        @keyframes eid-goat-breathe2 {
+          0%,100% { transform: scaleY(1) translateY(0); }
+          50%      { transform: scaleY(1.04) translateY(-1px); }
+        }
+        @keyframes eid-tail2 {
+          0%,100% { transform: rotate(-10deg); }
+          50%      { transform: rotate(14deg); }
+        }
+        @keyframes eid-ear2 {
+          0%,100% { transform: rotate(0deg); }
+          30%      { transform: rotate(-12deg); }
+          60%      { transform: rotate(8deg); }
+        }
+        @keyframes eid-blink2 {
+          0%,92%,100% { scaleY: 1; }
+          95%          { transform: scaleY(0.1); }
+        }
+        @keyframes eid-crescent-bob {
+          0%,100% { transform: translateY(0) rotate(-15deg); }
+          50%      { transform: translateY(-4px) rotate(-10deg); }
+        }
+        @keyframes eid-grass-sway {
+          0%,100% { transform: rotate(0deg); transform-origin: bottom center; }
+          50%      { transform: rotate(3deg); transform-origin: bottom center; }
+        }
+      `}</style>
+
+      {/* Crescent decoration */}
+      <svg
+        width="48" height="56"
+        viewBox="0 0 48 56"
+        style={{ position: "absolute", top: 20, right: 200, opacity: 0.18, animation: "eid-crescent-bob 4s ease-in-out infinite" }}
+        aria-hidden="true"
+      >
+        <path d="M24 4 C10 4, 4 16, 4 28 C4 42, 14 52, 28 52 C18 48, 12 40, 12 28 C12 16, 18 8, 28 6 Z" fill="#1E5A3D" />
+      </svg>
+
+      {/* Content */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <div className="eid-hero-badge">
+          🌙 Idul Adha 1447 H · MASCOL Division
+        </div>
+        <h1 className="eid-hero-title">
+          Selamat datang, <em>{name}</em>.
+        </h1>
+        <p className="eid-hero-subtitle">
+          Semoga semangat berkurban menjadi inspirasi tim untuk closing yang penuh berkah bulan ini.
+        </p>
+        <div className="eid-hero-date">
+          <span className="eid-dot" />
+          <span>{dateStr} · {timeStr} WIB</span>
+        </div>
+      </div>
+
+      {/* Goat illustration */}
+      <div className="eid-hero-goat-wrap" aria-hidden="true">
+        {/* Grass */}
+        <svg width="160" height="18" viewBox="0 0 160 18" style={{ position: "absolute", bottom: 0, left: 0 }}>
+          {[10,22,30,40,50,62,70,82,92,104,114,124,136,148].map((x, i) => (
+            <path key={i}
+              d={`M${x},18 Q${x - 3},${8 + (i % 3) * 2} ${x},${2 + (i % 4)}`}
+              stroke="#2D7A53" strokeWidth="2.2" fill="none" strokeLinecap="round"
+              style={{ animation: `eid-grass-sway ${2.4 + (i % 5) * 0.3}s ease-in-out ${i * 0.1}s infinite` }}
+            />
+          ))}
+        </svg>
+        {/* Goat body */}
+        <svg width="140" height="120" viewBox="0 0 140 120" style={{ position: "absolute", bottom: 14, left: 10 }}>
+          {/* Body */}
+          <ellipse cx="72" cy="70" rx="34" ry="26"
+            fill="#F0E4C8" stroke="#C8A96E" strokeWidth="1.5"
+            style={{ animation: "eid-goat-breathe2 3s ease-in-out infinite" }}
+          />
+          {/* Neck */}
+          <path d="M52 56 Q46 44 50 36" stroke="#C8A96E" strokeWidth="10" strokeLinecap="round" fill="none" />
+          {/* Head */}
+          <ellipse cx="48" cy="30" rx="14" ry="12" fill="#F0E4C8" stroke="#C8A96E" strokeWidth="1.5" />
+          {/* Left ear */}
+          <ellipse cx="38" cy="22" rx="5" ry="9" fill="#E8D5A8" stroke="#C8A96E" strokeWidth="1.2"
+            style={{ transformOrigin: "38px 30px", animation: "eid-ear2 4s ease-in-out 1s infinite" }}
+          />
+          {/* Right ear */}
+          <ellipse cx="58" cy="22" rx="5" ry="9" fill="#E8D5A8" stroke="#C8A96E" strokeWidth="1.2" />
+          {/* Eye */}
+          <ellipse cx="53" cy="28" rx="2.5" ry="2.5" fill="#4A3728"
+            style={{ animation: "eid-blink2 5s ease-in-out 2s infinite" }}
+          />
+          <circle cx="54" cy="27.2" r="0.8" fill="white" />
+          {/* Nostril */}
+          <ellipse cx="58" cy="36" rx="1.5" ry="1" fill="#C8A96E" />
+          {/* Horn */}
+          <path d="M44 19 Q40 10 38 14" stroke="#B8954C" strokeWidth="3" strokeLinecap="round" fill="none" />
+          <path d="M52 18 Q54 9 58 12" stroke="#B8954C" strokeWidth="3" strokeLinecap="round" fill="none" />
+          {/* Legs */}
+          {[[52,96,48,118],[62,96,60,118],[78,96,76,118],[88,96,92,118]].map(([x1,y1,x2,y2], i) => (
+            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="#C8A96E" strokeWidth="7" strokeLinecap="round" />
+          ))}
+          {/* Hooves */}
+          {[[48,119],[60,119],[76,119],[92,119]].map(([cx,cy], i) => (
+            <ellipse key={i} cx={cx} cy={cy} rx="5" ry="2.5" fill="#8B6A40" />
+          ))}
+          {/* Tail */}
+          <path d="M104 62 Q116 52 114 44"
+            stroke="#C8A96E" strokeWidth="5" strokeLinecap="round" fill="none"
+            style={{ transformOrigin: "104px 62px", animation: "eid-tail2 1.8s ease-in-out infinite" }}
+          />
+          {/* Wool patches */}
+          {[[68,58],[80,56],[88,62],[72,78],[84,74]].map(([cx,cy], i) => (
+            <ellipse key={i} cx={cx} cy={cy} rx="6" ry="5"
+              fill="white" opacity="0.35"
+            />
+          ))}
+        </svg>
+      </div>
+    </div>
+  )
+}
 
 /* ─── Circular Ring Gauge ───────────────────────── */
 function CircleRing({ pct: p, color }: { pct: number; color: string }) {
@@ -184,6 +318,7 @@ const now = new Date()
 
 export default function OverviewPage() {
   const { user } = useAuth()
+  const { theme } = useTheme()
   const [hunters, setHunters] = useState<HunterStat[]>([])
   const [totals, setTotals] = useState({
     omsetMtd: 0, omsetYtd: 0, omsetLast: 0,
@@ -331,20 +466,24 @@ export default function OverviewPage() {
       <div className="space-y-6">
 
         {/* Greeting */}
-        <div className="greeting-block">
-          <h1 className="greeting-title">
-            {(() => {
-              const h = new Date().getHours()
-              const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"
-              return `${g}, ${user?.name?.split(" ")[0] ?? ""}!`
-            })()}
-          </h1>
-          <p className="greeting-sub">Welcome to CGD Sales Command Center.</p>
-          <div className="greeting-live">
-            <span className="live-dot" />
-            Live data
+        {theme === "idul-adha" ? (
+          <IduladhaGreetingHero name={user?.name?.split(" ")[0] ?? ""} />
+        ) : (
+          <div className="greeting-block">
+            <h1 className="greeting-title">
+              {(() => {
+                const h = new Date().getHours()
+                const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"
+                return `${g}, ${user?.name?.split(" ")[0] ?? ""}!`
+              })()}
+            </h1>
+            <p className="greeting-sub">Welcome to CGD Sales Command Center.</p>
+            <div className="greeting-live">
+              <span className="live-dot" />
+              Live data
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Month / YTD Selector */}
         <div className="flex items-center justify-between flex-wrap gap-3">
