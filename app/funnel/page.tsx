@@ -152,16 +152,20 @@ function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
           <div>
             <div style={{ fontSize: "19px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "5px" }}>{lead.name}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <a href={`tel:${lead.phone}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--accent)", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}>
-                <Phone size={14} /> {lead.phone}
+            <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px", fontFamily: "monospace" }}>{lead.phone}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <a
+                href={`tel:${lead.phone}`}
+                style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(96,165,250,0.15)", color: "#60a5fa", padding: "6px 14px", borderRadius: "20px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
+              >
+                <Phone size={13} /> Call
               </a>
               <a
                 href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`}
                 target="_blank" rel="noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(37,211,102,0.15)", color: "#25d366", padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(37,211,102,0.15)", color: "#25d366", padding: "6px 14px", borderRadius: "20px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
               >
-                <MessageCircle size={12} /> WhatsApp
+                <MessageCircle size={13} /> WhatsApp
               </a>
             </div>
           </div>
