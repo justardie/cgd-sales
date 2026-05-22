@@ -94,6 +94,9 @@ export default function AdminPage() {
       monthly_target: isHunterRole ? (Number(form.monthly_target) || 0) : (editing ? editing.monthly_target : 0),
       win_or_die_target: isHunterRole ? (Number(form.win_or_die_target) || 0) : 0,
       visit_target: Number(form.visit_target) || 40,
+      // Sync has_tm_access with role: telemarketing always gets TM access,
+      // all other roles lose it (so changing away from TM also clears it)
+      has_tm_access: form.role === "telemarketing",
     }
     if (form.role === "sales_person") {
       payload.hunter_name = form.hunter_name
