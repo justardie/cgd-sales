@@ -369,13 +369,39 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
     const file = e.target.files?.[0]; if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      const wb  = XLSX.read(ev.target?.result, { type: "array" })
-      const raw = XLSX.utils.sheet_to_json<Record<string, string>>(wb.Sheets[wb.SheetNames[0]], { defval: "" })
-      setRows(raw.map((r) => {
-        const nk = Object.keys(r).find((k) => /leads[\s._-]?name|nama/i.test(k)) ?? ""
-        const pk = Object.keys(r).find((k) => /telp|telepon|hp|phone|no\./i.test(k)) ?? ""
-        return { name: String(r[nk] ?? "").trim(), phone: String(r[pk] ?? "").trim() }
-      }).filter((r) => r.name))
+      const wb   = XLSX.read(ev.target?.result, { type: "array" })
+      const ws   = wb.Sheets[wb.SheetNames[0]]
+      // Use raw 2-D array so we can scan for the actual header row
+      // (some files have merged cells / title rows before the real headers)
+      const grid = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, defval: "" }) as string[][]
+
+      // Find header row: first row (in rows 0-9) that contains "name" or "phone" keyword
+      const isHeaderRow = (row: string[]) =>
+        row.some(c => /leads[\s._-]?name|nama/i.test(String(c))) ||
+        row.some(c => /telp|telepon|hp|phone/i.test(String(c)))
+
+      const headerIdx = grid.slice(0, 10).findIndex(isHeaderRow)
+      if (headerIdx === -1) {
+        // Fallback: treat row 0 as header (standard simple files with Nama/Phone columns)
+        const simple = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" })
+        setRows(simple.map((r) => {
+          const nk = Object.keys(r).find(k => /nama|name/i.test(k)) ?? Object.keys(r)[0] ?? ""
+          const pk = Object.keys(r).find(k => /telp|telepon|hp|phone/i.test(k)) ?? Object.keys(r)[1] ?? ""
+          return { name: String(r[nk] ?? "").trim(), phone: String(r[pk] ?? "").trim() }
+        }).filter(r => r.name))
+        return
+      }
+
+      const headers = grid[headerIdx]
+      const nameCol  = headers.findIndex(h => /leads[\s._-]?name|nama/i.test(String(h)))
+      const phoneCol = headers.findIndex(h => /telp|telepon|hp|phone|no\./i.test(String(h)))
+
+      const parsed = grid.slice(headerIdx + 1).map(row => ({
+        name:  String(row[nameCol]  ?? "").trim(),
+        phone: String(row[phoneCol] ?? "").trim(),
+      })).filter(r => r.name && r.name !== headers[nameCol])
+
+      setRows(parsed)
     }
     reader.readAsArrayBuffer(file)
   }
