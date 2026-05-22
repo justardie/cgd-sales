@@ -153,7 +153,7 @@ export default function PipelinePage() {
     setLoading(true)
     const [{ data }, spsRes, projRes, cbRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
-      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
+      supabase.from("users").select("name,hunter_name").in("role", ["sales_person", "telemarketing"]).neq("status", "resigned"),
       supabase.from("konsumen").select("project").not("project", "is", null),
       supabase.from("konsumen").select("cara_bayar").not("cara_bayar", "is", null),
     ])

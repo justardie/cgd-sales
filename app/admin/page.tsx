@@ -98,7 +98,7 @@ export default function AdminPage() {
       // all other roles lose it (so changing away from TM also clears it)
       has_tm_access: form.role === "telemarketing",
     }
-    if (form.role === "sales_person") {
+    if (form.role === "sales_person" || form.role === "telemarketing") {
       payload.hunter_name = form.hunter_name
     }
     if (form.pin.trim()) {
@@ -318,7 +318,7 @@ export default function AdminPage() {
                   </p>
                 )}
               </div>
-              {form.role === "sales_person" && (
+              {(form.role === "sales_person" || form.role === "telemarketing") && (
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Tim Hunter</label>
                   <select value={form.hunter_name} onChange={e => setForm(f => ({ ...f, hunter_name: e.target.value }))} required
