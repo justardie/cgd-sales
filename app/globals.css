@@ -860,9 +860,6 @@ html.iduladha .app-header {
 html.iduladha .app-layout {
   padding-top: 36px;
 }
-html.iduladha .sidebar-float {
-  top: calc(50% + 18px) !important;
-}
 
 /* ── Idul Adha Greeting Hero Card ─────────────────────────────────── */
 .eid-hero-card {
