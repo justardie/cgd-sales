@@ -8,7 +8,24 @@ import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2 } f
 import DashboardShell from "@/components/DashboardShell"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
-const PROJECTS = ["CH", "SCC", "CT", "MRD"]
+// TM name (lowercase keyword) → default project in DB
+const TM_PROJECT_MAP: { match: string; project: string }[] = [
+  { match: "adi chandra",        project: "SCC - Hillside"   },
+  { match: "ferdinan",           project: "MRD CLH"          },
+  { match: "fadjri",             project: "CH"               },
+  { match: "maria oktavaini",    project: "MRD CRTU"         },
+  { match: "nurlela",            project: "MRD CRBA+CBA"     },
+  { match: "riduan",             project: "CH"               },
+  { match: "riezkya",            project: "CT"               },
+  { match: "rosa dwi",           project: "CH"               },
+  { match: "shinta",             project: "CT"               },
+]
+
+function defaultProjectForTm(name: string): string {
+  const lower = name.toLowerCase()
+  const found = TM_PROJECT_MAP.find(m => lower.includes(m.match))
+  return found ? found.project : ""
+}
 
 interface TmUser { id: string; name: string; hunter_name: string }
 
@@ -311,10 +328,33 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
   const { user } = useAuth()
   const now = new Date()
   const [assignedTo, setAssignedTo] = useState("")
-  const [project, setProject]       = useState("CH")
+  const [project, setProject]       = useState("")
   const [period, setPeriod]         = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`)
   const [rows, setRows]             = useState<{ name: string; phone: string }[]>([])
   const [saving, setSaving]         = useState(false)
+  const [dbProjects, setDbProjects] = useState<string[]>([])
+
+  // Fetch distinct project values from konsumen table once
+  useEffect(() => {
+    supabase.from("konsumen").select("project").not("project", "is", null)
+      .then(({ data }) => {
+        const unique = Array.from(new Set((data ?? []).map((r: { project: string }) => r.project).filter(Boolean) as string[])).sort()
+        setDbProjects(unique)
+        // Set default project if none selected yet
+        if (!project && unique.length > 0) setProject(unique[0])
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Auto-select project when TM changes
+  const handleTmChange = (tmId: string) => {
+    setAssignedTo(tmId)
+    if (!tmId) return
+    const tm = tmUsers.find(t => t.id === tmId)
+    if (!tm) return
+    const defaultProject = defaultProjectForTm(tm.name)
+    if (defaultProject) setProject(defaultProject)
+  }
 
   const sel: React.CSSProperties = {
     width: "100%", background: "var(--surface2)", border: "1px solid var(--border-medium)",
@@ -360,7 +400,7 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <div>
             <label style={lbl}>Sales Telemarketing</label>
-            <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} style={sel}>
+            <select value={assignedTo} onChange={(e) => handleTmChange(e.target.value)} style={sel}>
               <option value="">— Pilih TM —</option>
               {tmUsers.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
             </select>
@@ -369,7 +409,7 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
             <div>
               <label style={lbl}>Proyek</label>
               <select value={project} onChange={(e) => setProject(e.target.value)} style={sel}>
-                {PROJECTS.map((p) => <option key={p} value={p}>{p}</option>)}
+                {dbProjects.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
