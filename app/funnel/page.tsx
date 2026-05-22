@@ -8,6 +8,15 @@ import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2 } f
 import DashboardShell from "@/components/DashboardShell"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
+// Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
+function normalizePhone(raw: string): string {
+  let p = String(raw ?? "").replace(/[\s\-.()+]/g, "")
+  if (!p) return ""
+  if (p.startsWith("62")) return p
+  if (p.startsWith("0"))  return "62" + p.slice(1)
+  return p
+}
+
 // TM name (lowercase keyword) → default project in DB
 const TM_PROJECT_MAP: { match: string; project: string }[] = [
   { match: "adi chandra",        project: "SCC - Hillside"   },
@@ -409,11 +418,42 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
   const handleSave = async () => {
     if (!assignedTo || rows.length === 0) return
     setSaving(true)
-    await supabase.from("leads").insert(rows.map((r) => ({
-      assigned_to: assignedTo, name: r.name, phone: r.phone,
-      project, period, status: "new", notes: "", uploaded_by: user?.id ?? null,
-    })))
-    setSaving(false); onUploaded(); onClose()
+
+    // 1. Fetch existing phone numbers for this TM + period from DB
+    const { data: existing } = await supabase
+      .from("leads")
+      .select("phone")
+      .eq("assigned_to", assignedTo)
+      .eq("period", period)
+
+    const existingPhones = new Set((existing ?? []).map((l: { phone: string }) => normalizePhone(l.phone)))
+
+    // 2. Deduplicate within the file itself + against DB
+    const seen = new Set<string>()
+    const toInsert = rows.filter(r => {
+      const norm = normalizePhone(r.phone)
+      if (!norm) return true // no phone — allow
+      if (existingPhones.has(norm)) return false // already in DB
+      if (seen.has(norm)) return false // duplicate within file
+      seen.add(norm)
+      return true
+    })
+
+    const skipped = rows.length - toInsert.length
+
+    if (toInsert.length > 0) {
+      const BATCH = 200
+      for (let b = 0; b < toInsert.length; b += BATCH) {
+        await supabase.from("leads").insert(toInsert.slice(b, b + BATCH).map(r => ({
+          assigned_to: assignedTo, name: r.name, phone: r.phone,
+          project, period, status: "new", notes: "", uploaded_by: user?.id ?? null,
+        })))
+      }
+    }
+
+    setSaving(false)
+    if (skipped > 0) alert(`✅ ${toInsert.length} leads diimport.\n⚠️ ${skipped} leads dilewati karena nomor telepon sudah ada.`)
+    onUploaded(); onClose()
   }
 
   return (
