@@ -1,11 +1,11 @@
 ﻿"use client"
-import { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Search, FileText, Pencil } from "lucide-react"
+import { Plus, X, Search, FileText, Pencil, MessageSquare, Send } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -25,6 +25,15 @@ interface KonsumenRow {
   notes: string | null
   board: string
   created_at?: string
+}
+
+interface TFNote {
+  id: string
+  konsumen_id: string
+  content: string
+  author_name: string
+  created_by: string | null
+  created_at: string
 }
 
 const STATUSES = [
@@ -94,6 +103,153 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   )
 }
 
+/** Format relative time label for notes (e.g. "2 jam lalu", "Kemarin 14:30", "21 Mei 09:00") */
+function fmtNoteTime(iso: string): string {
+  const d = new Date(iso)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHr  = Math.floor(diffMs / 3600000)
+  const diffDay = Math.floor(diffMs / 86400000)
+  if (diffMin < 1)  return "Baru saja"
+  if (diffMin < 60) return `${diffMin} menit lalu`
+  if (diffHr  < 24) return `${diffHr} jam lalu`
+  if (diffDay === 1) return `Kemarin ${d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }) +
+    " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+}
+
+function NotesModal({ lead, user, onClose }: {
+  lead: KonsumenRow
+  user: { id: string; name: string } | null
+  onClose: () => void
+}) {
+  const [notes, setNotes]       = useState<TFNote[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [text, setText]         = useState("")
+  const [sending, setSending]   = useState(false)
+  const bottomRef = React.useRef<HTMLDivElement>(null)
+
+  useEffect(() => { loadNotes() }, [lead.id])
+
+  // Scroll to bottom when notes load/change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [notes])
+
+  async function loadNotes() {
+    setLoading(true)
+    const { data } = await supabase
+      .from("task_force_notes")
+      .select("*")
+      .eq("konsumen_id", lead.id)
+      .order("created_at", { ascending: true })
+    setNotes((data || []) as TFNote[])
+    setLoading(false)
+  }
+
+  async function handleSend() {
+    if (!text.trim() || !user) return
+    setSending(true)
+    await supabase.from("task_force_notes").insert({
+      konsumen_id: lead.id,
+      content:     text.trim(),
+      created_by:  user.id,
+      author_name: user.name,
+    })
+    setText("")
+    setSending(false)
+    loadNotes()
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Ctrl+Enter / Cmd+Enter to send
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  const badge = (lead.status === "hot") ? "bg-orange-500/20 text-orange-400"
+    : (lead.status === "warm") ? "bg-yellow-500/20 text-yellow-400"
+    : "bg-slate-500/20 text-slate-400"
+  const statusLabel = lead.status === "hot" ? "Hot" : lead.status === "warm" ? "Warm" : "Tdk Potensial"
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.75)" }}>
+      <div className="w-full sm:max-w-lg flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", maxHeight: "92dvh" }}>
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-4 pt-4 pb-3 shrink-0"
+          style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-white truncate">{lead.name}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${badge}`}>{statusLabel}</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {[lead.project, lead.sales_hunter].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0 mt-0.5">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Notes timeline — scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+          {loading ? (
+            <p className="text-xs text-slate-600 text-center py-6">Memuat...</p>
+          ) : notes.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageSquare size={28} className="mx-auto text-slate-700 mb-2" />
+              <p className="text-xs text-slate-600">Belum ada catatan</p>
+              <p className="text-xs text-slate-700 mt-1">Tambahkan action plan pertama di bawah</p>
+            </div>
+          ) : notes.map(n => (
+            <div key={n.id} className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-blue-400">{n.author_name}</span>
+                <span className="text-xs text-slate-600">{fmtNoteTime(n.created_at)}</span>
+              </div>
+              <div className="rounded-lg rounded-tl-sm px-3 py-2 text-sm text-white whitespace-pre-wrap leading-relaxed"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                {n.content}
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input area — sticky at bottom */}
+        <div className="shrink-0 px-3 pb-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Tulis catatan / action plan..."
+              rows={2}
+              className="flex-1 text-sm px-3 py-2 rounded-xl text-white outline-none resize-none leading-relaxed"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!text.trim() || sending}
+              className="shrink-0 p-2.5 rounded-xl text-white transition disabled:opacity-40 bg-blue-600 hover:bg-blue-500 active:scale-95"
+              title="Kirim (Ctrl+Enter)">
+              <Send size={16} />
+            </button>
+          </div>
+          <p className="text-xs text-slate-700 mt-1.5 text-right">Ctrl+Enter untuk kirim</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const emptyForm = {
   sales_hunter: "", sales_person: "", name: "", project: "", unit: "",
   potensi_closing: "", sumber_leads: "", cara_bayar: "", visit_date: "",
@@ -119,17 +275,20 @@ export default function TaskForcePage() {
   const [sortCol, setSortCol] = useState("")
   const [sortDir, setSortDir] = useState<"asc"|"desc">("asc")
   const [formError, setFormError] = useState("")
+  const [notesLead, setNotesLead] = useState<KonsumenRow | null>(null)
+  const [notesCounts, setNotesCounts] = useState<Record<string, number>>({})
 
   useEffect(() => { if (user) fetchData() }, [user, canSeeAll])
 
   async function fetchData() {
     setLoading(true)
-    const [{ data }, spsRes, projRes, cbRes] = await Promise.all([
+    const [{ data }, spsRes, projRes, cbRes, notesCountRes] = await Promise.all([
       supabase.from("konsumen").select("*").eq("board", "task_force")
         .in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
       supabase.from("users").select("name,hunter_name").in("role", ["sales_person", "telemarketing"]).neq("status", "resigned"),
       supabase.from("konsumen").select("project").not("project", "is", null),
       supabase.from("konsumen").select("cara_bayar").not("cara_bayar", "is", null),
+      supabase.from("task_force_notes").select("konsumen_id"),
     ])
     const uniqueProjects = Array.from(
       new Set((projRes.data || []).map((r: { project: string | null }) => r.project).filter(Boolean) as string[])
@@ -152,6 +311,12 @@ export default function TaskForcePage() {
       spsMap[sp.hunter_name].push(sp.name)
     }
     setActiveSps(spsMap)
+    // Build notes count map: konsumen_id → count
+    const countsMap: Record<string, number> = {}
+    for (const n of (notesCountRes.data || []) as { konsumen_id: string }[]) {
+      countsMap[n.konsumen_id] = (countsMap[n.konsumen_id] || 0) + 1
+    }
+    setNotesCounts(countsMap)
     setLoading(false)
   }
 
@@ -386,9 +551,20 @@ export default function TaskForcePage() {
                       <td className="px-3 py-3 text-center whitespace-nowrap"><YNBadge value={r.sudah_booking_fee} /></td>
                       <td className="px-3 py-3 text-xs text-slate-500 max-w-[140px] truncate">{r.notes || "—"}</td>
                       <td className="px-3 py-3 text-center">
-                        <button onClick={() => openEdit(r)} className="text-blue-400 hover:text-blue-300 transition" title="Edit">
-                          <Pencil size={13} />
-                        </button>
+                        <div className="flex items-center justify-center gap-3">
+                          <button onClick={() => openEdit(r)} className="text-blue-400 hover:text-blue-300 transition" title="Edit">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => setNotesLead(r)}
+                            className="relative text-slate-400 hover:text-green-400 transition" title="Catatan / Action Plan">
+                            <MessageSquare size={14} />
+                            {(notesCounts[r.id] || 0) > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold bg-green-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+                                {notesCounts[r.id] > 9 ? "9+" : notesCounts[r.id]}
+                              </span>
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -564,6 +740,14 @@ export default function TaskForcePage() {
             </form>
           </div>
         </Modal>
+      )}
+
+      {notesLead && (
+        <NotesModal
+          lead={notesLead}
+          user={user}
+          onClose={() => { setNotesLead(null); fetchData() }}
+        />
       )}
     </DashboardShell>
   )
