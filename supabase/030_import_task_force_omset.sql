@@ -4,7 +4,7 @@
 -- Source: TASK FORCE OMSET .xlsx  (23 Mei 2026)
 -- REQUIRES: 029_task_force_notes.sql sudah dijalankan terlebih dahulu
 -- Leads:  26
--- Generated: 2026-05-23T09:33:38.477Z
+-- Generated: 2026-05-23T09:50:37.521Z
 -- ============================================================
 
 -- [1] RIZAL | MRD CRBA+CBA | KPR Express
@@ -24,9 +24,9 @@ INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Sudah BI Checking (aman)
 Minggu mau visit kembali dan diundang Gathering
 Mau DP 100jt
-Pilihan 2 unit, antara Solitare atau tipe 65', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_1
+Pilihan 2 unit, antara Solitare atau tipe 65', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_1
 UNION ALL
-  SELECT id, 'datang dengan 2 simulasi cicilan, dan rekomendasikan satu unit, jangan kelamaan kalau sudah BI checking', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_1;
+  SELECT id, 'datang dengan 2 simulasi cicilan, dan rekomendasikan satu unit, jangan kelamaan kalau sudah BI checking', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_1;
 
 -- [2] RATIH | MRD CLH | KPR Express
 WITH _ins_2 AS (
@@ -44,9 +44,9 @@ WITH _ins_2 AS (
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Sudah pernah visit (leads lama)
 Diundang Gathering Minggu
-Belum BI Checking', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_2
+Belum BI Checking', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_2
 UNION ALL
-  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_2;
+  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_2;
 
 -- [3] RESTI | MRD CLH | KPR Langsung Akad
 WITH _ins_3 AS (
@@ -64,9 +64,9 @@ WITH _ins_3 AS (
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Janji visit kembali hari ini
 Cari unit yang menghadap matahari pagi
-Sudah pernah Visit', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_3
+Sudah pernah Visit', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_3
 UNION ALL
-  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_3;
+  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_3;
 
 -- [4] IRMA | MRD CRBA+CBA | Cash Bertahap 60X
 WITH _ins_4 AS (
@@ -83,9 +83,9 @@ WITH _ins_4 AS (
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Masih menunggu lebaran haji, nunggu anaknya datang , udah visit , cara bayar cash bertahap 60x 
-DP 100 juta. Promo AJB SHGB dan diskon nego harga', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_4
+DP 100 juta. Promo AJB SHGB dan diskon nego harga', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_4
 UNION ALL
-  SELECT id, 'segera arahkan tarik BF, buat urgensi ketersediaan unit', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_4;
+  SELECT id, 'segera arahkan tarik BF, buat urgensi ketersediaan unit', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_4;
 
 -- [5] DIAN | MRD CLH | Cash Bertahap 36X
 WITH _ins_5 AS (
@@ -101,9 +101,9 @@ WITH _ins_5 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Masih di johor akhir Mei datang ke Batam untuk di follow up kembali - Crosseling dengan sales Yossi', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_5
+  SELECT id, 'Masih di johor akhir Mei datang ke Batam untuk di follow up kembali - Crosseling dengan sales Yossi', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_5
 UNION ALL
-  SELECT id, 'tetap di maintain, kirimkan materi-materi promosi', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_5;
+  SELECT id, 'tetap di maintain, kirimkan materi-materi promosi', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_5;
 
 -- [6] RAHMAT | MRD CLH | KPR Langsung Akad
 WITH _ins_6 AS (
@@ -121,9 +121,9 @@ WITH _ins_6 AS (
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Sudah Visit dan di undang gathering minggu
 Masih menunggu approval istri
-harga dan promo bisa di terima customer', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_6
+harga dan promo bisa di terima customer', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_6
 UNION ALL
-  SELECT id, 'Pastikan salesnya mengundang konsumen bersama istrinya sehingga pertanyaan istrinya bisa dijawab langsung menghilangkan keraguannya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_6;
+  SELECT id, 'Pastikan salesnya mengundang konsumen bersama istrinya sehingga pertanyaan istrinya bisa dijawab langsung menghilangkan keraguannya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_6;
 
 -- [7] ZULHAM | MRD CLH | Cash Keras
 WITH _ins_7 AS (
@@ -142,9 +142,9 @@ INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Sudah visit lokasi dan Visit Konsumen
 Harga dan promo bisa diterima customer
 Masih menunggu approval istri
-diundang gathering hari minggu', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_7
+diundang gathering hari minggu', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_7
 UNION ALL
-  SELECT id, 'Pastikan salesnya mengundang konsumen bersama istrinya sehingga pertanyaan istrinya bisa dijawab langsung menghilangkan keraguannya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_7;
+  SELECT id, 'Pastikan salesnya mengundang konsumen bersama istrinya sehingga pertanyaan istrinya bisa dijawab langsung menghilangkan keraguannya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_7;
 
 -- [8] ENDANG | MRD CLH | KPR Langsung Akad
 WITH _ins_8 AS (
@@ -161,9 +161,9 @@ WITH _ins_8 AS (
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Sudah visit sendiri, mau datang lg dengan keluarga 
-konsumen diundang untuk Gathering untuk di prospect lagi', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_8
+konsumen diundang untuk Gathering untuk di prospect lagi', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_8
 UNION ALL
-  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_8;
+  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_8;
 
 -- [9] SUHARTO | MRD CRBA+CBA | KPR Langsung Akad
 WITH _ins_9 AS (
@@ -182,9 +182,9 @@ INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, '- Sudah visit lokasi, minat lokasi CBA karena dekat dengan sekolah basic anaknya
 - Masih menunggu persetujuan istri gajian tanggal 25 Mei untuk titipan booking on proses bi check
 - Konsumen masih mau diskusi dengan keluarga karena kondisi rumah dengan wall panel  
-- sudah diarahkan ke Kanaka - tapi masih diskusi dengan keluarga', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_9
+- sudah diarahkan ke Kanaka - tapi masih diskusi dengan keluarga', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_9
 UNION ALL
-  SELECT id, 'pastikan dulu konsumen perlu unit ready atau tidak, kalau tidak arahkan ke kanaka', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_9;
+  SELECT id, 'pastikan dulu konsumen perlu unit ready atau tidak, kalau tidak arahkan ke kanaka', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_9;
 
 -- [10] ZALMIAH | MRD CRTU | Cash Bertahap 60X
 WITH _ins_10 AS (
@@ -201,9 +201,9 @@ WITH _ins_10 AS (
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, '36 -> 60x. Bu Zalmiah kerja di spore - suami kerja di batam 
-budget 4 juta, pengajuan mau tarik CB 72 kali - promo gak berlaku dan pengajuan masih berat untuk disetujui. Senin mau datang ke Batam untuk visit dan hitung2an lagi', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_10
+budget 4 juta, pengajuan mau tarik CB 72 kali - promo gak berlaku dan pengajuan masih berat untuk disetujui. Senin mau datang ke Batam untuk visit dan hitung2an lagi', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_10
 UNION ALL
-  SELECT id, 'ajak datang di gathering hitung ulang untuk simulasi pembayarannya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_10;
+  SELECT id, 'ajak datang di gathering hitung ulang untuk simulasi pembayarannya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_10;
 
 -- [11] CHOIRI | MRD CRTU | Cash Bertahap 60X
 WITH _ins_11 AS (
@@ -221,9 +221,9 @@ WITH _ins_11 AS (
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, '36 -> 60x. Budget konsumen di 5 juta, sudah diundang ke gathering untuk diclosingkan langsung dengan pengajuan custom payment. 
 - tahun ke 1 angsuran 5 juta 
-- tahun ke 2 angsiuran 5,7 juta atau boom cicilan', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_11
+- tahun ke 2 angsiuran 5,7 juta atau boom cicilan', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_11
 UNION ALL
-  SELECT id, 'Buatkan NPV untuk perhitungan custome payment 1 tahun 5 juta, selanjutnya 5,7 juta . mau di closinkan di gathering Minggu', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_11;
+  SELECT id, 'Buatkan NPV untuk perhitungan custome payment 1 tahun 5 juta, selanjutnya 5,7 juta . mau di closinkan di gathering Minggu', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_11;
 
 -- [12] MANAN | MRD CRTU | KPR Langsung Akad
 WITH _ins_12 AS (
@@ -239,9 +239,9 @@ WITH _ins_12 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Sudah sangat prospect dan akan di closingkan di Gathering', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_12
+  SELECT id, 'Sudah sangat prospect dan akan di closingkan di Gathering', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_12
 UNION ALL
-  SELECT id, 'Pastikan konsumen hadir kalau memang sudah tidak ada kendala', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_12;
+  SELECT id, 'Pastikan konsumen hadir kalau memang sudah tidak ada kendala', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_12;
 
 -- [13] NATALIA | MRD CRTU | KPR Langsung Akad
 WITH _ins_13 AS (
@@ -257,9 +257,9 @@ WITH _ins_13 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Sudah BI Chek data suami oke, istrinya masih menunggu perbaikan NIK di Disduk karena double . hari minggu diundang Gathering', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_13
+  SELECT id, 'Sudah BI Chek data suami oke, istrinya masih menunggu perbaikan NIK di Disduk karena double . hari minggu diundang Gathering', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_13
 UNION ALL
-  SELECT id, 'FU dengan konsumen untuk memastikan penyelesaian NIK gandanya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_13;
+  SELECT id, 'FU dengan konsumen untuk memastikan penyelesaian NIK gandanya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_13;
 
 -- [14] NA | CH | KPR Indent
 WITH _ins_14 AS (
@@ -278,9 +278,9 @@ INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Rencana visit 24 Mei minat SPH type 65 (minat utk di sewakan)
 Rencana KPR DP 100JT
 Konsumen ada usaha F&B, entertaiment
-Konsumen sudah ambil rumah di bengkong perum Morington dan sekarang mau beli rumah di batam center juga dan tertarik dengan SPH dan Beverly', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_14
+Konsumen sudah ambil rumah di bengkong perum Morington dan sekarang mau beli rumah di batam center juga dan tertarik dengan SPH dan Beverly', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_14
 UNION ALL
-  SELECT id, 'jelaskan keunggulan kawasan CH ketimbang beverly, berikan prospek CH di masa depan akan ada CHCD dengan konsepnya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_14;
+  SELECT id, 'jelaskan keunggulan kawasan CH ketimbang beverly, berikan prospek CH di masa depan akan ada CHCD dengan konsepnya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_14;
 
 -- [15] NA | CH | Cash Bertahap 60X
 WITH _ins_15 AS (
@@ -299,9 +299,9 @@ INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Rencana visit senin tgl 25 mei AH - 66
 merupakan leads lama sudah sering visit CH
 konsumen KOL 5
-solusinya di cash bertahap 60x', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_15
+solusinya di cash bertahap 60x', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_15
 UNION ALL
-  SELECT id, 'kawal prosesnya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_15;
+  SELECT id, 'kawal prosesnya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_15;
 
 -- [16] PAK SULBI | CH | -
 WITH _ins_16 AS (
@@ -317,9 +317,9 @@ WITH _ins_16 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Cicil DP KPR, Minat SPH 92 krn hadap timur, Menunggu unit bs dijual atau tidak dan PL,', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_16
+  SELECT id, 'Cicil DP KPR, Minat SPH 92 krn hadap timur, Menunggu unit bs dijual atau tidak dan PL,', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_16
 UNION ALL
-  SELECT id, 'Sudah di buka unitnya, segera kejar konsumennya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_16;
+  SELECT id, 'Sudah di buka unitnya, segera kejar konsumennya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_16;
 
 -- [17] PAK YAYAN | CH | Cash Bertahap 60X
 WITH _ins_17 AS (
@@ -335,9 +335,9 @@ WITH _ins_17 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Konsumen minat cluster SPH atau Clover dan rencana visit tgl 23 mei siang', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_17
+  SELECT id, 'Konsumen minat cluster SPH atau Clover dan rencana visit tgl 23 mei siang', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_17
 UNION ALL
-  SELECT id, 'tawarkan show unit SV kalau memang serius, kasi tanda serius BF. Saya eskalasi kalau memang kasi booking', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_17;
+  SELECT id, 'tawarkan show unit SV kalau memang serius, kasi tanda serius BF. Saya eskalasi kalau memang kasi booking', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_17;
 
 -- [18] PAK JONATHAN | CH | Cash Bertahap 60X
 WITH _ins_18 AS (
@@ -353,9 +353,9 @@ WITH _ins_18 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Konsumen sudah visit ke Puri Celebrity dan membandingkan dengan SV, rencana visit 23 mei sore', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_18
+  SELECT id, 'Konsumen sudah visit ke Puri Celebrity dan membandingkan dengan SV, rencana visit 23 mei sore', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_18
 UNION ALL
-  SELECT id, 'kawal prosesnya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_18;
+  SELECT id, 'kawal prosesnya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_18;
 
 -- [19] EDI | CH | Cash Bertahap 60X
 WITH _ins_19 AS (
@@ -374,9 +374,9 @@ INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
   SELECT id, 'Konsumen sudah visit SH - 85
 Konsumen merasa unit CH kecil dan kurang berkelas & komplen carpot kecil
 Konsumen tertarik SV - 120 tapi belum ready sementara konsumen mau menempatin di akhir tahun saat pindah ke Batam
-Rencana cara bayar CB 60X', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_19
+Rencana cara bayar CB 60X', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_19
 UNION ALL
-  SELECT id, 'control monitoring', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_19;
+  SELECT id, 'control monitoring', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_19;
 
 -- [20] NA | CH | KPR Indent
 WITH _ins_20 AS (
@@ -392,9 +392,9 @@ WITH _ins_20 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Rencana visit Clover type std 62/72 tgl 27 mei, rencana KPR indent', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_20
+  SELECT id, 'Rencana visit Clover type std 62/72 tgl 27 mei, rencana KPR indent', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_20
 UNION ALL
-  SELECT id, 'cb hubungi lagi konsumen, gunakan script yang diberikan untuk disampaikan ke konsumen. maintain dengan memberikan informasi-informasi positif.', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_20;
+  SELECT id, 'cb hubungi lagi konsumen, gunakan script yang diberikan untuk disampaikan ke konsumen. maintain dengan memberikan informasi-informasi positif.', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_20;
 
 -- [21] IBU SITI | CH | Cash Bertahap 48X
 WITH _ins_21 AS (
@@ -410,9 +410,9 @@ WITH _ins_21 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Minta Harga Jual ditarik ke 48, DP 100jt (SV 131), Sore ini akan dikonfirmasi by phone', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_21
+  SELECT id, 'Minta Harga Jual ditarik ke 48, DP 100jt (SV 131), Sore ini akan dikonfirmasi by phone', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_21
 UNION ALL
-  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_21;
+  SELECT id, 'Kawal progressnya, gali informasi lebih dalam kebutuhan konsumennya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_21;
 
 -- [22] IBU BUNGA | CH | Cash Keras
 WITH _ins_22 AS (
@@ -428,7 +428,7 @@ WITH _ins_22 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Cara bayar Cash Keras Budget 700-800jt (SV 103) Sore ini akan dikonfirmasi by phone, di FU sudah tidak minat, krn issue kontraktor', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_22;
+  SELECT id, 'Cara bayar Cash Keras Budget 700-800jt (SV 103) Sore ini akan dikonfirmasi by phone, di FU sudah tidak minat, krn issue kontraktor', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_22;
 
 -- [23] BANG JOCKY | CH | KPR Express
 WITH _ins_23 AS (
@@ -444,9 +444,9 @@ WITH _ins_23 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'KPR Express (PH 102/SH 55 atau 75) Sore mau visit CH', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_23
+  SELECT id, 'KPR Express (PH 102/SH 55 atau 75) Sore mau visit CH', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_23
 UNION ALL
-  SELECT id, 'segera ajukan NPV dari HOD sales', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_23;
+  SELECT id, 'segera ajukan NPV dari HOD sales', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_23;
 
 -- [24] Daniel | CH | Cash Keras
 WITH _ins_24 AS (
@@ -462,9 +462,9 @@ WITH _ins_24 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Konsumen mau buat yayasan dan minat SV 5 unit cash keras, budget 6M, dan mau BASTB 3 bulan kendala di progress bangunan kita SV saat ini masi 50an %. Sudah Diskusi dengan pak Lyndon & MS dan kami menyarankan AH 5 unit yg progress bangun sudah 80an %.', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_24
+  SELECT id, 'Konsumen mau buat yayasan dan minat SV 5 unit cash keras, budget 6M, dan mau BASTB 3 bulan kendala di progress bangunan kita SV saat ini masi 50an %. Sudah Diskusi dengan pak Lyndon & MS dan kami menyarankan AH 5 unit yg progress bangun sudah 80an %.', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_24
 UNION ALL
-  SELECT id, 'sudah diarahkan ke BSI, (superflex danamon dibelakang bengkak)', 'Task Force', '2026-05-23 09:00:00+07' FROM _ins_24;
+  SELECT id, 'sudah diarahkan ke BSI, (superflex danamon dibelakang bengkak)', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_24;
 
 -- [25] BU DESI | CT | Cash Keras
 WITH _ins_25 AS (
@@ -480,7 +480,7 @@ WITH _ins_25 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'Unit type 72, Cash 6X, Harga 855, Kalo Ok siap diclosingkan', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_25;
+  SELECT id, 'Unit type 72, Cash 6X, Harga 855, Kalo Ok siap diclosingkan', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_25;
 
 -- [26] Andri | CT | KPR Indent
 WITH _ins_26 AS (
@@ -496,4 +496,4 @@ WITH _ins_26 AS (
   RETURNING id
 )
 INSERT INTO task_force_notes (konsumen_id, content, author_name, created_at)
-  SELECT id, 'KPR Indent, CT No.70. Kendala cicilan flat 8Jtaan, Akan di visit konsumen', 'Task Force', '2026-05-22 09:00:00+07' FROM _ins_26;
+  SELECT id, 'KPR Indent, CT No.70. Kendala cicilan flat 8Jtaan, Akan di visit konsumen', 'Task Force', '2026-05-22 09:00:00+07'::timestamptz FROM _ins_26;

@@ -193,10 +193,10 @@ leads.forEach(function(lead, idx) {
 
   var noteInserts = [];
   if (lead.note22) {
-    noteInserts.push('  SELECT id, ' + sqlStr(lead.note22) + ', \'Task Force\', \'2026-05-22 09:00:00+07\' FROM _ins_' + n);
+    noteInserts.push('  SELECT id, ' + sqlStr(lead.note22) + ', \'Task Force\', \'2026-05-22 09:00:00+07\'::timestamptz FROM _ins_' + n);
   }
   if (lead.note23) {
-    noteInserts.push('  SELECT id, ' + sqlStr(lead.note23) + ', \'Task Force\', \'2026-05-23 09:00:00+07\' FROM _ins_' + n);
+    noteInserts.push('  SELECT id, ' + sqlStr(lead.note23) + ', \'Task Force\', \'2026-05-23 09:00:00+07\'::timestamptz FROM _ins_' + n);
   }
 
   if (noteInserts.length > 0) {
