@@ -11,5 +11,10 @@ CREATE TABLE IF NOT EXISTS task_force_notes (
 CREATE INDEX IF NOT EXISTS idx_tf_notes_konsumen
   ON task_force_notes (konsumen_id, created_at DESC);
 
--- Enable realtime for live note updates
-ALTER PUBLICATION supabase_realtime ADD TABLE task_force_notes;
+-- Enable realtime for live note updates (safe: skip if already member)
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE task_force_notes;
+EXCEPTION WHEN duplicate_object THEN
+  NULL; -- already a member, ignore
+END $$;

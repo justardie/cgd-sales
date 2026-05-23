@@ -30,10 +30,8 @@ const TM_NAV = [
 
 const TF_NAV = [
   { href: "/",           label: "Overview",    icon: LayoutDashboard },
+  { href: "/closing",    label: "Closing",     icon: DollarSign      },
   { href: "/task-force", label: "Task Force",  icon: ClipboardList   },
-  { href: "/visit",      label: "Visit",       icon: MapPin          },
-  { href: "/activities", label: "Activities",  icon: CheckSquare     },
-  { href: "/team",       label: "Team Status", icon: Users           },
 ]
 
 export default function Sidebar() {

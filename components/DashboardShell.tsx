@@ -8,7 +8,7 @@ import Header from "./Header"
 import IduladhaDecorations from "./IduladhaDecorations"
 
 const TM_ALLOWED = ["/funnel", "/funnel-summary"]
-const TF_ALLOWED = ["/", "/task-force", "/visit", "/activities", "/team"]
+const TF_ALLOWED = ["/", "/closing", "/task-force"]
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
