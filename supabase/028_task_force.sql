@@ -11,15 +11,35 @@ ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check
   CHECK (role IN ('admin', 'hunter', 'sales_person', 'telemarketing', 'dgm', 'admin_dgm', 'task_force'));
 
--- 3. Insert 5 task_force users with PIN 1234
+-- 3. Upsert 5 task_force users with PIN 1234
+--    Pattern: UPDATE existing, then INSERT if not exists (no unique constraint on name)
+
+-- Arafah
+UPDATE users SET role = 'task_force', pin_hash = '1234', status = 'active' WHERE name = 'Arafah';
 INSERT INTO users (name, pin_hash, role, status, monthly_target, win_or_die_target, visit_target, has_tm_access)
-VALUES
-  ('Arafah',  '1234', 'task_force', 'active', 0, 0, 0, false),
-  ('Claudia', '1234', 'task_force', 'active', 0, 0, 0, false),
-  ('Susi',    '1234', 'task_force', 'active', 0, 0, 0, false),
-  ('Devy',    '1234', 'task_force', 'active', 0, 0, 0, false),
-  ('Jenny',   '1234', 'task_force', 'active', 0, 0, 0, false)
-ON CONFLICT (name) DO UPDATE
-  SET role      = 'task_force',
-      pin_hash  = '1234',
-      status    = 'active';
+  SELECT 'Arafah', '1234', 'task_force', 'active', 0, 0, 0, false
+  WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = 'Arafah');
+
+-- Claudia
+UPDATE users SET role = 'task_force', pin_hash = '1234', status = 'active' WHERE name = 'Claudia';
+INSERT INTO users (name, pin_hash, role, status, monthly_target, win_or_die_target, visit_target, has_tm_access)
+  SELECT 'Claudia', '1234', 'task_force', 'active', 0, 0, 0, false
+  WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = 'Claudia');
+
+-- Susi
+UPDATE users SET role = 'task_force', pin_hash = '1234', status = 'active' WHERE name = 'Susi';
+INSERT INTO users (name, pin_hash, role, status, monthly_target, win_or_die_target, visit_target, has_tm_access)
+  SELECT 'Susi', '1234', 'task_force', 'active', 0, 0, 0, false
+  WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = 'Susi');
+
+-- Devy
+UPDATE users SET role = 'task_force', pin_hash = '1234', status = 'active' WHERE name = 'Devy';
+INSERT INTO users (name, pin_hash, role, status, monthly_target, win_or_die_target, visit_target, has_tm_access)
+  SELECT 'Devy', '1234', 'task_force', 'active', 0, 0, 0, false
+  WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = 'Devy');
+
+-- Jenny
+UPDATE users SET role = 'task_force', pin_hash = '1234', status = 'active' WHERE name = 'Jenny';
+INSERT INTO users (name, pin_hash, role, status, monthly_target, win_or_die_target, visit_target, has_tm_access)
+  SELECT 'Jenny', '1234', 'task_force', 'active', 0, 0, 0, false
+  WHERE NOT EXISTS (SELECT 1 FROM users WHERE name = 'Jenny');
