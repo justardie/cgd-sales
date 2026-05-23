@@ -42,7 +42,7 @@ export default function PotensiPage() {
     const [konsumenRes, usersRes] = await Promise.all([
       supabase.from("konsumen")
         .select("sales_hunter,project,status,potensi_closing,nilai_hjr,closing_month,closing_year")
-        .in("status", ["warm", "hot", "closing"]),
+        .in("status", ["warm", "hot", "closing"]).or("board.eq.pipeline,board.is.null"),
       supabase.from("users")
         .select("id,name,monthly_target,role,status")
         .eq("status", "active")

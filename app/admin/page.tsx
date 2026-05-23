@@ -310,11 +310,17 @@ export default function AdminPage() {
                   <option value="hunter">Sales Hunter</option>
                   <option value="sales_person">Sales Person</option>
                   <option value="telemarketing">Telemarketing</option>
+                  <option value="task_force">Task Force</option>
                   <option value="admin">Admin</option>
                 </select>
                 {form.role === "telemarketing" && (
                   <p className="text-xs text-amber-400/80 mt-1">
                     Hanya dapat akses Leads Funnel &amp; Funnel Summary
+                  </p>
+                )}
+                {form.role === "task_force" && (
+                  <p className="text-xs text-blue-400/80 mt-1">
+                    Dapat akses Task Force, Visit, Activities, Team Status
                   </p>
                 )}
               </div>

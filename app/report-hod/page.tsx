@@ -112,7 +112,7 @@ export default function ReportHODPage() {
       supabase.from("visit_logs").select("user_id,count,accompanied_count")
         .eq("month", month).eq("year", year),
       supabase.from("konsumen").select("project,potensi_closing")
-        .in("status", ["warm", "hot"]),
+        .in("status", ["warm", "hot"]).or("board.eq.pipeline,board.is.null"),
     ])
 
     const allUsers   = (allUsersRes.data || []) as UserRow[]
