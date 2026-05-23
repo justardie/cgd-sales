@@ -6,7 +6,7 @@ import { loginUser, saveSession } from "@/lib/auth"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 
-type LoginMode = "sales" | "telemarketing"
+type LoginMode = "sales" | "telemarketing" | "task_force"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [salesMembers, setSalesMembers] = useState<string[]>([])
   const [tmMembers, setTmMembers] = useState<string[]>([])
+  const [tfMembers, setTfMembers] = useState<string[]>([])
 
   useEffect(() => {
     supabase.from("users").select("name")
@@ -27,9 +28,12 @@ export default function LoginPage() {
     supabase.from("users").select("name")
       .or("has_tm_access.eq.true,role.eq.dgm,role.eq.admin_dgm").eq("status", "active").order("name")
       .then(({ data }) => { if (data) setTmMembers([...new Set(data.map((u: { name: string }) => u.name))]) })
+    supabase.from("users").select("name")
+      .eq("role", "task_force").eq("status", "active").order("name")
+      .then(({ data }) => { if (data) setTfMembers([...new Set(data.map((u: { name: string }) => u.name))]) })
   }, [])
 
-  const teamMembers = mode === "sales" ? salesMembers : tmMembers
+  const teamMembers = mode === "sales" ? salesMembers : mode === "task_force" ? tfMembers : tmMembers
 
   const switchMode = (m: LoginMode) => {
     setMode(m); setName(""); setPin(""); setError("")
@@ -47,8 +51,10 @@ export default function LoginPage() {
     }
     saveSession(user)
     setUser(user)
-    // Only DGM (Kadek) is restricted to funnel pages; all others go to main dashboard
-    router.push(user.role === "dgm" || user.role === "admin_dgm" ? "/funnel" : "/")
+    // Route by role
+    if (user.role === "dgm" || user.role === "admin_dgm") router.push("/funnel")
+    else if (user.role === "task_force") router.push("/task-force")
+    else router.push("/")
   }
 
   return (
@@ -124,19 +130,23 @@ export default function LoginPage() {
           {/* Mode toggle */}
           <div style={{
             display: "flex", background: "rgba(255,255,255,0.06)",
-            borderRadius: "12px", padding: "3px", marginBottom: "22px",
+            borderRadius: "12px", padding: "3px", marginBottom: "22px", gap: "2px",
           }}>
-            {(["sales", "telemarketing"] as LoginMode[]).map((m) => (
-              <button key={m} type="button" onClick={() => switchMode(m)} style={{
-                flex: 1, padding: "7px 10px", borderRadius: "10px",
+            {([
+              { key: "sales",        label: "Sales" },
+              { key: "telemarketing",label: "Telemarketing" },
+              { key: "task_force",   label: "Task Force" },
+            ] as { key: LoginMode; label: string }[]).map(({ key, label }) => (
+              <button key={key} type="button" onClick={() => switchMode(key)} style={{
+                flex: 1, padding: "7px 6px", borderRadius: "10px",
                 border: "none", cursor: "pointer",
-                fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em",
+                fontSize: "10px", fontWeight: 600, letterSpacing: "0.03em",
                 transition: "all 0.2s",
-                background: mode === m ? "rgba(234,92,0,0.85)" : "transparent",
-                color: mode === m ? "#fff" : "rgba(148,163,184,0.65)",
-                boxShadow: mode === m ? "0 2px 8px rgba(234,92,0,0.35)" : "none",
+                background: mode === key ? "rgba(234,92,0,0.85)" : "transparent",
+                color: mode === key ? "#fff" : "rgba(148,163,184,0.65)",
+                boxShadow: mode === key ? "0 2px 8px rgba(234,92,0,0.35)" : "none",
               }}>
-                {m === "sales" ? "Sales Team" : "Telemarketing"}
+                {label}
               </button>
             ))}
           </div>
@@ -146,9 +156,9 @@ export default function LoginPage() {
             Selamat datang
           </h2>
           <p className="text-sm mb-6" style={{ color: "#94a3b8" }}>
-            {mode === "sales"
-              ? "Pilih nama kamu untuk masuk ke dashboard"
-              : "Login Telemarketing & DGM"}
+            {mode === "sales"      ? "Pilih nama kamu untuk masuk ke dashboard"
+             : mode === "task_force" ? "Login Task Force · PIN 1234"
+             : "Login Telemarketing & DGM"}
           </p>
 
           <form onSubmit={handleLogin} className="space-y-4">
