@@ -103,20 +103,11 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   )
 }
 
-/** Format relative time label for notes (e.g. "2 jam lalu", "Kemarin 14:30", "21 Mei 09:00") */
+/** Format note timestamp as DD-MM-YYYY */
 function fmtNoteTime(iso: string): string {
   const d = new Date(iso)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  const diffHr  = Math.floor(diffMs / 3600000)
-  const diffDay = Math.floor(diffMs / 86400000)
-  if (diffMin < 1)  return "Baru saja"
-  if (diffMin < 60) return `${diffMin} menit lalu`
-  if (diffHr  < 24) return `${diffHr} jam lalu`
-  if (diffDay === 1) return `Kemarin ${d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }) +
-    " " + d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+  if (isNaN(d.getTime())) return iso
+  return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`
 }
 
 function NotesModal({ lead, user, onClose }: {
