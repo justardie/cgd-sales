@@ -238,6 +238,7 @@ const now = new Date()
 
 export default function ClosingPage() {
   const { user, isAdmin } = useAuth()
+  const isTf = user?.role === "task_force"
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [ytdMode, setYtdMode] = useState(false)
@@ -351,7 +352,7 @@ export default function ClosingPage() {
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     setHunters((usersRes.data || []) as User[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]
-    if (isAdmin) {
+    if (isAdmin || isTf) {
       setClosings(allClosings)
     } else {
       const name = (user!.name || "").toLowerCase()
@@ -562,10 +563,12 @@ export default function ClosingPage() {
                 : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
               YTD {now.getFullYear()}
             </button>
-            <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
-              <Plus size={14} /> Input Closing
-            </button>
+            {!isTf && (
+              <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
+                className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
+                <Plus size={14} /> Input Closing
+              </button>
+            )}
           </div>
         </div>
 
@@ -861,10 +864,12 @@ export default function ClosingPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openEdit(c)}
-                          className="text-blue-400 hover:text-blue-300 transition" title="Edit">
-                          <Edit2 size={13} />
-                        </button>
+                        {!isTf && (
+                          <button onClick={() => openEdit(c)}
+                            className="text-blue-400 hover:text-blue-300 transition" title="Edit">
+                            <Edit2 size={13} />
+                          </button>
+                        )}
                         {isAdmin && (
                           <button onClick={() => setConfirmDeleteId(c.id)}
                             className="text-slate-600 hover:text-red-400 transition" title="Batalkan Closing">

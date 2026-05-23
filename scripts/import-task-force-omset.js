@@ -126,10 +126,11 @@ for (var i = 4; i < data.length; i++) {
   var note22   = String(r[11]).trim();
   var note23   = String(r[12]).trim();
 
-  // Skip rows without customer name or valid status
-  if (!custRaw) continue;
+  // Skip rows without valid status or project
   if (!['hot','warm','tidak_potensial'].includes(statusRaw)) continue;
   if (!projRaw) continue;
+  // Customer blank → placeholder so the row still gets imported
+  if (!custRaw) custRaw = '(Belum Diisi)';
 
   // Row-level overrides for missing/incorrect data
   var resolvedSP = spRaw;
