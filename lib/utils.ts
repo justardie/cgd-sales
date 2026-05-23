@@ -56,10 +56,13 @@ export const MONTHS = [
 /** Canonical payment methods — always shown in this fixed order; extra DB values appended */
 export const CANONICAL_CARA_BAYAR = [
   "Cash Keras",
+  "Cash Bertahap 36X",
+  "Cash Bertahap 48X",
+  "Cash Bertahap 60X",
   "KPR Indent",
   "KPR UM",
   "KPR Express",
-  "Cash Bertahap",
+  "KPR Langsung Akad",
   "SOB",
 ] as const
 
