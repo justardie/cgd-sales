@@ -27,6 +27,12 @@ const TM_NAV = [
   { href: "/funnel-summary", label: "Funnel Summary" },
 ]
 
+const TF_NAV = [
+  { href: "/",           label: "Overview"   },
+  { href: "/closing",    label: "Closing"    },
+  { href: "/task-force", label: "Task Force" },
+]
+
 export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
@@ -39,10 +45,13 @@ export default function Header() {
 
   const role = user?.role ?? ""
   const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
+  const isTf = role === "task_force"
   const hasTmAccess = user?.has_tm_access ?? false
 
   const navItems = isTm
     ? TM_NAV
+    : isTf
+    ? TF_NAV
     : SALES_NAV.filter((item) => {
         if (item.adminOnly    && !isAdmin)                                        return false
         if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin)  return false
