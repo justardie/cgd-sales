@@ -4,7 +4,7 @@
 -- Source: TASK FORCE OMSET .xlsx
 -- REQUIRES: 031_task_force_leads_table.sql sudah dijalankan terlebih dahulu
 -- Leads:  29
--- Generated: 2026-05-23T10:32:53.209Z
+-- Generated: 2026-05-23T14:59:03.037Z
 -- ============================================================
 
 -- Hapus semua data task force lama (notes terhapus otomatis via CASCADE)
@@ -266,7 +266,7 @@ INSERT INTO task_force_notes (lead_id, content, author_name, created_at)
 UNION ALL
   SELECT id, 'FU dengan konsumen untuk memastikan penyelesaian NIK gandanya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_14 AS t(id);
 
--- [15] (Belum Diisi) | MRD CRTU | KPR Langsung Akad
+-- [15] N/A | MRD CRTU | KPR Langsung Akad
 WITH _ins_15 AS (
   INSERT INTO task_force_leads
     (user_id, sales_hunter, sales_person, name, project, unit,
@@ -274,7 +274,7 @@ WITH _ins_15 AS (
   SELECT
     COALESCE((SELECT id FROM users WHERE name = 'Prediman' LIMIT 1),
              (SELECT id FROM users WHERE role = 'admin' LIMIT 1)),
-    'Prediman', 'Maria Oktaviani Peso', '(Belum Diisi)', 'MRD CRTU', 'TYPE 36',
+    'Prediman', 'Maria Oktaviani Peso', 'N/A', 'MRD CRTU', 'TYPE 36',
     'hot', 363790000, 'KPR Langsung Akad', true, false
   RETURNING id
 )
@@ -283,7 +283,7 @@ INSERT INTO task_force_notes (lead_id, content, author_name, created_at)
 UNION ALL
   SELECT id, 'INI TOLONG YANG JELAS GALI INFORMASINYA, KENAPA NAMA KONSUMEN TIDAK ADA???', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_15 AS t(id);
 
--- [16] NA | CH | KPR Indent
+-- [16] N/A | CH | KPR Indent
 WITH _ins_16 AS (
   INSERT INTO task_force_leads
     (user_id, sales_hunter, sales_person, name, project, unit,
@@ -291,7 +291,7 @@ WITH _ins_16 AS (
   SELECT
     COALESCE((SELECT id FROM users WHERE name = 'Aldo' LIMIT 1),
              (SELECT id FROM users WHERE role = 'admin' LIMIT 1)),
-    'Aldo', 'Abel Shevcenko', 'NA', 'CH', 'SPH TIPE 65',
+    'Aldo', 'Abel Shevcenko', 'N/A', 'CH', 'SPH TIPE 65',
     'hot', 1290000000, 'KPR Indent', false, false
   RETURNING id
 )
@@ -303,7 +303,7 @@ Konsumen sudah ambil rumah di bengkong perum Morington dan sekarang mau beli rum
 UNION ALL
   SELECT id, 'jelaskan keunggulan kawasan CH ketimbang beverly, berikan prospek CH di masa depan akan ada CHCD dengan konsepnya', 'Task Force', '2026-05-23 09:00:00+07'::timestamptz FROM _ins_16 AS t(id);
 
--- [17] NA | CH | Cash Bertahap 60X
+-- [17] N/A | CH | Cash Bertahap 60X
 WITH _ins_17 AS (
   INSERT INTO task_force_leads
     (user_id, sales_hunter, sales_person, name, project, unit,
@@ -311,7 +311,7 @@ WITH _ins_17 AS (
   SELECT
     COALESCE((SELECT id FROM users WHERE name = 'Aldo' LIMIT 1),
              (SELECT id FROM users WHERE role = 'admin' LIMIT 1)),
-    'Aldo', 'Noer Roelloh', 'NA', 'CH', 'AH-66',
+    'Aldo', 'Noer Roelloh', 'N/A', 'CH', 'AH-66',
     'hot', 1190000000, 'Cash Bertahap 60X', false, false
   RETURNING id
 )
