@@ -157,7 +157,7 @@ export default function LoginPage() {
           </h2>
           <p className="text-sm mb-6" style={{ color: "#94a3b8" }}>
             {mode === "sales"      ? "Pilih nama kamu untuk masuk ke dashboard"
-             : mode === "task_force" ? "Login Task Force · PIN 1234"
+             : mode === "task_force" ? "Login Task Force"
              : "Login Telemarketing & DGM"}
           </p>
 
