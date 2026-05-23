@@ -23,13 +23,12 @@ interface KonsumenRow {
   sudah_booking_fee: boolean
   status: string
   notes: string | null
-  board: string
   created_at?: string
 }
 
 interface TFNote {
   id: string
-  konsumen_id: string
+  lead_id: string
   content: string
   author_name: string
   created_by: string | null
@@ -133,7 +132,7 @@ function NotesModal({ lead, user, onClose }: {
     const { data } = await supabase
       .from("task_force_notes")
       .select("*")
-      .eq("konsumen_id", lead.id)
+      .eq("lead_id", lead.id)
       .order("created_at", { ascending: true })
     setNotes((data || []) as TFNote[])
     setLoading(false)
@@ -143,7 +142,7 @@ function NotesModal({ lead, user, onClose }: {
     if (!text.trim() || !user) return
     setSending(true)
     await supabase.from("task_force_notes").insert({
-      konsumen_id: lead.id,
+      lead_id:     lead.id,
       content:     text.trim(),
       created_by:  user.id,
       author_name: user.name,
@@ -274,12 +273,12 @@ export default function TaskForcePage() {
   async function fetchData() {
     setLoading(true)
     const [{ data }, spsRes, projRes, cbRes, notesCountRes] = await Promise.all([
-      supabase.from("konsumen").select("*").eq("board", "task_force")
+      supabase.from("task_force_leads").select("*")
         .in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
       supabase.from("users").select("name,hunter_name").in("role", ["sales_person", "telemarketing"]).neq("status", "resigned"),
-      supabase.from("konsumen").select("project").not("project", "is", null),
-      supabase.from("konsumen").select("cara_bayar").not("cara_bayar", "is", null),
-      supabase.from("task_force_notes").select("konsumen_id"),
+      supabase.from("task_force_leads").select("project").not("project", "is", null),
+      supabase.from("task_force_leads").select("cara_bayar").not("cara_bayar", "is", null),
+      supabase.from("task_force_notes").select("lead_id"),
     ])
     const uniqueProjects = Array.from(
       new Set((projRes.data || []).map((r: { project: string | null }) => r.project).filter(Boolean) as string[])
@@ -302,10 +301,10 @@ export default function TaskForcePage() {
       spsMap[sp.hunter_name].push(sp.name)
     }
     setActiveSps(spsMap)
-    // Build notes count map: konsumen_id → count
+    // Build notes count map: lead_id → count
     const countsMap: Record<string, number> = {}
-    for (const n of (notesCountRes.data || []) as { konsumen_id: string }[]) {
-      countsMap[n.konsumen_id] = (countsMap[n.konsumen_id] || 0) + 1
+    for (const n of (notesCountRes.data || []) as { lead_id: string }[]) {
+      countsMap[n.lead_id] = (countsMap[n.lead_id] || 0) + 1
     }
     setNotesCounts(countsMap)
     setLoading(false)
@@ -359,12 +358,12 @@ export default function TaskForcePage() {
       visit_date: form.visit_date || null, sudah_visit: !!form.visit_date,
       sudah_booking_fee: form.sudah_booking_fee === "true",
       status: form.status, notes: form.notes || null,
-      user_id: user!.id, board: "task_force",
+      user_id: user!.id,
     }
     if (editing) {
-      await supabase.from("konsumen").update(payload).eq("id", editing.id)
+      await supabase.from("task_force_leads").update(payload).eq("id", editing.id)
     } else {
-      await supabase.from("konsumen").insert(payload)
+      await supabase.from("task_force_leads").insert(payload)
     }
     setSaving(false)
     setShowModal(false)
