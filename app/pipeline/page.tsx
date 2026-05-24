@@ -386,6 +386,11 @@ ${data.map(r => {
   }
 
   const displayed = [...filtered].sort((a, b) => {
+    // Tidak potensial always last
+    const aTp = a.status === "tidak_potensial" ? 1 : 0
+    const bTp = b.status === "tidak_potensial" ? 1 : 0
+    if (aTp !== bTp) return aTp - bTp
+
     if (!sortCol) return 0
     let av: string | number = "", bv: string | number = ""
     if      (sortCol === "hunter")   { av = a.sales_hunter || ""; bv = b.sales_hunter || "" }

@@ -31,7 +31,6 @@ interface TFNote {
   lead_id: string
   content: string
   author_name: string
-  created_by: string | null
   created_at: string
 }
 
@@ -144,7 +143,6 @@ function NotesModal({ lead, user, onClose }: {
     await supabase.from("task_force_notes").insert({
       lead_id:     lead.id,
       content:     text.trim(),
-      created_by:  user.id,
       author_name: user.name,
     })
     setText("")
@@ -411,15 +409,35 @@ export default function TaskForcePage() {
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
   const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
 
-  function handleSharePDF() {
+  async function handleSharePDF() {
     const data = displayed
     const printDate = fmtDDMMYYYY(new Date().toISOString())
     const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+
+    // Fetch all notes for displayed leads
+    const leadIds = data.map(r => r.id)
+    const notesByLead: Record<string, TFNote[]> = {}
+    if (leadIds.length > 0) {
+      const { data: allNotes } = await supabase
+        .from("task_force_notes")
+        .select("*")
+        .in("lead_id", leadIds)
+        .order("created_at", { ascending: true })
+      for (const n of (allNotes || []) as TFNote[]) {
+        if (!notesByLead[n.lead_id]) notesByLead[n.lead_id] = []
+        notesByLead[n.lead_id].push(n)
+      }
+    }
+
     const rows2 = data.map(r => {
       const statusLabel: Record<string,string> = { warm:"Warm", hot:"Hot", tidak_potensial:"Tdk Potensial" }
       const nilai = r.status !== "tidak_potensial" && r.potensi_closing
         ? "Rp " + Number(r.potensi_closing).toLocaleString("id-ID") : "—"
-      return `<tr><td>${esc(r.sales_hunter||"—")}</td><td>${esc(r.sales_person||"—")}</td><td><b>${esc(r.name||"—")}</b></td><td>${esc(r.project||"—")}</td><td>${esc(r.unit||"—")}</td><td>${statusLabel[r.status]||esc(r.status||"—")}</td><td style="text-align:right">${nilai}</td><td>${esc(r.cara_bayar||"—")}</td><td style="text-align:center">${r.sudah_visit?"Y":"N"}</td><td style="text-align:center">${r.sudah_booking_fee?"Y":"N"}</td><td>${r.notes?esc(r.notes):"—"}</td></tr>`
+      const modalNotes = (notesByLead[r.id] || [])
+        .map(n => `<span style="color:#666;font-size:9px">${n.author_name} · ${fmtNoteTime(n.created_at)}</span><br>${esc(n.content)}`)
+        .join("<hr style='margin:4px 0;border-color:#eee'>")
+      const catatanCell = modalNotes || (r.notes ? esc(r.notes) : "—")
+      return `<tr><td>${esc(r.sales_hunter||"—")}</td><td>${esc(r.sales_person||"—")}</td><td><b>${esc(r.name||"—")}</b></td><td>${esc(r.project||"—")}</td><td>${esc(r.unit||"—")}</td><td>${statusLabel[r.status]||esc(r.status||"—")}</td><td style="text-align:right">${nilai}</td><td>${esc(r.cara_bayar||"—")}</td><td style="text-align:center">${r.sudah_visit?"Y":"N"}</td><td style="text-align:center">${r.sudah_booking_fee?"Y":"N"}</td><td style="min-width:160px;white-space:pre-wrap;line-height:1.5">${catatanCell}</td></tr>`
     }).join("")
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Task Force Report</title><style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px}table{width:100%;border-collapse:collapse}th{background:#eee;padding:6px 8px;font-size:10px;border:1px solid #ccc}td{padding:5px 8px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even){background:#f9f9f9}</style></head><body><h2>Task Force Report — CGD Sales</h2><p style="color:#666;font-size:10px">Dicetak: ${printDate} · ${data.length} data</p><table><thead><tr><th>Hunter</th><th>Sales</th><th>Nama Leads</th><th>Project</th><th>Unit</th><th>Status</th><th>Nilai</th><th>Cara Bayar</th><th>Visit</th><th>BF</th><th>Catatan</th></tr></thead><tbody>${rows2}</tbody></table></body></html>`
     const w = window.open("","_blank"); if(!w) return
