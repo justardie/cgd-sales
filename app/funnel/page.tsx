@@ -567,7 +567,7 @@ export default function FunnelPage() {
       ids = (data ?? []).map((u: { id: string }) => u.id)
     }
     if (ids.length === 0) { setLeads([]); setLoading(false); return }
-    let q = supabase.from("leads").select("*").in("assigned_to", ids).eq("period", period).order("created_at", { ascending: false })
+    let q = supabase.from("leads").select("*").in("assigned_to", ids).eq("period", period).order("created_at", { ascending: false }).limit(10000)
     if (filterTm) q = q.eq("assigned_to", filterTm)
     const { data } = await q
     setLeads((data ?? []) as Lead[])
