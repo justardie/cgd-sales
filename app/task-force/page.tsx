@@ -452,7 +452,10 @@ export default function TaskForcePage() {
       const modalNotes = (notesByLead[r.id] || [])
         .map(n => `<span style="color:#666;font-size:9px">${n.author_name} · ${fmtNoteTime(n.created_at)}</span><br>${esc(n.content)}`)
         .join("<hr style='margin:4px 0;border-color:#eee'>")
-      const catatanCell = modalNotes || (r.notes ? esc(r.notes) : "—")
+      const parts: string[] = []
+      if (r.notes) parts.push(`<b style="font-size:9px;color:#444">Catatan:</b><br>${esc(r.notes)}`)
+      if (modalNotes) parts.push(`<b style="font-size:9px;color:#444">Action Plan:</b><br>${modalNotes}`)
+      const catatanCell = parts.join("<hr style='margin:5px 0;border-color:#ddd'>") || "—"
       return `<tr><td>${esc(r.sales_hunter||"—")}</td><td>${esc(r.sales_person||"—")}</td><td><b>${esc(r.name||"—")}</b></td><td>${esc(r.project||"—")}</td><td>${esc(r.unit||"—")}</td><td>${statusLabel[r.status]||esc(r.status||"—")}</td><td style="text-align:right">${nilai}</td><td>${esc(r.cara_bayar||"—")}</td><td style="text-align:center">${r.sudah_visit?"Y":"N"}</td><td style="text-align:center">${r.sudah_booking_fee?"Y":"N"}</td><td style="min-width:160px;white-space:pre-wrap;line-height:1.5">${catatanCell}</td></tr>`
     }).join("")
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Task Force Report</title><style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px}table{width:100%;border-collapse:collapse}th{background:#eee;padding:6px 8px;font-size:10px;border:1px solid #ccc}td{padding:5px 8px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even){background:#f9f9f9}</style></head><body><h2>Task Force Report — CGD Sales</h2><p style="color:#666;font-size:10px">Dicetak: ${printDate} · ${data.length} data</p><table><thead><tr><th>Hunter</th><th>Sales</th><th>Nama Leads</th><th>Project</th><th>Unit</th><th>Status</th><th>Nilai</th><th>Cara Bayar</th><th>Visit</th><th>BF</th><th>Catatan</th></tr></thead><tbody>${rows2}</tbody></table></body></html>`
