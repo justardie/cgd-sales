@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Search, FileText, Pencil, MessageSquare, Send } from "lucide-react"
+import { Plus, X, Search, FileText, Pencil, MessageSquare, Send, Trash2 } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -265,6 +265,8 @@ export default function TaskForcePage() {
   const [formError, setFormError] = useState("")
   const [notesLead, setNotesLead] = useState<KonsumenRow | null>(null)
   const [notesCounts, setNotesCounts] = useState<Record<string, number>>({})
+  const [deleteTarget, setDeleteTarget] = useState<KonsumenRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { if (user) fetchData() }, [user, canSeeAll])
 
@@ -408,6 +410,20 @@ export default function TaskForcePage() {
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
   const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
+
+  function canDelete(r: KonsumenRow): boolean {
+    if (isAdmin) return true
+    return r.user_id === user?.id || (r.sales_hunter || "").toLowerCase() === (user?.name || "").toLowerCase()
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    await supabase.from("task_force_leads").delete().eq("id", deleteTarget.id)
+    setDeleting(false)
+    setDeleteTarget(null)
+    fetchData()
+  }
 
   async function handleSharePDF() {
     const data = displayed
@@ -572,6 +588,12 @@ export default function TaskForcePage() {
                               </span>
                             )}
                           </button>
+                          {canDelete(r) && (
+                            <button onClick={() => setDeleteTarget(r)}
+                              className="text-red-500 hover:text-red-400 transition" title="Hapus">
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -756,6 +778,41 @@ export default function TaskForcePage() {
           user={user}
           onClose={() => { setNotesLead(null); fetchData() }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.75)" }}>
+          <div className="w-full max-w-sm rounded-xl p-5"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "rgba(239,68,68,0.15)" }}>
+                <Trash2 size={15} className="text-red-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-white">Hapus Data Task Force?</h3>
+            </div>
+            <p className="text-xs text-slate-400 mb-1">Data berikut akan dihapus permanen:</p>
+            <div className="rounded-lg px-3 py-2 mb-4 text-xs"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <span className="text-white font-medium">{deleteTarget.name}</span>
+              {deleteTarget.project && <span className="text-slate-500"> · {deleteTarget.project}</span>}
+              {deleteTarget.sales_hunter && <span className="text-slate-500"> · {deleteTarget.sales_hunter}</span>}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting}
+                className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                Batal
+              </button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 transition">
+                {deleting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardShell>
   )
