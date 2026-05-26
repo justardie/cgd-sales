@@ -326,12 +326,10 @@ export default function ClosingPage() {
       closingQuery,
       supabase.from("users")
         .select("id,name,monthly_target,role,status")
-        .eq("status", "active")
         .eq("role", "hunter"),
       supabase.from("users")
         .select("name,hunter_name")
-        .in("role", ["sales_person", "telemarketing"])
-        .neq("status", "resigned"),
+        .in("role", ["sales_person", "telemarketing"]),
       supabase.from("konsumen")
         .select("project")
         .not("project", "is", null),
