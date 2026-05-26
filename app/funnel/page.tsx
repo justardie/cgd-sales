@@ -1,10 +1,10 @@
 "use client"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import * as XLSX from "xlsx"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
-import { Lead, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
-import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2 } from "lucide-react"
+import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
+import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
@@ -123,9 +123,112 @@ function LeadCard({ lead, tmName, onTap }: { lead: Lead; tmName?: string; onTap:
   )
 }
 
+// ── Journey Notes ─────────────────────────────────────────────────────────────
+function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: string } | null }) {
+  const [notes, setNotes]     = useState<LeadNote[]>([])
+  const [loading, setLoading] = useState(true)
+  const [text, setText]       = useState("")
+  const [sending, setSending] = useState(false)
+  const bottomRef             = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { loadNotes() }, [lead.id])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
+
+  async function loadNotes() {
+    setLoading(true)
+    const { data } = await supabase
+      .from("lead_notes")
+      .select("*")
+      .eq("lead_id", lead.id)
+      .order("created_at", { ascending: true })
+    setNotes((data || []) as LeadNote[])
+    setLoading(false)
+  }
+
+  async function handleSend() {
+    if (!text.trim() || !user) return
+    setSending(true)
+    await supabase.from("lead_notes").insert({
+      lead_id:     lead.id,
+      content:     text.trim(),
+      author_name: user.name,
+      created_by:  user.id,
+    })
+    setText("")
+    setSending(false)
+    loadNotes()
+  }
+
+  function fmtNoteDate(iso: string): string {
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return iso
+    return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`
+  }
+
+  return (
+    <div style={{ marginBottom: "22px" }}>
+      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+        <BookOpen size={11} /> Journey / Catatan
+      </div>
+
+      {/* Timeline */}
+      <div style={{ maxHeight: "220px", overflowY: "auto", marginBottom: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
+        {loading ? (
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", padding: "12px" }}>Memuat...</div>
+        ) : notes.length === 0 ? (
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", padding: "16px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
+            Belum ada catatan journey. Tambahkan di bawah.
+          </div>
+        ) : notes.map(n => (
+          <div key={n.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px" }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)" }}>{n.author_name}</span>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
+            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-primary)", whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      {user && (
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSend() } }}
+            placeholder="Tulis catatan journey... (Ctrl+Enter kirim)"
+            rows={2}
+            style={{
+              flex: 1, background: "var(--surface)", border: "1px solid var(--border-medium)",
+              borderRadius: "10px", padding: "9px 12px", color: "var(--text-primary)",
+              fontSize: "13px", outline: "none", resize: "none", lineHeight: "1.5", boxSizing: "border-box",
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() || sending}
+            style={{
+              flexShrink: 0, width: 38, height: 38, borderRadius: "10px", border: "none",
+              background: !text.trim() || sending ? "var(--surface3)" : "var(--accent)",
+              color: !text.trim() || sending ? "var(--text-muted)" : "#fff",
+              cursor: !text.trim() || sending ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Send size={15} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Detail bottom sheet ───────────────────────────────────────────────────────
-function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: {
+function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDeleted }: {
   lead: Lead; canEdit: boolean; canDelete: boolean
+  user: { id: string; name: string } | null
   onClose: () => void; onSaved: (updated: Lead) => void; onDeleted: (id: string) => void
 }) {
   const [status, setStatus]         = useState<LeadStatus>(lead.status)
@@ -277,6 +380,9 @@ function DetailSheet({ lead, canEdit, canDelete, onClose, onSaved, onDeleted }: 
             }}
           />
         </div>
+
+        {/* Journey Notes */}
+        <JourneyNotes lead={lead} user={user} />
 
         {/* Delete confirmation panel */}
         {confirmDel && (
@@ -613,6 +719,7 @@ export default function FunnelPage() {
           lead={activeLead}
           canEdit={canEdit}
           canDelete={isDgm || isAdmin}
+          user={user ? { id: user.id, name: user.name } : null}
           onClose={() => setActiveLead(null)}
           onSaved={handleSaved}
           onDeleted={handleDeleted}

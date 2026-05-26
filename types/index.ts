@@ -18,12 +18,12 @@ export const LEAD_STATUS_CONFIG: Record<
   new:                     { label: 'Belum Dihubungi',         result: 'Belum Dihubungi',    color: 'slate'   },
   tidak_aktif:             { label: 'Tidak Aktif',              result: 'Unqualified',         color: 'red'     },
   bisa_dihub_tidak_angkat: { label: 'Tdk Angkat',               result: 'Follow Up',           color: 'amber'   },
-  angkat_tidak_tertarik:   { label: 'Tdk Tertarik',             result: 'Cold',                color: 'blue'    },
+  angkat_tidak_tertarik:   { label: 'Tdk Tertarik',             result: 'Tdk Tertarik',        color: 'blue'    },
   angkat_tertarik:         { label: 'Tertarik & Mau Visit',     result: 'Segera Visit',        color: 'green'   },
-  visit_dijadwalkan:       { label: 'Visit Dijadwalkan',        result: 'Visit Dijadwalkan',   color: 'purple'  },
-  sudah_visit:             { label: 'Sudah Visit',              result: 'Sudah Visit',         color: 'teal'    },
-  closing:                 { label: 'Closing',                  result: 'Closing ✓',           color: 'emerald' },
-  lost:                    { label: 'Tidak Potensial',          result: 'Lost',                color: 'gray'    },
+  visit_dijadwalkan:       { label: 'Visit Dijadwalkan',        result: 'Ingatkan Visit',      color: 'purple'  },
+  sudah_visit:             { label: 'Sudah Visit',              result: 'Follow up Kembali',   color: 'teal'    },
+  closing:                 { label: 'Closing',                  result: 'WON!',                color: 'emerald' },
+  lost:                    { label: 'Tidak Potensial',          result: 'Tdk Potensial',       color: 'gray'    },
 }
 
 export interface Lead {
@@ -38,6 +38,15 @@ export interface Lead {
   period: string
   created_at: string
   updated_at: string
+}
+
+export interface LeadNote {
+  id: string
+  lead_id: string
+  content: string
+  author_name: string
+  created_by: string | null
+  created_at: string
 }
 export type UserStatus = 'active' | 'resigned'
 export type ActivityStatus = 'pending' | 'in_progress' | 'completed' | 'overdue'
