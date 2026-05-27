@@ -474,10 +474,17 @@ export default function ClosingPage() {
     : null
 
   const displayHunters = isAdmin
-    ? HUNTER_GROUPS
-        .map(g => hunters.find(h => h.name === g.dbName || h.name === g.name))
-        .filter((h): h is User => !!h)
+    ? hunters
     : hunters.filter(h => h.id === user?.id)
+
+  // Closing records whose sales_hunter doesn't match any DB user (e.g. "Others", manual entries)
+  const orphanHunterNames = isAdmin
+    ? Array.from(new Set(
+        closings
+          .map(c => c.sales_hunter)
+          .filter((name): name is string => !!name && !hunters.some(h => h.name === name))
+      )).sort()
+    : []
 
   const filtered = closings.filter(c => {
     if (filterHunter    && (c.sales_hunter || "") !== filterHunter) return false
@@ -682,6 +689,19 @@ export default function ClosingPage() {
                     </div>
                   )
                 })}
+                {orphanHunterNames.map(name => {
+                  const total = filtered
+                    .filter(c => c.sales_hunter === name)
+                    .reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                  return (
+                    <div key={name} className="rounded-xl p-3"
+                      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                      <div className="text-xs text-slate-400 font-medium truncate">{name}</div>
+                      <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
+                      <div className="text-xs text-slate-600 mt-0.5">—</div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
@@ -768,12 +788,12 @@ export default function ClosingPage() {
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <option value="">Semua Hunter</option>
-            {displayHunters.map(h => {
-              const g = HUNTER_GROUPS.find(g => g.dbName === h.name || g.name === h.name)
-              const dbName = g?.dbName ?? h.name
-              const label = g?.name ?? h.name
-              return <option key={h.id} value={dbName}>{label}</option>
-            })}
+            {displayHunters.map(h => (
+              <option key={h.id} value={h.name}>{h.name}</option>
+            ))}
+            {orphanHunterNames.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
           </select>
           <select value={filterProject} onChange={e => setFilterProject(e.target.value)}
             className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
