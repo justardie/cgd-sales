@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import {
   LayoutDashboard, MapPin, TrendingUp, DollarSign,
   CheckSquare, Users, Shield, MessageSquare, BarChart2,
-  Filter, PieChart, ClipboardList,
+  Filter, PieChart,
 } from "lucide-react"
 
 const SALES_NAV = [
@@ -13,7 +13,6 @@ const SALES_NAV = [
   { href: "/visit",          label: "Visit",          icon: MapPin                               },
   { href: "/pipeline",       label: "Pipeline",       icon: TrendingUp                           },
   { href: "/closing",        label: "Closing",        icon: DollarSign                           },
-  { href: "/task-force",     label: "Task Force",     icon: ClipboardList, taskForceAccess: true },
   { href: "/activities",     label: "Activities",     icon: CheckSquare                          },
   { href: "/team",           label: "Team Status",    icon: Users                                },
   { href: "/funnel",         label: "Leads Funnel",   icon: Filter,     funnelAccess: true       },
@@ -29,9 +28,10 @@ const TM_NAV = [
 ]
 
 const TF_NAV = [
-  { href: "/",           label: "Overview",    icon: LayoutDashboard },
-  { href: "/closing",    label: "Closing",     icon: DollarSign      },
-  { href: "/task-force", label: "Task Force",  icon: ClipboardList   },
+  { href: "/",          label: "Overview",    icon: LayoutDashboard },
+  { href: "/pipeline",  label: "Pipeline",    icon: TrendingUp      },
+  { href: "/closing",   label: "Closing",     icon: DollarSign      },
+  { href: "/team",      label: "Team Status", icon: Users           },
 ]
 
 export default function Sidebar() {
@@ -48,9 +48,8 @@ export default function Sidebar() {
     : isTf
     ? TF_NAV
     : SALES_NAV.filter((item) => {
-        if (item.adminOnly        && !isAdmin)                                      return false
-        if (item.funnelAccess     && role !== "hunter" && !hasTmAccess && !isAdmin) return false
-        if (item.taskForceAccess  && role !== "hunter" && !isAdmin)                 return false
+        if (item.adminOnly    && !isAdmin)                                      return false
+        if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin) return false
         return true
       })
 
