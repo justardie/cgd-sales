@@ -1,11 +1,11 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Search, FileText, Pencil, CheckCircle2, Trash2 } from "lucide-react"
+import { Plus, X, Search, FileText, Pencil, CheckCircle2, Trash2, Send, BookOpen } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -102,6 +102,118 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
         </button>
         {children}
       </div>
+    </div>
+  )
+}
+
+interface PipelineNote {
+  id: string
+  konsumen_id: string
+  content: string
+  author_name: string
+  created_by: string | null
+  created_at: string
+}
+
+function PipelineNotes({ konsumenId, user }: { konsumenId: string; user: { id: string; name: string } | null }) {
+  const [notes, setNotes]     = useState<PipelineNote[]>([])
+  const [loading, setLoading] = useState(true)
+  const [text, setText]       = useState("")
+  const [sending, setSending] = useState(false)
+  const bottomRef             = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { loadNotes() }, [konsumenId])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
+
+  async function loadNotes() {
+    setLoading(true)
+    const { data } = await supabase
+      .from("pipeline_notes")
+      .select("*")
+      .eq("konsumen_id", konsumenId)
+      .order("created_at", { ascending: true })
+    setNotes((data || []) as PipelineNote[])
+    setLoading(false)
+  }
+
+  async function handleSend() {
+    if (!text.trim() || !user) return
+    setSending(true)
+    await supabase.from("pipeline_notes").insert({
+      konsumen_id: konsumenId,
+      content:     text.trim(),
+      author_name: user.name,
+      created_by:  user.id,
+    })
+    setText("")
+    setSending(false)
+    loadNotes()
+  }
+
+  function fmtNoteDate(iso: string): string {
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return iso
+    return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`
+  }
+
+  return (
+    <div style={{ marginTop: "8px" }}>
+      <label className="text-xs text-slate-500 block mb-2" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+        <BookOpen size={11} /> Catatan / Progress
+      </label>
+
+      {/* Timeline */}
+      <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+        {loading ? (
+          <div className="text-xs text-slate-500 text-center py-3">Memuat...</div>
+        ) : notes.length === 0 ? (
+          <div className="text-xs text-slate-600 text-center py-4 rounded-lg"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+            Belum ada catatan. Tulis di bawah.
+          </div>
+        ) : notes.map(n => (
+          <div key={n.id} className="rounded-lg px-3 py-2"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px", gap: "8px" }}>
+              <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{n.author_name}</span>
+              <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
+            </div>
+            <div className="text-sm text-white" style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      {user && (
+        <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSend() } }}
+            placeholder="Tulis progress / catatan... (Ctrl+Enter kirim)"
+            rows={2}
+            className="text-sm text-white outline-none resize-none"
+            style={{
+              flex: 1, background: "var(--surface2)", border: "1px solid var(--border)",
+              borderRadius: "8px", padding: "8px 10px", fontSize: "13px", lineHeight: "1.5", boxSizing: "border-box",
+            }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() || sending}
+            style={{
+              flexShrink: 0, width: 34, height: 34, borderRadius: "8px", border: "none",
+              background: !text.trim() || sending ? "var(--surface3, #2a2a2a)" : "var(--accent)",
+              color: !text.trim() || sending ? "#666" : "#fff",
+              cursor: !text.trim() || sending ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Send size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -784,14 +896,14 @@ ${data.map(r => {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Catatan</label>
-                <textarea value={form.notes}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  rows={2}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none resize-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-              </div>
+              {editing && (
+                <div>
+                  <PipelineNotes
+                    konsumenId={editing.id}
+                    user={user ? { id: user.id, name: user.name } : null}
+                  />
+                </div>
+              )}
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
