@@ -1,12 +1,12 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import {
   TrendingUp, DollarSign, AlertTriangle, Trophy,
-  Users, Activity, ChevronDown, ChevronUp, Calendar,
+  Users, Activity, ChevronDown, ChevronUp,
 } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -187,25 +187,59 @@ export default function OverviewPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [showCharts, setShowCharts] = useState(true)
 
-  // dateMode: "month" | "ytd" | "custom"
-  const [dateMode, setDateMode] = useState<"month" | "ytd" | "custom">("month")
+  // dateMode: "today" | "mtd" | "ytd" | "custom"
+  const [dateMode, setDateMode] = useState<"today" | "mtd" | "ytd" | "custom">("mtd")
   const [customFrom, setCustomFrom] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
   const [customTo,   setCustomTo]   = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const [customPopOpen, setCustomPopOpen] = useState(false)
+  const [customFromTemp, setCustomFromTemp] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const [customToTemp,   setCustomToTemp]   = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const customPopRef = useRef<HTMLDivElement>(null)
+
+  // Close custom popover on outside click
+  useEffect(() => {
+    if (!customPopOpen) return
+    function handler(e: MouseEvent) {
+      if (customPopRef.current && !customPopRef.current.contains(e.target as Node)) {
+        setCustomPopOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [customPopOpen])
 
   const ytdMode = dateMode === "ytd"
 
-  const lastMonth = month === 1 ? 12 : month - 1
-  const lastYear  = month === 1 ? year - 1 : year
+  const effMonth = dateMode === "today" || dateMode === "mtd" ? now.getMonth() + 1 : month
+  const effYear  = dateMode === "today" || dateMode === "mtd" ? now.getFullYear()  : year
+  const lastMonth = effMonth === 1 ? 12 : effMonth - 1
+  const lastYear  = effMonth === 1 ? effYear - 1 : effYear
 
-  useEffect(() => { if (user) fetchDashboard() }, [user, month, year, dateMode])
+  useEffect(() => { if (user) fetchDashboard() }, [user, month, year, dateMode, customFrom, customTo])
 
   async function fetchDashboard() {
     setLoading(true)
     try {
+      // Build primary closings query based on mode
+      let closingsPrimaryQ = supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing")
+      if (dateMode === "today" || dateMode === "mtd") {
+        closingsPrimaryQ = closingsPrimaryQ.eq("closing_month", effMonth).eq("closing_year", effYear)
+      } else if (dateMode === "ytd") {
+        closingsPrimaryQ = closingsPrimaryQ.eq("closing_year", effYear).lte("closing_month", effMonth)
+      } else {
+        // custom — range of months
+        if (customFrom.year === customTo.year) {
+          closingsPrimaryQ = closingsPrimaryQ.eq("closing_year", customFrom.year).gte("closing_month", customFrom.month).lte("closing_month", customTo.month)
+        } else {
+          // multi-year: include all in between (simplified: from..to year/month)
+          closingsPrimaryQ = closingsPrimaryQ.gte("closing_year", customFrom.year).lte("closing_year", customTo.year)
+        }
+      }
+
       const [usersRes, closingsMtd, closingsYtd, closingsLast, pipelineRes, activeSpsRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role,hunter_name").eq("status", "active"),
-        supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
-        supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
+        closingsPrimaryQ,
+        supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", effYear).lte("closing_month", effMonth),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]).or("board.eq.pipeline,board.is.null"),
         supabase.from("users").select("name").eq("role", "sales_person").eq("status", "active"),
@@ -350,96 +384,156 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Date Filter — Month / YTD / Custom */}
+        {/* Date Filter — Hari Ini | MTD | YTD | Custom ↓ (PL-WEBSITE pattern) */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
-            MASCOL Division · Sales Performance
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Mode buttons */}
-            <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-              {(["month","ytd","custom"] as const).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setDateMode(mode)}
-                  className="px-3 py-1.5 text-xs font-semibold transition"
-                  style={{
-                    background: dateMode === mode ? "var(--accent)" : "var(--surface2)",
-                    color: dateMode === mode ? "#fff" : "var(--text-muted)",
-                    borderRight: mode !== "custom" ? "1px solid var(--border)" : undefined,
-                  }}
-                >
-                  {mode === "month" ? "Bulan" : mode === "ytd" ? `YTD ${now.getFullYear()}` : "Custom"}
-                </button>
-              ))}
-            </div>
-
-            {/* Month picker — only in "month" mode */}
-            {dateMode === "month" && (
-              <div className="flex items-center gap-1.5">
-                <select
-                  value={month}
-                  onChange={e => setMonth(Number(e.target.value))}
-                  className="text-xs px-2 py-1.5 rounded-lg font-semibold"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-                >
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  value={year}
-                  onChange={e => setYear(Number(e.target.value))}
-                  min={2020} max={2030}
-                  className="text-xs px-2 py-1.5 rounded-lg font-semibold w-16"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-                />
-              </div>
-            )}
-
-            {/* Custom range — month/year from-to */}
-            {dateMode === "custom" && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1">
-                  <Calendar size={12} style={{ color: "var(--text-muted)" }} />
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Dari:</span>
-                  <select value={customFrom.month} onChange={e => setCustomFrom(p => ({ ...p, month: Number(e.target.value) }))}
-                    className="text-xs px-1.5 py-1 rounded-lg"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
-                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>)}
-                  </select>
-                  <input type="number" value={customFrom.year} min={2020} max={2030}
-                    onChange={e => setCustomFrom(p => ({ ...p, year: Number(e.target.value) }))}
-                    className="text-xs px-1.5 py-1 rounded-lg w-14"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                </div>
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>–</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Sampai:</span>
-                  <select value={customTo.month} onChange={e => setCustomTo(p => ({ ...p, month: Number(e.target.value) }))}
-                    className="text-xs px-1.5 py-1 rounded-lg"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
-                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>)}
-                  </select>
-                  <input type="number" value={customTo.year} min={2020} max={2030}
-                    onChange={e => setCustomTo(p => ({ ...p, year: Number(e.target.value) }))}
-                    className="text-xs px-1.5 py-1 rounded-lg w-14"
-                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-                </div>
-              </div>
-            )}
-
-            {/* Label showing current filter */}
-            <span className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{
-              background: "rgba(255,106,61,0.1)", color: "var(--accent)", border: "1px solid rgba(255,106,61,0.2)"
-            }}>
-              {dateMode === "ytd"
+            MASCOL Division ·{" "}
+            <span style={{ color: "var(--text-primary)" }}>
+              {dateMode === "today"
+                ? new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                : dateMode === "mtd"
+                ? `${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
+                : dateMode === "ytd"
                 ? `Jan – ${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
-                : dateMode === "custom"
-                ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
-                : `${getMonthName(month)} ${year}`}
+                : `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`}
             </span>
+          </p>
+
+          <div className="date-filter">
+            {/* Hari Ini */}
+            <button
+              className={`date-filter__chip${dateMode === "today" ? " date-filter__chip--active" : ""}`}
+              onClick={() => { setDateMode("today"); setCustomPopOpen(false) }}
+            >
+              Hari Ini
+            </button>
+
+            {/* MTD */}
+            <button
+              className={`date-filter__chip${dateMode === "mtd" ? " date-filter__chip--active" : ""}`}
+              onClick={() => { setDateMode("mtd"); setCustomPopOpen(false) }}
+            >
+              MTD
+            </button>
+
+            {/* YTD */}
+            <button
+              className={`date-filter__chip${dateMode === "ytd" ? " date-filter__chip--active" : ""}`}
+              onClick={() => { setDateMode("ytd"); setCustomPopOpen(false) }}
+            >
+              YTD
+            </button>
+
+            {/* Custom ↓ */}
+            <div className="date-filter__group" ref={customPopRef}>
+              <button
+                className={`date-filter__chip${dateMode === "custom" ? " date-filter__chip--active" : ""}`}
+                onClick={() => setCustomPopOpen(v => !v)}
+              >
+                <span>{dateMode === "custom"
+                  ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
+                  : "Custom"}</span>
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {customPopOpen && (
+                <div className="date-filter__pop">
+                  {/* Bulan tertentu */}
+                  <p className="date-filter__legend">Bulan tertentu</p>
+                  <div className="date-filter__row">
+                    <select
+                      className="date-filter__input"
+                      value={customFromTemp.month}
+                      onChange={e => setCustomFromTemp(p => ({ ...p, month: Number(e.target.value) }))}
+                    >
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="date-filter__input"
+                      style={{ maxWidth: 90 }}
+                      value={customFromTemp.year}
+                      onChange={e => setCustomFromTemp(p => ({ ...p, year: Number(e.target.value) }))}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                    <button
+                      className="date-filter__apply"
+                      onClick={() => {
+                        setCustomFrom(customFromTemp)
+                        setCustomTo(customFromTemp)
+                        setDateMode("custom")
+                        setCustomPopOpen(false)
+                      }}
+                    >
+                      Terapkan
+                    </button>
+                  </div>
+
+                  <div className="date-filter__divider" />
+
+                  {/* Range tanggal */}
+                  <p className="date-filter__legend">Range bulan</p>
+                  <div className="date-filter__row" style={{ flexWrap: "wrap" }}>
+                    <select
+                      className="date-filter__input"
+                      value={customFromTemp.month}
+                      onChange={e => setCustomFromTemp(p => ({ ...p, month: Number(e.target.value) }))}
+                    >
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="date-filter__input"
+                      style={{ maxWidth: 90 }}
+                      value={customFromTemp.year}
+                      onChange={e => setCustomFromTemp(p => ({ ...p, year: Number(e.target.value) }))}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                    <span className="date-filter__sep">→</span>
+                    <select
+                      className="date-filter__input"
+                      value={customToTemp.month}
+                      onChange={e => setCustomToTemp(p => ({ ...p, month: Number(e.target.value) }))}
+                    >
+                      {Array.from({ length: 12 }, (_, i) => (
+                        <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="date-filter__input"
+                      style={{ maxWidth: 90 }}
+                      value={customToTemp.year}
+                      onChange={e => setCustomToTemp(p => ({ ...p, year: Number(e.target.value) }))}
+                    >
+                      {Array.from({ length: 5 }, (_, i) => now.getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                    <button
+                      className="date-filter__apply"
+                      onClick={() => {
+                        setCustomFrom(customFromTemp)
+                        setCustomTo(customToTemp)
+                        setDateMode("custom")
+                        setCustomPopOpen(false)
+                      }}
+                    >
+                      Terapkan
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -556,7 +650,7 @@ export default function OverviewPage() {
                     WIN-OR-DIE ALERT
                   </div>
                   <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    {getMonthName(month)} {year} · {warnHunters.length} belum capai · {wodHunters.length - warnHunters.length} sudah capai
+                    {getMonthName(effMonth)} {effYear} · {warnHunters.length} belum capai · {wodHunters.length - warnHunters.length} sudah capai
                   </div>
                 </div>
               </div>

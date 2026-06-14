@@ -67,7 +67,10 @@
 ═══════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  scroll-behavior: smooth;
+}
 
 body {
   background: var(--bg);
@@ -651,6 +654,151 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 .hunter-card-7 { animation: fadeInCard 0.34s 0.40s ease both; }
 .hunter-card-8 { animation: fadeInCard 0.34s 0.46s ease both; }
 .hunter-card-9 { animation: fadeInCard 0.34s 0.52s ease both; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DATE FILTER — chip row + Custom popover (PL-WEBSITE pattern)
+═══════════════════════════════════════════════════════════════ */
+.date-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3px;
+  position: relative;
+}
+
+.date-filter__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.date-filter__chip:hover { color: var(--text-secondary); }
+
+.date-filter__chip--active {
+  background: rgba(255,255,255,0.10);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.40);
+}
+
+.date-filter__chip svg { width: 12px; height: 12px; }
+
+.date-filter__group { position: relative; }
+
+.date-filter__pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 340px;
+  max-width: calc(100vw - 32px);
+  background: rgba(8, 20, 55, 0.95);
+  border: 1px solid var(--border-medium);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.70), 0 0 0 1px rgba(255,255,255,0.06);
+  padding: 14px;
+  z-index: 200;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.date-filter__legend {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.date-filter__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-filter__input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+.date-filter__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,106,61,0.15);
+}
+
+.date-filter__divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+
+.date-filter__sep {
+  color: var(--text-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.date-filter__apply {
+  height: 34px;
+  padding: 0 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease;
+  flex-shrink: 0;
+}
+
+.date-filter__apply:hover { background: var(--accent-end); }
+
+@media (max-width: 640px) {
+  .date-filter {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-radius: 12px;
+  }
+  .date-filter__group { position: static; }
+  .date-filter__pop {
+    position: fixed;
+    top: auto;
+    bottom: calc(env(safe-area-inset-bottom) + 80px);
+    left: 16px;
+    right: 16px;
+    min-width: 0;
+    max-width: none;
+  }
+  .date-filter__row .date-filter__apply { width: 100%; justify-content: center; }
+}
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE

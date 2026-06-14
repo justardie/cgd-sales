@@ -67,7 +67,7 @@ export default function Header() {
     <header className="app-header">
       <div className="header-logo">
         <Image
-          src="/logo.png"
+          src="/logo-dark.png"
           alt="CGD"
           width={140}
           height={52}
