@@ -189,7 +189,7 @@ export default function PipelinePage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ ...emptyForm, sales_hunter: isAdmin ? "" : (user?.name || "") })
+    setForm({ ...emptyForm, sales_hunter: (isAdmin || isTf) ? "" : (user?.name || "") })
     setFormError("")
     setShowModal(true)
   }
@@ -247,7 +247,7 @@ export default function PipelinePage() {
 
   function validateForm(): boolean {
     const checks: [string, string][] = [
-      [isAdmin ? form.sales_hunter : "ok", "Hunter"],
+      [(isAdmin || isTf) ? form.sales_hunter : "ok", "Hunter"],
       [form.sales_person, "Sales Person"],
       [form.name, "Nama Konsumen"],
       [form.project, "Proyek"],
@@ -272,7 +272,7 @@ export default function PipelinePage() {
     setSaving(true)
     const payload = {
       name:              form.name,
-      sales_hunter:      isAdmin ? form.sales_hunter : user!.name,
+      sales_hunter:      (isAdmin || isTf) ? form.sales_hunter : user!.name,
       sales_person:      form.sales_person || null,
       project:           form.project || null,
       unit:              form.unit || null,
@@ -298,7 +298,7 @@ export default function PipelinePage() {
   }
 
   function canDelete(r: KonsumenRow): boolean {
-    if (isAdmin) return true
+    if (isAdmin || isTf) return true
     return r.user_id === user?.id || (r.sales_hunter || "").toLowerCase() === (user?.name || "").toLowerCase()
   }
 
@@ -411,7 +411,7 @@ ${data.map(r => {
     totalValue: activeRows.reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0),
   }
 
-  const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
+  const hunterKey = (isAdmin || isTf) ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
   const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
@@ -666,7 +666,7 @@ ${data.map(r => {
               )}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Hunter <span className="text-red-400">*</span></label>
-                {isAdmin ? (
+                {(isAdmin || isTf) ? (
                   <select value={form.sales_hunter} required
                     onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "" }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
