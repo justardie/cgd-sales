@@ -115,24 +115,32 @@ interface PipelineNote {
   created_at: string
 }
 
-function PipelineNotes({ konsumenId, user }: { konsumenId: string; user: { id: string; name: string } | null }) {
-  const [notes, setNotes]     = useState<PipelineNote[]>([])
-  const [loading, setLoading] = useState(true)
-  const [text, setText]       = useState("")
-  const [sending, setSending] = useState(false)
-  const bottomRef             = useRef<HTMLDivElement>(null)
+function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string }) {
+  const [notes, setNotes]         = useState<PipelineNote[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [tableExists, setTableExists] = useState(true)
+  const [text, setText]           = useState("")
+  const [sending, setSending]     = useState(false)
+  const bottomRef                 = useRef<HTMLDivElement>(null)
 
   useEffect(() => { loadNotes() }, [konsumenId])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function loadNotes() {
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("pipeline_notes")
       .select("*")
       .eq("konsumen_id", konsumenId)
       .order("created_at", { ascending: true })
-    setNotes((data || []) as PipelineNote[])
+    if (error) {
+      // Table might not exist yet — fall back to legacy note only
+      setTableExists(false)
+      setNotes([])
+    } else {
+      setTableExists(true)
+      setNotes((data || []) as PipelineNote[])
+    }
     setLoading(false)
   }
 
@@ -166,21 +174,37 @@ function PipelineNotes({ konsumenId, user }: { konsumenId: string; user: { id: s
       <div style={{ maxHeight: "200px", overflowY: "auto", marginBottom: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
         {loading ? (
           <div className="text-xs text-slate-500 text-center py-3">Memuat...</div>
-        ) : notes.length === 0 ? (
-          <div className="text-xs text-slate-600 text-center py-4 rounded-lg"
-            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-            Belum ada catatan. Tulis di bawah.
-          </div>
-        ) : notes.map(n => (
-          <div key={n.id} className="rounded-lg px-3 py-2"
-            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px", gap: "8px" }}>
-              <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{n.author_name}</span>
-              <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
-            </div>
-            <div className="text-sm text-white" style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
-          </div>
-        ))}
+        ) : (
+          <>
+            {/* Legacy note from konsumen.notes — shown when pipeline_notes is empty */}
+            {legacyNote && legacyNote.trim() && notes.length === 0 && (
+              <div className="rounded-lg px-3 py-2"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)", opacity: 0.75 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px", gap: "8px" }}>
+                  <span className="text-xs font-semibold text-slate-400">Catatan</span>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0, fontStyle: "italic" }}>catatan lama</span>
+                </div>
+                <div className="text-sm text-slate-300" style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{legacyNote.trim()}</div>
+              </div>
+            )}
+            {notes.length === 0 && (!legacyNote || !legacyNote.trim()) && (
+              <div className="text-xs text-slate-600 text-center py-4 rounded-lg"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                {tableExists ? "Belum ada catatan. Tulis di bawah." : "Tulis catatan baru di bawah."}
+              </div>
+            )}
+            {notes.map(n => (
+              <div key={n.id} className="rounded-lg px-3 py-2"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px", gap: "8px" }}>
+                  <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{n.author_name}</span>
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
+                </div>
+                <div className="text-sm text-white" style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
+              </div>
+            ))}
+          </>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -901,6 +925,7 @@ ${data.map(r => {
                   <PipelineNotes
                     konsumenId={editing.id}
                     user={user ? { id: user.id, name: user.name } : null}
+                    legacyNote={editing.notes || ""}
                   />
                 </div>
               )}
