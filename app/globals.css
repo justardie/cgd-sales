@@ -449,6 +449,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   text-align: left;
+  text-decoration: none;
 }
 .profile-dropdown-item:hover {
   background: var(--surface2);

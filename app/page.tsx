@@ -5,12 +5,12 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import {
-  TrendingUp, MapPin, DollarSign, AlertTriangle, Trophy,
-  Users, Activity, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
+  TrendingUp, DollarSign, AlertTriangle, Trophy,
+  Users, Activity, ChevronDown, ChevronUp, Calendar,
 } from "lucide-react"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  Cell, Legend, PieChart, Pie,
+  Cell, Legend,
 } from "recharts"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 
@@ -166,19 +166,6 @@ const OmsetLegend = () => (
   </div>
 )
 
-const VisitLegend = () => (
-  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", fontSize: 11, paddingTop: 8 }}>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="rgba(59,130,246,0.50)" /> Target Visit
-    </span>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="#22c55e" /> Tercapai
-    </span>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="#FF6A3D" /> Belum Capai
-    </span>
-  </div>
-)
 
 const now = new Date()
 
@@ -192,35 +179,34 @@ export default function OverviewPage() {
     pipeline: 0, pipelineVal: 0,
     spMenjual: 0, totalActiveSps: 0,
   })
+  const [topHunter, setTopHunter] = useState<{ name: string; omset: number; pct: number } | null>(null)
+  const [topSales, setTopSales]   = useState<{ name: string; omset: number } | null>(null)
   const [projectTotals, setProjectTotals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [showCharts, setShowCharts] = useState(true)
 
-  const [ytdMode,    setYtdMode]    = useState(false)
+  // dateMode: "month" | "ytd" | "custom"
+  const [dateMode, setDateMode] = useState<"month" | "ytd" | "custom">("month")
+  const [customFrom, setCustomFrom] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const [customTo,   setCustomTo]   = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
 
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
-  }
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
-  }
+  const ytdMode = dateMode === "ytd"
 
   const lastMonth = month === 1 ? 12 : month - 1
   const lastYear  = month === 1 ? year - 1 : year
 
-  useEffect(() => { if (user) fetchDashboard() }, [user, month, year])
+  useEffect(() => { if (user) fetchDashboard() }, [user, month, year, dateMode])
 
   async function fetchDashboard() {
     setLoading(true)
     try {
-      const [usersRes, closingsMtd, closingsYtd, closingsLast, visitsRes, pipelineRes, activeSpsRes] = await Promise.all([
+      const [usersRes, closingsMtd, closingsYtd, closingsLast, pipelineRes, activeSpsRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role,hunter_name").eq("status", "active"),
         supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", year).lte("closing_month", month),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
-        supabase.from("visit_logs").select("user_id,count").eq("month", month).eq("year", year),
         supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]).or("board.eq.pipeline,board.is.null"),
         supabase.from("users").select("name").eq("role", "sales_person").eq("status", "active"),
       ])
@@ -239,6 +225,37 @@ export default function OverviewPage() {
         }
       })
 
+      // Top Performers: best hunter + best sales person by MTD omset
+      const hunterUsers = allUsers.filter((u: { role: string }) => u.role === "hunter")
+      const spUsers     = allUsers.filter((u: { role: string }) => u.role === "sales_person")
+      const mtdData = closingsMtd.data || []
+
+      const hunterOmset: Record<string, number> = {}
+      mtdData.forEach(c => {
+        if (c.sales_hunter) hunterOmset[c.sales_hunter] = (hunterOmset[c.sales_hunter] || 0) + (c.nilai_hjr || 0)
+      })
+      let bestHunter: { name: string; omset: number; pct: number } | null = null
+      hunterUsers.forEach((u: { name: string; monthly_target: number }) => {
+        const o = hunterOmset[u.name] || 0
+        if (!bestHunter || o > bestHunter.omset) {
+          bestHunter = { name: u.name, omset: o, pct: u.monthly_target > 0 ? Math.round((o / u.monthly_target) * 100) : 0 }
+        }
+      })
+      setTopHunter(bestHunter)
+
+      const spOmset: Record<string, number> = {}
+      mtdData.forEach(c => {
+        if (c.sales_person) spOmset[c.sales_person] = (spOmset[c.sales_person] || 0) + (c.nilai_hjr || 0)
+      })
+      let bestSp: { name: string; omset: number } | null = null
+      spUsers.forEach((u: { name: string }) => {
+        const o = spOmset[u.name] || 0
+        if (!bestSp || o > bestSp.omset) {
+          bestSp = { name: u.name, omset: o }
+        }
+      })
+      setTopSales(bestSp)
+
       const list: HunterStat[] = HUNTER_GROUPS
         .map(group => {
           const hu = nameToUser[group.dbName]
@@ -255,17 +272,12 @@ export default function OverviewPage() {
           const omset_ytd  = (closingsYtd.data  || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
           const omset_last = (closingsLast.data || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
 
-          const memberIds = new Set(
-            [group.dbName, ...(hunterSpByDbName[group.dbName] || [])].map(n => nameToUser[n]?.id).filter((id): id is string => !!id)
-          )
-          const visits = (visitsRes.data || []).filter(v => memberIds.has(v.user_id)).reduce((s, v) => s + (v.count || 0), 0)
-
           return {
             id: hu.id, name: group.name,
             monthly_target: hu.monthly_target,
             win_or_die_target: hu.win_or_die_target,
             visit_target: hu.visit_target,
-            omset_mtd, omset_ytd, omset_last, visits,
+            omset_mtd, omset_ytd, omset_last, visits: 0,
           }
         })
         .filter((h): h is HunterStat => h !== null)
@@ -288,10 +300,6 @@ export default function OverviewPage() {
           .filter(n => n && activeSpNames.has(n))
       ).size
 
-      // Total visit (all users) and total visit target (all active users)
-      const totalVisits = (visitsRes.data || []).reduce((s, v) => s + (v.count || 0), 0)
-      const totalVisitTarget = allUsers.reduce((s, u) => s + (u.visit_target || 0), 0)
-
       const pipes = pipelineRes.data || []
       setHunters(list)
       setProjectTotals(projMap)
@@ -299,8 +307,8 @@ export default function OverviewPage() {
         omsetMtd:    (closingsMtd.data  || []).reduce((s, c) => s + (c.nilai_hjr || 0), 0),
         omsetYtd:    (closingsYtd.data  || []).reduce((s, c) => s + (c.nilai_hjr || 0), 0),
         omsetLast:   (closingsLast.data || []).reduce((s, c) => s + (c.nilai_hjr || 0), 0),
-        visits:      totalVisits,
-        visitTarget: totalVisitTarget,
+        visits:      0,
+        visitTarget: 0,
         pipeline:    pipes.length,
         pipelineVal: pipes.reduce((s, p) => s + (p.potensi_closing || 0), 0),
         spMenjual, totalActiveSps,
@@ -321,11 +329,6 @@ export default function OverviewPage() {
     "Realisasi": Math.round((ytdMode ? h.omset_ytd : h.omset_mtd) / 1_000_000),
   }))
 
-  const visitChart = hunters.map(h => ({
-    name: h.name.split(" ")[0],
-    "Target Visit": h.visit_target,
-    "Visit":        h.visits,
-  }))
 
   return (
     <DashboardShell>
@@ -347,34 +350,96 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Month / YTD Selector */}
+        {/* Date Filter — Month / YTD / Custom */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
             MASCOL Division · Sales Performance
           </p>
-          <div className="flex items-center gap-2">
-            <button onClick={prevMonth} disabled={ytdMode}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronLeft size={14} />
-            </button>
-            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
-              {ytdMode ? `Jan – ${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Mode buttons */}
+            <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+              {(["month","ytd","custom"] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setDateMode(mode)}
+                  className="px-3 py-1.5 text-xs font-semibold transition"
+                  style={{
+                    background: dateMode === mode ? "var(--accent)" : "var(--surface2)",
+                    color: dateMode === mode ? "#fff" : "var(--text-muted)",
+                    borderRight: mode !== "custom" ? "1px solid var(--border)" : undefined,
+                  }}
+                >
+                  {mode === "month" ? "Bulan" : mode === "ytd" ? `YTD ${now.getFullYear()}` : "Custom"}
+                </button>
+              ))}
             </div>
-            <button onClick={nextMonth} disabled={ytdMode}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronRight size={14} />
-            </button>
-            <button onClick={() => setYtdMode(m => !m)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
-                ytdMode ? "text-orange-400" : "text-slate-400 hover:text-white"
-              }`}
-              style={ytdMode
-                ? { background: "rgba(234,92,0,0.15)", border: "1px solid rgba(234,92,0,0.4)" }
-                : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              YTD {now.getFullYear()}
-            </button>
+
+            {/* Month picker — only in "month" mode */}
+            {dateMode === "month" && (
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={month}
+                  onChange={e => setMonth(Number(e.target.value))}
+                  className="text-xs px-2 py-1.5 rounded-lg font-semibold"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  value={year}
+                  onChange={e => setYear(Number(e.target.value))}
+                  min={2020} max={2030}
+                  className="text-xs px-2 py-1.5 rounded-lg font-semibold w-16"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                />
+              </div>
+            )}
+
+            {/* Custom range — month/year from-to */}
+            {dateMode === "custom" && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Calendar size={12} style={{ color: "var(--text-muted)" }} />
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Dari:</span>
+                  <select value={customFrom.month} onChange={e => setCustomFrom(p => ({ ...p, month: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>)}
+                  </select>
+                  <input type="number" value={customFrom.year} min={2020} max={2030}
+                    onChange={e => setCustomFrom(p => ({ ...p, year: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg w-14"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                </div>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>–</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Sampai:</span>
+                  <select value={customTo.month} onChange={e => setCustomTo(p => ({ ...p, month: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>)}
+                  </select>
+                  <input type="number" value={customTo.year} min={2020} max={2030}
+                    onChange={e => setCustomTo(p => ({ ...p, year: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg w-14"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                </div>
+              </div>
+            )}
+
+            {/* Label showing current filter */}
+            <span className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{
+              background: "rgba(255,106,61,0.1)", color: "var(--accent)", border: "1px solid rgba(255,106,61,0.2)"
+            }}>
+              {dateMode === "ytd"
+                ? `Jan – ${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
+                : dateMode === "custom"
+                ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
+                : `${getMonthName(month)} ${year}`}
+            </span>
           </div>
         </div>
 
@@ -399,13 +464,6 @@ export default function OverviewPage() {
               color="#8b5cf6" />
           </div>
           <div className="card-enter-4 kpi-card">
-            <GaugeCard label="Total Visit" icon={MapPin}
-              value={`${totals.visits} visit`}
-              sub={`Target ${totals.visitTarget} · ${getMonthName(month)}`}
-              achievement={totals.visitTarget > 0 ? totals.visits / totals.visitTarget : 0}
-              accentColor="#3b82f6" />
-          </div>
-          <div className="card-enter-5 kpi-card">
             <GaugeCard label="Sales Person Aktif" icon={Users}
               value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
               sub="menjual bulan ini"
@@ -419,6 +477,64 @@ export default function OverviewPage() {
                 ? `${mtdGrowth >= 0 ? "Naik" : "Turun"} dari bulan lalu`
                 : "Belum ada data bulan lalu"}
               color={mtdGrowth !== null && mtdGrowth >= 0 ? "#22c55e" : "#ef4444"} />
+          </div>
+        </div>
+
+        {/* Top Performers — Sales Hunter & Sales Person */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 section-fade-1">
+          {/* Top Sales Hunter (Supervisor) */}
+          <div className="rounded-2xl p-5" style={{
+            background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
+            border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
+          }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
+              🏆 Top Sales Hunter
+            </p>
+            {topHunter ? (
+              <>
+                <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{topHunter.name}</p>
+                <p className="text-xl font-black mt-1" style={{ color: "var(--accent)" }}>
+                  {formatRupiah(topHunter.omset)}
+                </p>
+                <div className="mt-3">
+                  <div className="flex justify-between text-xs mb-1" style={{ color: "var(--text-muted)" }}>
+                    <span>Capai bulan ini</span>
+                    <span className="font-bold" style={{
+                      color: topHunter.pct >= 100 ? "#22c55e" : topHunter.pct >= 70 ? "#FF6A3D" : "#ef4444"
+                    }}>{topHunter.pct}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                    <div className="h-full rounded-full transition-all" style={{
+                      width: `${Math.min(100, topHunter.pct)}%`,
+                      background: topHunter.pct >= 100 ? "#22c55e" : topHunter.pct >= 70 ? "#FF6A3D" : "#ef4444",
+                    }} />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Belum ada closing bulan ini</p>
+            )}
+          </div>
+
+          {/* Top Sales Person */}
+          <div className="rounded-2xl p-5" style={{
+            background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
+            border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
+          }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
+              🌟 Top Sales Person
+            </p>
+            {topSales ? (
+              <>
+                <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{topSales.name}</p>
+                <p className="text-xl font-black mt-1" style={{ color: "#10b981" }}>
+                  {formatRupiah(topSales.omset)}
+                </p>
+                <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>Kontribusi bulan ini</p>
+              </>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Belum ada closing bulan ini</p>
+            )}
           </div>
         </div>
 
@@ -540,27 +656,6 @@ export default function OverviewPage() {
                             e["Realisasi"] >= e["Target"] ? "#22c55e" :
                             e["Realisasi"] >= e["Target"] * 0.7 ? "#FF6A3D" : "#ef4444"
                           } />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-              {visitChart.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
-                    Capaian Visit per Hunter
-                  </p>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={visitChart} barCategoryGap="30%" barGap={4}>
-                      <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                      <Legend content={<VisitLegend />} />
-                      <Bar dataKey="Target Visit" fill="rgba(59,130,246,0.50)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Visit" radius={[4, 4, 0, 0]}>
-                        {visitChart.map((e, i) => (
-                          <Cell key={i} fill={e["Visit"] >= e["Target Visit"] ? "#22c55e" : "#FF6A3D"} />
                         ))}
                       </Bar>
                     </BarChart>

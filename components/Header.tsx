@@ -2,23 +2,17 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { Bell, LogOut } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { LogOut, Shield, MessageSquare } from "lucide-react"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview"                           },
-  { href: "/visit",          label: "Visit"                              },
   { href: "/pipeline",       label: "Pipeline"                           },
   { href: "/closing",        label: "Closing"                            },
-  { href: "/activities",     label: "Activities"                         },
   { href: "/team",           label: "Team Status"                        },
   { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
   { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
-  { href: "/lapor-mas",      label: "Lapor Mas",     adminOnly: true     },
-  { href: "/report-hod",     label: "Report HOD",    adminOnly: true     },
-  { href: "/admin",          label: "Admin",         adminOnly: true     },
 ]
 
 const TM_NAV = [
@@ -27,18 +21,17 @@ const TM_NAV = [
 ]
 
 const TF_NAV = [
-  { href: "/",           label: "Overview"   },
-  { href: "/closing",    label: "Closing"    },
-  { href: "/task-force", label: "Task Force" },
+  { href: "/",        label: "Overview"    },
+  { href: "/pipeline", label: "Pipeline"   },
+  { href: "/closing",  label: "Closing"    },
+  { href: "/team",     label: "Team Status"},
 ]
 
 export default function Header() {
   const pathname = usePathname()
-  const router = useRouter()
   const { user, isAdmin, logout } = useAuth()
 
   const [profileOpen, setProfileOpen] = useState(false)
-  const [taskCount,   setTaskCount]   = useState(0)
   const profileRef = useRef<HTMLDivElement>(null)
 
   const role = user?.role ?? ""
@@ -51,29 +44,16 @@ export default function Header() {
     : isTf
     ? TF_NAV
     : SALES_NAV.filter((item) => {
-        if (item.adminOnly    && !isAdmin)                                        return false
-        if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin)  return false
+        if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin) return false
         return true
       })
+
   const initials = user?.name
     ?.split(" ")
     .map((w) => w[0])
     .slice(0, 2)
     .join("")
     .toUpperCase() ?? "?"
-
-  useEffect(() => {
-    if (!user) return
-    async function fetchTaskCount() {
-      const { count } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", user!.id)
-        .neq("status", "completed")
-      setTaskCount(count ?? 0)
-    }
-    fetchTaskCount()
-  }, [user])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -109,18 +89,6 @@ export default function Header() {
       </nav>
 
       <div className="header-right">
-        <button
-          className="header-icon-btn"
-          aria-label="Notifikasi task"
-          onClick={() => router.push("/activities")}
-          style={{ position: "relative" }}
-        >
-          <Bell size={15} />
-          {taskCount > 0 && (
-            <span className="bell-badge">{taskCount > 9 ? "9+" : taskCount}</span>
-          )}
-        </button>
-
         <div className="user-profile-wrap" ref={profileRef}>
           <button
             className="user-profile-btn"
@@ -135,6 +103,27 @@ export default function Header() {
 
           {profileOpen && (
             <div className="profile-dropdown">
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/lapor-mas"
+                    className="profile-dropdown-item"
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    <MessageSquare size={14} />
+                    <span>Lapor Mas</span>
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className="profile-dropdown-item"
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    <Shield size={14} />
+                    <span>Admin</span>
+                  </Link>
+                  <div className="profile-dropdown-divider" />
+                </>
+              )}
               <button
                 className="profile-dropdown-item profile-dropdown-item--danger"
                 onClick={logout}

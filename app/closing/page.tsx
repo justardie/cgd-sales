@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import { formatRupiah, getMonthName, MONTHS, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Edit2, Trash2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, X, Edit2, Trash2, ChevronDown, Calendar } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { User } from "@/types"
 
@@ -241,14 +241,10 @@ export default function ClosingPage() {
   const isTf = user?.role === "task_force"
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
-  const [ytdMode, setYtdMode] = useState(false)
-
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
-  }
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
-  }
+  const [dateMode, setDateMode] = useState<"month" | "ytd" | "custom">("month")
+  const [customFrom, setCustomFrom] = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const [customTo,   setCustomTo]   = useState({ month: now.getMonth() + 1, year: now.getFullYear() })
+  const ytdMode = dateMode === "ytd"
 
   const [closings, setClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
@@ -545,29 +541,69 @@ export default function ClosingPage() {
               {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={prevMonth} disabled={ytdMode}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronLeft size={14} />
-            </button>
-            <div className="text-sm font-semibold text-white min-w-[130px] text-center">
-              {ytdMode ? `Jan – ${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Mode buttons */}
+            <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+              {(["month","ytd","custom"] as const).map(mode => (
+                <button key={mode} onClick={() => setDateMode(mode)}
+                  className="px-3 py-1.5 text-xs font-semibold transition"
+                  style={{
+                    background: dateMode === mode ? "var(--accent)" : "var(--surface2)",
+                    color: dateMode === mode ? "#fff" : "var(--text-muted)",
+                    borderRight: mode !== "custom" ? "1px solid var(--border)" : undefined,
+                  }}>
+                  {mode === "month" ? "Bulan" : mode === "ytd" ? `YTD ${now.getFullYear()}` : "Custom"}
+                </button>
+              ))}
             </div>
-            <button onClick={nextMonth} disabled={ytdMode}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <ChevronRight size={14} />
-            </button>
-            <button onClick={() => setYtdMode(m => !m)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
-                ytdMode ? "text-orange-400" : "text-slate-400 hover:text-white"
-              }`}
-              style={ytdMode
-                ? { background: "rgba(234,92,0,0.15)", border: "1px solid rgba(234,92,0,0.4)" }
-                : { background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              YTD {now.getFullYear()}
-            </button>
+
+            {dateMode === "month" && (
+              <div className="flex items-center gap-1.5">
+                <select value={month} onChange={e => setMonth(Number(e.target.value))}
+                  className="text-xs px-2 py-1.5 rounded-lg font-semibold"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>
+                  ))}
+                </select>
+                <input type="number" value={year} min={2020} max={2030}
+                  onChange={e => setYear(Number(e.target.value))}
+                  className="text-xs px-2 py-1.5 rounded-lg font-semibold w-16"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              </div>
+            )}
+
+            {dateMode === "custom" && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Calendar size={12} style={{ color: "var(--text-muted)" }} />
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Dari:</span>
+                  <select value={customFrom.month} onChange={e => setCustomFrom(p => ({ ...p, month: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>)}
+                  </select>
+                  <input type="number" value={customFrom.year} min={2020} max={2030}
+                    onChange={e => setCustomFrom(p => ({ ...p, year: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg w-14"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                </div>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>–</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Sampai:</span>
+                  <select value={customTo.month} onChange={e => setCustomTo(p => ({ ...p, month: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }}>
+                    {Array.from({ length: 12 }, (_, i) => <option key={i+1} value={i+1}>{getMonthName(i+1)}</option>)}
+                  </select>
+                  <input type="number" value={customTo.year} min={2020} max={2030}
+                    onChange={e => setCustomTo(p => ({ ...p, year: Number(e.target.value) }))}
+                    className="text-xs px-1.5 py-1 rounded-lg w-14"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                </div>
+              </div>
+            )}
+
             {!isTf && (
               <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
                 className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
