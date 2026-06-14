@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -260,6 +261,7 @@ const emptyForm = {
 export default function PipelinePage() {
   const { user, isAdmin } = useAuth()
   const isTf = user?.role === "task_force"
+  const searchParams = useSearchParams()
   const [rows, setRows] = useState<KonsumenRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -287,6 +289,20 @@ export default function PipelinePage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { if (user) fetchData() }, [user, isAdmin])
+
+  // Auto-open add modal when navigated with ?add=1 (from FAB bottom nav)
+  useEffect(() => {
+    if (searchParams.get("add") === "1" && user && !loading) {
+      openNew()
+    }
+  }, [searchParams, user, loading])
+
+  // Listen for FAB event when already on pipeline page
+  useEffect(() => {
+    const handler = () => openNew()
+    window.addEventListener("pipeline:openNew", handler)
+    return () => window.removeEventListener("pipeline:openNew", handler)
+  }, [])
 
   async function fetchData() {
     setLoading(true)

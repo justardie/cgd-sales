@@ -39,13 +39,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <div className="app-layout">
-      <Sidebar />
       <div className="app-main">
         <Header />
         <main className="app-content">
           {children}
         </main>
       </div>
+      <Sidebar />
     </div>
   )
 }

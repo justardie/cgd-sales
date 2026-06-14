@@ -123,8 +123,9 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 ═══════════════════════════════════════════════════════════════ */
 .app-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  background: transparent; /* body gradient must show through */
+  background: transparent;
   transition: background 0.35s;
 }
 
@@ -133,12 +134,11 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding-left: 80px;
 }
 
 .app-content {
   flex: 1;
-  padding: 32px 36px 60px;
+  padding: 32px 36px 120px;
   max-width: 1440px;
   margin: 0 auto;
   width: 100%;
@@ -162,88 +162,94 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ═══════════════════════════════════════════════════════════════
-   FLOATING SIDEBAR
+   BOTTOM TAB NAV
 ═══════════════════════════════════════════════════════════════ */
-.sidebar-float {
+.bottom-nav {
   position: fixed;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
+  width: auto;
+}
+
+.bottom-nav__inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(10, 22, 55, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.75), 0 2px 12px rgba(0,0,0,0.55),
+              0 0 0 1px rgba(255,255,255,0.10),
+              inset 0 1px 0 rgba(255,255,255,0.12);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  gap: 4px;
+}
+
+.bottom-nav__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  background: var(--sidebar-bg);
-  border: 1px solid var(--sidebar-border);
-  border-radius: 20px;
-  padding: 10px 8px;
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  transition: background 0.35s, border-color 0.35s, box-shadow 0.35s;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 16px;
+  border-radius: 40px;
+  cursor: pointer;
+  color: rgba(180, 200, 230, 0.65);
+  text-decoration: none;
+  transition: color 0.2s;
+  min-width: 60px;
+  border: none;
+  background: transparent;
 }
-
-.sidebar-divider {
-  width: 22px;
-  height: 1px;
-  background: var(--border);
-  margin: 3px 0;
+.bottom-nav__item:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+.bottom-nav__item--active {
+  color: var(--accent) !important;
+}
+.bottom-nav__item--active .bottom-nav__label {
+  color: var(--accent);
+}
+.bottom-nav__icon {
   flex-shrink: 0;
 }
+.bottom-nav__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
 
-.sidebar-btn {
-  position: relative;
-  width: 40px;
-  height: 40px;
+/* Center FAB button */
+.bottom-nav__fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  background: transparent;
-  border: none;
-  text-decoration: none;
-  transition: background 0.2s, color 0.2s, transform 0.2s;
-  outline: none;
+  color: #fff;
+  box-shadow: 0 6px 28px rgba(255, 106, 61, 0.50), 0 2px 8px rgba(0,0,0,0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
   flex-shrink: 0;
+  margin: 0 6px;
+  position: relative;
+  top: -4px; /* elevate slightly */
 }
-.sidebar-btn:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
+.bottom-nav__fab:hover {
   transform: scale(1.08);
+  box-shadow: 0 8px 36px rgba(255, 106, 61, 0.65), 0 2px 8px rgba(0,0,0,0.40);
 }
-.sidebar-btn--active {
-  background: linear-gradient(135deg, var(--accent-start), var(--accent-end)) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 14px var(--shadow-accent, rgba(255,106,61,0.35));
+.bottom-nav__fab:active {
+  transform: scale(0.96);
 }
-.sidebar-btn--logout:hover {
-  background: var(--red-soft) !important;
-  color: var(--red) !important;
-}
-
-/* Tooltip via title attr */
-.sidebar-btn[title]::after {
-  content: attr(title);
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--text-primary);
-  color: var(--bg);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 8px;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s;
-  z-index: 200;
-}
-.sidebar-btn:hover[title]::after { opacity: 1; }
 
 /* ═══════════════════════════════════════════════════════════════
    HEADER
@@ -256,9 +262,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  /* extend full viewport width — compensate for app-main padding-left: 80px */
-  margin-left: -80px;
-  padding: 18px 40px 18px 96px;
+  padding: 14px 40px;
   background: var(--header-bg);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
@@ -660,34 +664,18 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  .app-main    { padding-left: 0; }
-  .app-content { padding: 20px 16px 100px; }
-  .app-header  { margin-left: 0; padding: 10px 16px; }
+  .app-content { padding: 20px 16px 120px; }
+  .app-header  { padding: 10px 16px; }
   .header-nav  { display: none; }
   .greeting-title { font-size: 26px; letter-spacing: -1px; }
-
-  .sidebar-float {
-    left: 50%;
-    top: auto;
-    bottom: 16px;
-    transform: translateX(-50%);
-    flex-direction: row;
-    border-radius: 50px;
-    padding: 8px 12px;
-    width: auto;
-    max-width: calc(100vw - 32px);
-    gap: 2px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .sidebar-float::-webkit-scrollbar { display: none; }
-  .sidebar-divider { width: 1px; height: 20px; margin: 0 3px; }
-  .sidebar-btn[title]::after { display: none; }
+  .bottom-nav__item { padding: 6px 12px; min-width: 52px; }
 }
 
 @media (max-width: 600px) {
   .user-profile-text { display: none; }
   .user-profile-btn  { padding: 5px; }
+  .bottom-nav__item { padding: 6px 10px; min-width: 48px; }
+  .bottom-nav__label { font-size: 9px; }
 }
 
 /* ── Print ── */
