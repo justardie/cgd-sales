@@ -8,7 +8,7 @@ import Header from "./Header"
 import IduladhaDecorations from "./IduladhaDecorations"
 
 const TM_ALLOWED = ["/funnel", "/funnel-summary"]
-const TF_ALLOWED = ["/", "/closing", "/task-force"]
+const TF_ALLOWED = ["/", "/pipeline", "/closing", "/team"]
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -28,7 +28,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     // Task Force: access overview, task-force, visit, activities, team only
     const isTaskForceOnly = user.role === "task_force"
     if (isTaskForceOnly && !TF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-      router.replace("/task-force")
+      router.replace("/")
     }
   }, [user, loading, pathname, router])
 
