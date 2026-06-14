@@ -67,9 +67,11 @@
 ═══════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
 
-html {
+html,
+body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -79,7 +81,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.4s ease, color 0.35s ease;
+  text-rendering: optimizeLegibility;
 }
 
 /* ── Background gradient mesh ── */
@@ -91,6 +93,8 @@ body {
     radial-gradient(ellipse 50% 55% at 18%  80%,  rgba(17,79,153,0.30)  0%, transparent 50%),
     radial-gradient(ellipse 38% 38% at 52%  48%,  rgba(100,150,255,0.10) 0%, transparent 48%),
     var(--bg);
+  /* Fix scroll jank — promote background to its own layer */
+  background-attachment: fixed;
 }
 
 input, select, textarea { color: var(--text-primary); }
@@ -101,15 +105,17 @@ select option {
   background-color: #1E1E22;
 }
 
-/* ─── visionOS Glass — apply backdrop-filter to all glass card divs ─── */
+/* ─── visionOS Glass — reduced blur for scroll performance ─── */
 div[style*="var(--surface)"],
 div[style*="rgba(255,255,255,0."],
 div[style*="rgba(8,"],
 div[style*="rgba(12,"],
 div[style*="rgba(18,"],
 .kpi-card {
-  backdrop-filter: blur(48px) saturate(200%);
-  -webkit-backdrop-filter: blur(48px) saturate(200%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  will-change: auto;
+  transform: translateZ(0);
 }
 
 /* ── Scrollbar ── */
