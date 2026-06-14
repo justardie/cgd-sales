@@ -123,6 +123,7 @@ const emptyForm = {
 
 export default function PipelinePage() {
   const { user, isAdmin } = useAuth()
+  const isTf = user?.role === "task_force"
   const [rows, setRows] = useState<KonsumenRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -170,7 +171,7 @@ export default function PipelinePage() {
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
 
     const all = (data || []) as KonsumenRow[]
-    if (isAdmin) {
+    if (isAdmin || isTf) {
       setRows(all)
     } else {
       const name = (user!.name || "").toLowerCase()
