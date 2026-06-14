@@ -1,6 +1,5 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -261,7 +260,6 @@ const emptyForm = {
 export default function PipelinePage() {
   const { user, isAdmin } = useAuth()
   const isTf = user?.role === "task_force"
-  const searchParams = useSearchParams()
   const [rows, setRows] = useState<KonsumenRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -291,13 +289,18 @@ export default function PipelinePage() {
   useEffect(() => { if (user) fetchData() }, [user, isAdmin])
 
   // Auto-open add modal when navigated with ?add=1 (from FAB bottom nav)
+  // Also listen for custom event when already on pipeline page
   useEffect(() => {
-    if (searchParams.get("add") === "1" && user && !loading) {
-      openNew()
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get("add") === "1" && user && !loading) {
+        openNew()
+        // Clean the URL without reload
+        window.history.replaceState({}, "", "/pipeline")
+      }
     }
-  }, [searchParams, user, loading])
+  }, [user, loading])
 
-  // Listen for FAB event when already on pipeline page
   useEffect(() => {
     const handler = () => openNew()
     window.addEventListener("pipeline:openNew", handler)
