@@ -1,69 +1,11 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   DESIGN TOKENS — Light (default) / Dark
+   DESIGN TOKENS — Dark theme only
    visionOS Glass: surfaces are semi-transparent, backdrop-filter
    blurs the richer background beneath → frosted glass effect
 ═══════════════════════════════════════════════════════════════ */
 :root {
-  /* Light periwinkle blue base — mirrors dark navy, lighter version */
-  --bg:        #C8D8EE;
-  --bg-warm:   #BDD0EA;
-
-  /* White glass over blue background — clearly readable */
-  --surface:   rgba(255,255,255,0.72);
-  --surface2:  rgba(255,255,255,0.58);
-  --surface3:  rgba(255,255,255,0.44);
-
-  --accent:        #FF6A3D;
-  --accent-start:  #FF8C5A;
-  --accent-end:    #FF4D1F;
-  --accent-soft:   rgba(255,106,61,0.12);
-  --accent-medium: rgba(255,106,61,0.20);
-
-  --text-primary:   #060F1C;
-  --text-secondary: #152D48;
-  --text-muted:     #2E4D6A;
-
-  --border:        rgba(255,255,255,0.65);
-  --border-medium: rgba(255,255,255,0.82);
-  --border-strong: rgba(255,255,255,0.95);
-
-  /* Light blue-glass shadows */
-  --shadow-xs: 0 1px 3px rgba(10,30,80,0.10), 0 0 0 1px rgba(255,255,255,0.50);
-  --shadow-sm: 0 2px 8px rgba(10,30,80,0.12), 0 0 0 1px rgba(255,255,255,0.55),
-               inset 0 1px 0 rgba(255,255,255,0.80);
-  --shadow-md: 0 4px 20px rgba(10,30,80,0.14), 0 1px 4px rgba(10,30,80,0.08),
-               0 0 0 1px rgba(255,255,255,0.55),
-               inset 0 1px 0 rgba(255,255,255,0.85);
-  --shadow-lg: 0 8px 40px rgba(10,30,80,0.18), 0 2px 8px rgba(10,30,80,0.10),
-               0 0 0 1px rgba(255,255,255,0.55),
-               inset 0 1px 0 rgba(255,255,255,0.85);
-  --shadow-accent: 0 6px 28px rgba(255,106,61,0.40);
-
-  --r-sm: 10px;
-  --r-md: 16px;
-  --r-lg: 24px;
-  --r-xl: 32px;
-
-  --sidebar-bg:      rgba(255,255,255,0.62);
-  --sidebar-border:  rgba(255,255,255,0.80);
-  --header-bg:       rgba(180,200,228,0.88);
-  --nav-active-bg:   #0A1628;
-  --nav-active-text: #FFFFFF;
-  --toggle-bg:       rgba(255,255,255,0.45);
-
-  --green:      #10B981;
-  --green-soft: rgba(16,185,129,0.12);
-  --red:        #EF4444;
-  --red-soft:   rgba(239,68,68,0.12);
-  --blue:       #3B82F6;
-  --blue-soft:  rgba(59,130,246,0.12);
-  --amber:      #F59E0B;
-  --amber-soft: rgba(245,158,11,0.12);
-}
-
-html.dark {
   /* Deep navy — #0B2249 inspired */
   --bg:      #06101E;
   --bg-warm: #0A1628;
@@ -72,6 +14,12 @@ html.dark {
   --surface:   rgba(8, 20, 55, 0.72);
   --surface2:  rgba(12, 28, 72, 0.82);
   --surface3:  rgba(18, 38, 92, 0.90);
+
+  --accent:        #FF6A3D;
+  --accent-start:  #FF8C5A;
+  --accent-end:    #FF4D1F;
+  --accent-soft:   rgba(255,106,61,0.12);
+  --accent-medium: rgba(255,106,61,0.20);
 
   --text-primary:   #FFFFFF;
   --text-secondary: #C8D8F0;
@@ -92,6 +40,11 @@ html.dark {
                inset 0 1px 0 rgba(255,255,255,0.16);
   --shadow-accent: 0 6px 28px rgba(255,106,61,0.42);
 
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
   --sidebar-bg:      rgba(8, 20, 55, 0.78);
   --sidebar-border:  rgba(255,255,255,0.18);
   --header-bg:       rgba(6, 16, 30, 0.90);
@@ -99,9 +52,13 @@ html.dark {
   --nav-active-text: #06101E;
   --toggle-bg:       rgba(255,255,255,0.14);
 
+  --green:      #10B981;
   --green-soft: rgba(16,185,129,0.18);
+  --red:        #EF4444;
   --red-soft:   rgba(239,68,68,0.18);
+  --blue:       #3B82F6;
   --blue-soft:  rgba(59,130,246,0.18);
+  --amber:      #F59E0B;
   --amber-soft: rgba(245,158,11,0.18);
 }
 
@@ -122,17 +79,8 @@ body {
   transition: background 0.4s ease, color 0.35s ease;
 }
 
-/* ── Gradient mesh — rich color blobs, glass blurs these into frosted panels ── */
-html:not(.dark) body {
-  background:
-    radial-gradient(ellipse 65% 60% at 5%   5%,   rgba(17,79,153,0.28)   0%, transparent 55%),
-    radial-gradient(ellipse 55% 55% at 95%  8%,   rgba(236,202,62,0.22)  0%, transparent 50%),
-    radial-gradient(ellipse 60% 55% at 80%  90%,  rgba(8,51,125,0.20)    0%, transparent 55%),
-    radial-gradient(ellipse 50% 60% at 12%  85%,  rgba(100,150,255,0.18) 0%, transparent 50%),
-    radial-gradient(ellipse 70% 40% at 50%  50%,  rgba(17,79,153,0.10)   0%, transparent 60%),
-    var(--bg);
-}
-html.dark body {
+/* ── Background gradient mesh ── */
+body {
   background:
     radial-gradient(ellipse 70% 65% at 0%   0%,   rgba(17,79,153,0.60)  0%, transparent 55%),
     radial-gradient(ellipse 55% 55% at 100% 100%, rgba(8,51,125,0.50)   0%, transparent 52%),
@@ -142,146 +90,10 @@ html.dark body {
     var(--bg);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   IDUL ADHA THEME — Warm cream parchment + deep forest green
-   + espresso brown + burnished gold. Festive, elegant, readable.
-   Reference palette: CGD Dashboard Idul Adha (offline HTML)
-═══════════════════════════════════════════════════════════════ */
-html.iduladha {
-  /* Background — warm cream parchment */
-  --bg:      #F5EFE0;
-  --bg-warm: #EFE8D5;
-
-  /* Glass surfaces — layered cream */
-  --surface:   rgba(251, 247, 236, 0.88);
-  --surface2:  rgba(248, 242, 224, 0.92);
-  --surface3:  rgba(237, 229, 206, 0.96);
-
-  /* Accent — burnished gold */
-  --accent:        #B8954C;
-  --accent-start:  #D4AF65;
-  --accent-end:    #8E6E2A;
-  --accent-soft:   rgba(184, 149, 76, 0.12);
-  --accent-medium: rgba(184, 149, 76, 0.22);
-
-  /* Text — deep forest green ink on cream */
-  --text-primary:   #1C2B22;
-  --text-secondary: #3D4F44;
-  --text-muted:     #6E7C72;
-
-  /* Borders — forest green tint */
-  --border:        rgba(28, 68, 46, 0.10);
-  --border-medium: rgba(28, 68, 46, 0.18);
-  --border-strong: rgba(28, 68, 46, 0.30);
-
-  --shadow-xs: 0 1px 3px rgba(28,68,46,0.08), 0 0 0 1px rgba(28,68,46,0.05);
-  --shadow-sm: 0 2px 10px rgba(28,68,46,0.10), 0 0 0 1px rgba(28,68,46,0.06);
-  --shadow-md: 0 4px 24px rgba(28,68,46,0.12), 0 1px 4px rgba(28,68,46,0.08),
-               0 0 0 1px rgba(28,68,46,0.06),
-               inset 0 1px 0 rgba(255,255,255,0.70);
-  --shadow-lg: 0 8px 40px rgba(28,68,46,0.14), 0 2px 8px rgba(28,68,46,0.10),
-               0 0 0 1px rgba(28,68,46,0.06),
-               inset 0 1px 0 rgba(255,255,255,0.80);
-  --shadow-accent: 0 6px 28px rgba(184,149,76,0.36);
-
-  --sidebar-bg:      rgba(251, 247, 236, 0.90);
-  --sidebar-border:  rgba(28, 68, 46, 0.14);
-  --header-bg:       rgba(245, 239, 224, 0.94);
-  --nav-active-bg:   #1E5A3D;
-  --nav-active-text: #FBF7EC;
-  --toggle-bg:       rgba(28, 68, 46, 0.07);
-
-  /* Status — rich, readable on cream */
-  --green:      #1E5A3D;
-  --green-soft: rgba(30, 90, 61, 0.10);
-  --red:        #C44848;
-  --red-soft:   rgba(196, 72, 72, 0.10);
-  --blue:       #2A6FAD;
-  --blue-soft:  rgba(42, 111, 173, 0.10);
-  --amber:      #C77514;
-  --amber-soft: rgba(199, 117, 20, 0.12);
-}
-html.iduladha body {
-  /* Subtle forest green top-left, warm gold glow bottom-right on cream */
-  background:
-    radial-gradient(ellipse 55% 50% at 0%   0%,   rgba(30, 90, 61, 0.07)   0%, transparent 55%),
-    radial-gradient(ellipse 50% 45% at 100% 100%, rgba(184,149, 76, 0.12)  0%, transparent 52%),
-    radial-gradient(ellipse 40% 35% at 80%  8%,   rgba(184,149, 76, 0.07)  0%, transparent 48%),
-    radial-gradient(ellipse 35% 40% at 15%  85%,  rgba(30, 90, 61, 0.06)   0%, transparent 44%),
-    var(--bg);
-}
-
-/* Text overrides for iduladha — dark forest ink on cream (light-style rules) */
-html.iduladha .text-white       { color: #1C2B22 !important; }
-html.iduladha .text-slate-100   { color: #0E1C14 !important; }
-html.iduladha .text-slate-200   { color: #1C2B22 !important; }
-html.iduladha .text-slate-300   { color: #2A4038 !important; }
-html.iduladha .text-slate-400   { color: #3D4F44 !important; }
-html.iduladha .text-slate-500   { color: #6E7C72 !important; }
-html.iduladha .text-slate-600   { color: #8A9A90 !important; }
-html.iduladha .text-green-400   { color: #1E5A3D !important; }
-html.iduladha .text-green-300   { color: #2D7A53 !important; }
-html.iduladha .text-red-400     { color: #C44848 !important; }
-html.iduladha .text-red-300     { color: #A03030 !important; }
-html.iduladha .text-blue-400    { color: #2A6FAD !important; }
-html.iduladha .text-blue-300    { color: #1A5A96 !important; }
-html.iduladha .text-amber-400   { color: #C77514 !important; }
-html.iduladha .text-yellow-400  { color: #A87820 !important; }
-html.iduladha .text-orange-400  { color: #A05E10 !important; }
-html.iduladha .text-purple-400  { color: #7C4A8C !important; }
-html.iduladha .text-pink-400    { color: #9A3068 !important; }
-html.iduladha .text-cyan-400    { color: #1A7A90 !important; }
-html.iduladha .text-teal-400    { color: #1A6E62 !important; }
-html.iduladha .text-indigo-400  { color: #4A42A0 !important; }
-
-/* ── Tailwind class resets for light-default (not dark, not iduladha) ── */
-html:not(.dark):not(.iduladha) .text-white     { color: var(--text-primary)   !important; }
-html:not(.dark):not(.iduladha) .text-slate-100 { color: #06111E               !important; }
-html:not(.dark):not(.iduladha) .text-slate-200 { color: #0E2138               !important; }
-html:not(.dark):not(.iduladha) .text-slate-300 { color: #1A3352               !important; }
-html:not(.dark):not(.iduladha) .text-slate-400 { color: var(--text-secondary) !important; }
-html:not(.dark):not(.iduladha) .text-slate-500 { color: var(--text-muted)     !important; }
-html:not(.dark):not(.iduladha) .text-slate-600 { color: rgba(6,15,28,0.60)    !important; }
-
-html.dark .text-white     { color: #FFFFFF !important; }
-html.dark .text-slate-100 { color: #F5F4F2 !important; }
-html.dark .text-slate-200 { color: #E8E5E2 !important; }
-html.dark .text-slate-300 { color: #D0CBC6 !important; }
-html.dark .text-slate-400 { color: #C8C4C0 !important; }
-html:not(.dark):not(.iduladha) .text-slate-400 { color: var(--text-secondary) !important; }
-html.dark .text-slate-500 { color: #A09C98 !important; }
-html.dark .text-slate-600 { color: #8A8784 !important; }
-
-/* ── Colored text — darken in light mode for readability ────────
-   Tailwind *-400 shades are made for dark bg; map to -700 in light */
-/* Light mode only — darken *-400 Tailwind classes (designed for dark bg).
-   Exclude .dark and .iduladha since both are dark-background themes. */
-html:not(.dark):not(.iduladha) .text-green-400  { color: #047857 !important; }
-html:not(.dark):not(.iduladha) .text-green-300  { color: #065f46 !important; }
-html:not(.dark):not(.iduladha) .text-blue-400   { color: #1d4ed8 !important; }
-html:not(.dark):not(.iduladha) .text-blue-300   { color: #1e3a8a !important; }
-html:not(.dark):not(.iduladha) .text-purple-400 { color: #6d28d9 !important; }
-html:not(.dark):not(.iduladha) .text-purple-300 { color: #5b21b6 !important; }
-html:not(.dark):not(.iduladha) .text-red-400    { color: #b91c1c !important; }
-html:not(.dark):not(.iduladha) .text-red-300    { color: #991b1b !important; }
-html:not(.dark):not(.iduladha) .text-orange-400 { color: #c2410c !important; }
-html:not(.dark):not(.iduladha) .text-orange-300 { color: #9a3412 !important; }
-html:not(.dark):not(.iduladha) .text-amber-400  { color: #b45309 !important; }
-html:not(.dark):not(.iduladha) .text-yellow-400 { color: #a16207 !important; }
-html:not(.dark):not(.iduladha) .text-pink-400   { color: #be185d !important; }
-html:not(.dark):not(.iduladha) .text-cyan-400   { color: #0e7490 !important; }
-html:not(.dark):not(.iduladha) .text-indigo-400 { color: #3730a3 !important; }
-html:not(.dark):not(.iduladha) .text-teal-400   { color: #0f766e !important; }
-html:not(.dark):not(.iduladha) .text-violet-400 { color: #5b21b6 !important; }
-
 input, select, textarea { color: var(--text-primary); }
 
-/* Native <select> dropdown options — always use OS-safe colors */
+/* Native <select> dropdown options — OS-safe colors */
 select option {
-  color: #1A1816;
-  background-color: #FFFFFF;
-}
-html.dark select option {
   color: #F0EDE8;
   background-color: #1E1E22;
 }
@@ -371,16 +183,6 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   -webkit-backdrop-filter: blur(32px);
   transition: background 0.35s, border-color 0.35s, box-shadow 0.35s;
 }
-html.dark .sidebar-float {
-  background: rgba(255,255,255,0.07);
-  border-color: rgba(255,255,255,0.12);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.70), inset 0 1px 0 rgba(255,255,255,0.10);
-}
-html.iduladha .sidebar-float {
-  background: rgba(251, 247, 236, 0.92);
-  border-color: rgba(28,68,46,0.16);
-  box-shadow: 0 8px 40px rgba(28,68,46,0.12), inset 0 1px 0 rgba(255,255,255,0.80);
-}
 
 .sidebar-divider {
   width: 22px;
@@ -462,16 +264,7 @@ html.iduladha .sidebar-float {
   -webkit-backdrop-filter: blur(32px);
   border-bottom: 1px solid var(--border);
   transition: background 0.35s, border-color 0.35s;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.12), 0 4px 24px rgba(0,0,0,0.06);
-}
-html.dark .app-header {
   box-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 4px 24px rgba(0,0,0,0.40);
-}
-html.theme-ocean .app-header {
-  box-shadow: 0 1px 0 rgba(100,200,255,0.07), 0 4px 24px rgba(0,0,30,0.55);
-}
-html.iduladha .app-header {
-  box-shadow: 0 1px 0 rgba(28,68,46,0.10), 0 4px 24px rgba(28,68,46,0.08);
 }
 
 .header-logo {
@@ -715,20 +508,8 @@ html.iduladha .app-header {
   line-height: 1.1;
   color: var(--text-primary);
 }
-html:not(.dark) .greeting-title {
-  background: linear-gradient(135deg, #1A1816 0%, #3D3A36 60%, var(--accent) 160%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-html.dark .greeting-title {
+.greeting-title {
   background: linear-gradient(135deg, #F2EFEB 0%, #C8C5C0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-html.iduladha .greeting-title {
-  background: linear-gradient(135deg, #1C2B22 0%, #1E5A3D 55%, #B8954C 160%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -790,162 +571,9 @@ html.iduladha .greeting-title {
 }
 .kpi-card:hover {
   transform: translateY(-2px) scale(1.008);
-}
-html:not(.dark) .kpi-card:hover {
-  border-color: rgba(255,255,255,0.85) !important;
-}
-html.dark .kpi-card:hover {
   border-color: rgba(255,255,255,0.22) !important;
 }
-html.iduladha .kpi-card:hover {
-  border-color: rgba(184,149,76,0.40) !important;
-}
 
-/* ── Idul Adha News Ticker ─────────────────────────────────────────── */
-.eid-ticker {
-  display: none;
-}
-html.iduladha .eid-ticker {
-  display: flex;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 36px;
-  z-index: 100;
-  background: linear-gradient(90deg, #1C2B22 0%, #1E5A3D 50%, #1C2B22 100%);
-  border-bottom: 1px solid rgba(184,149,76,0.35);
-  overflow: hidden;
-  gap: 0;
-}
-html.iduladha .eid-ticker-track {
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  animation: eid-ticker-scroll 28s linear infinite;
-  gap: 0;
-  color: #FBF7EC;
-  font-size: 12.5px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-}
-html.iduladha .eid-ticker-track:hover {
-  animation-play-state: paused;
-}
-html.iduladha .eid-ticker-sep {
-  color: #B8954C;
-  margin: 0 18px;
-  font-size: 14px;
-}
-html.iduladha .eid-ticker-moon {
-  font-size: 14px;
-  margin-right: 6px;
-  display: inline-block;
-  animation: eid-moon-sway 3s ease-in-out infinite;
-}
-@keyframes eid-ticker-scroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-@keyframes eid-moon-sway {
-  0%,100% { transform: rotate(-8deg); }
-  50%     { transform: rotate(8deg); }
-}
-
-/* Offset header + layout when ticker is visible */
-html.iduladha .app-header {
-  top: 36px !important;
-}
-html.iduladha .app-layout {
-  padding-top: 36px;
-}
-
-/* ── Idul Adha Greeting Hero Card ─────────────────────────────────── */
-.eid-hero-card {
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  padding: 28px 32px;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, #EEE3C4 0%, #F5EFE0 40%, #E8DDB8 100%);
-  border: 1.5px solid rgba(184,149,76,0.30);
-  box-shadow: 0 4px 24px rgba(28,68,46,0.10), inset 0 1px 0 rgba(255,255,255,0.70);
-}
-.eid-hero-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 60% 50% at 80% 50%, rgba(184,149,76,0.10) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 60% at 15% 80%, rgba(30,90,61,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-.eid-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(184,149,76,0.15);
-  border: 1px solid rgba(184,149,76,0.30);
-  border-radius: 100px;
-  padding: 3px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #8E6E2A;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-.eid-hero-title {
-  font-size: clamp(20px, 2.5vw, 26px);
-  font-weight: 700;
-  color: #1C2B22;
-  line-height: 1.3;
-  margin-bottom: 8px;
-}
-.eid-hero-title em {
-  font-style: normal;
-  color: #1E5A3D;
-}
-.eid-hero-subtitle {
-  font-size: 14px;
-  color: #3D4F44;
-  line-height: 1.65;
-  max-width: 480px;
-  margin-bottom: 16px;
-}
-.eid-hero-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6E7C72;
-  letter-spacing: 0.04em;
-}
-.eid-hero-date .eid-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #1E5A3D;
-  animation: eid-pulse 2s ease-in-out infinite;
-}
-@keyframes eid-pulse {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50%     { opacity: 0.5; transform: scale(0.75); }
-}
-.eid-hero-goat-wrap {
-  position: absolute;
-  right: 24px;
-  bottom: 0;
-  width: 160px;
-  height: 140px;
-  pointer-events: none;
-}
-@media (max-width: 640px) {
-  .eid-hero-goat-wrap { display: none; }
-  .eid-hero-card { padding: 20px 20px; }
-}
 
 /* Smooth expand / collapse panel (replace conditional render with this) */
 .expand-panel {

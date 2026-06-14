@@ -4,8 +4,7 @@ import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { useTheme } from "@/contexts/ThemeContext"
-import { Bell, Sun, Moon, LogOut } from "lucide-react"
+import { Bell, LogOut } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 const SALES_NAV = [
@@ -37,7 +36,6 @@ export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isAdmin, logout } = useAuth()
-  const { theme, toggle } = useTheme()
 
   const [profileOpen, setProfileOpen] = useState(false)
   const [taskCount,   setTaskCount]   = useState(0)
@@ -89,7 +87,7 @@ export default function Header() {
     <header className="app-header">
       <div className="header-logo">
         <Image
-          src={theme === "light" || theme === "idul-adha" ? "/logo-dark.png" : "/logo.png"}
+          src="/logo.png"
           alt="CGD"
           width={140}
           height={52}
@@ -137,14 +135,6 @@ export default function Header() {
 
           {profileOpen && (
             <div className="profile-dropdown">
-              <button
-                className="profile-dropdown-item"
-                onClick={() => { toggle(); setProfileOpen(false) }}
-              >
-                {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
-                <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-              </button>
-              <div className="profile-dropdown-divider" />
               <button
                 className="profile-dropdown-item profile-dropdown-item--danger"
                 onClick={logout}
