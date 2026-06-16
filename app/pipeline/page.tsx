@@ -147,14 +147,18 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
   async function handleSend() {
     if (!text.trim() || !user) return
     setSending(true)
-    await supabase.from("pipeline_notes").insert({
+    const { error } = await supabase.from("pipeline_notes").insert({
       konsumen_id: konsumenId,
       content:     text.trim(),
       author_name: user.name,
       created_by:  user.id,
     })
-    setText("")
     setSending(false)
+    if (error) {
+      alert(`Gagal menyimpan catatan: ${error.message}`)
+      return
+    }
+    setText("")
     loadNotes()
   }
 
