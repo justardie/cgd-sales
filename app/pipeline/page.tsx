@@ -277,6 +277,7 @@ export default function PipelinePage() {
   const [form, setForm] = useState(emptyForm)
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
   const [dbProjects, setDbProjects] = useState<string[]>([])
+  const [latestNotes, setLatestNotes] = useState<Record<string, string>>({})
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
   const [closingForm, setClosingForm] = useState({
     unit:         "",
@@ -343,6 +344,23 @@ export default function PipelinePage() {
       spsMap[sp.hunter_name].push(sp.name)
     }
     setActiveSps(spsMap)
+
+    // Fetch latest pipeline_note for each konsumen (single query, no N+1)
+    const ids = (data || []).map((r: { id: string }) => r.id)
+    if (ids.length > 0) {
+      const { data: pnData } = await supabase
+        .from("pipeline_notes")
+        .select("konsumen_id, content, created_at")
+        .in("konsumen_id", ids)
+        .order("created_at", { ascending: false })
+      // Keep only the latest note per konsumen_id
+      const noteMap: Record<string, string> = {}
+      for (const pn of (pnData || []) as { konsumen_id: string; content: string }[]) {
+        if (!noteMap[pn.konsumen_id]) noteMap[pn.konsumen_id] = pn.content
+      }
+      setLatestNotes(noteMap)
+    }
+
     setLoading(false)
   }
 
@@ -698,8 +716,8 @@ ${data.map(r => {
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <YNBadge value={r.sudah_booking_fee} />
                     </td>
-                    <td className="px-3 py-3 text-xs text-slate-500 max-w-[140px] truncate">
-                      {r.notes || "—"}
+                    <td className="px-3 py-3 text-xs text-slate-400 max-w-[180px] truncate" title={latestNotes[r.id] || r.notes || ""}>
+                      {latestNotes[r.id] || r.notes || "—"}
                     </td>
                     <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center gap-3">
