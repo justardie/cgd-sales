@@ -10,7 +10,7 @@ import { fmtDDMMYYYY } from "@/lib/utils"
 
 // Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
 function normalizePhone(raw: string): string {
-  let p = String(raw ?? "").replace(/[\s\-.()+]/g, "")
+  const p = String(raw ?? "").replace(/[\s\-.()+]/g, "")
   if (!p) return ""
   if (p.startsWith("62")) return p
   if (p.startsWith("0"))  return "62" + p.slice(1)
@@ -116,7 +116,7 @@ function LeadCard({ lead, tmName, onTap }: { lead: Lead; tmName?: string; onTap:
 
       {lead.notes && (
         <div style={{ marginTop: "8px", fontSize: "12px", color: "var(--text-secondary)", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          "{lead.notes}"
+          &ldquo;{lead.notes}&rdquo;
         </div>
       )}
     </div>
@@ -131,11 +131,7 @@ function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: st
   const [sending, setSending] = useState(false)
   const bottomRef             = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { loadNotes() }, [lead.id])
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
-
-  async function loadNotes() {
-    setLoading(true)
+  const loadNotes = useCallback(async () => {
     const { data } = await supabase
       .from("lead_notes")
       .select("*")
@@ -143,7 +139,10 @@ function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: st
       .order("created_at", { ascending: true })
     setNotes((data || []) as LeadNote[])
     setLoading(false)
-  }
+  }, [lead.id])
+
+  useEffect(() => { queueMicrotask(() => void loadNotes()) }, [loadNotes])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function handleSend() {
     if (!text.trim() || !user) return
@@ -456,9 +455,8 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
         const unique = Array.from(new Set((data ?? []).map((r: { project: string }) => r.project).filter(Boolean) as string[])).sort()
         setDbProjects(unique)
         // Set default project if none selected yet
-        if (!project && unique.length > 0) setProject(unique[0])
+        setProject(current => current || unique[0] || "")
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Auto-select project when TM changes
@@ -661,7 +659,6 @@ export default function FunnelPage() {
 
   const fetchLeads = useCallback(async () => {
     if (!user) return
-    setLoading(true)
     let ids: string[] = []
     if (isTm) {
       ids = [user.id]
@@ -680,7 +677,7 @@ export default function FunnelPage() {
     setLoading(false)
   }, [user, isTm, isDgm, isHunter, period, filterTm])
 
-  useEffect(() => { fetchLeads() }, [fetchLeads])
+  useEffect(() => { queueMicrotask(() => void fetchLeads()) }, [fetchLeads])
 
   const handleSaved = (updated: Lead) => {
     setLeads((prev) => prev.map((l) => l.id === updated.id ? updated : l))

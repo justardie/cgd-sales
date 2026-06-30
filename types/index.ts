@@ -61,6 +61,7 @@ export interface User {
   monthly_target: number
   win_or_die_target: number
   visit_target: number
+  hunter_name?: string | null
   created_at: string
 }
 

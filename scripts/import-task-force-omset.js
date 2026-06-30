@@ -112,7 +112,6 @@ const leads = [];
 
 for (var i = 4; i < data.length; i++) {
   var r        = data[i];
-  var noVal    = r[0];
   var hunterRaw= String(r[1]).trim();
   var spRaw    = String(r[2]).trim();
   var custRaw  = String(r[3]).trim();

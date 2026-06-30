@@ -142,7 +142,7 @@ const idxSP      = colIdx('Sales Person');
 const idxNama    = colIdx('Nama Konsumen');
 // The Excel may have two columns both named "Project" (Project + Project_1 renamed to Project)
 // We find the first occurrence as primary, second occurrence as fallback
-const idxProject = headers.findIndex((h, i) => h.toLowerCase() === 'project');
+const idxProject = headers.findIndex((h) => h.toLowerCase() === 'project');
 const idxProject1 = headers.findIndex((h, i) => h.toLowerCase() === 'project' && i > idxProject);
 const idxUnit    = colIdx('Unit');
 const idxStatus  = colIdx('Status');

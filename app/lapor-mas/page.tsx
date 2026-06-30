@@ -1,9 +1,10 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabaseLapor } from "@/lib/supabase-lapor"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
-import { X, Image, ChevronDown, ChevronUp } from "lucide-react"
+import NextImage from "next/image"
+import { X, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
 interface Laporan {
@@ -73,12 +74,12 @@ function DetailModal({ laporan, onClose, onStatusChange }: {
           {laporan.foto_urls?.length > 0 && (
             <div>
               <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                <Image size={12} /> {laporan.foto_urls.length} foto
+                <ImageIcon size={12} /> {laporan.foto_urls.length} foto
               </div>
               <div className="flex flex-wrap gap-2">
                 {laporan.foto_urls.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                    <img src={url} alt={`foto-${i + 1}`}
+                    <NextImage src={url} alt={`foto-${i + 1}`} width={80} height={80} unoptimized
                       className="w-20 h-20 object-cover rounded-lg border"
                       style={{ borderColor: "var(--border)" }} />
                   </a>
@@ -120,17 +121,16 @@ export default function LaporMasPage() {
   const [selected, setSelected] = useState<Laporan | null>(null)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
 
-  useEffect(() => { if (isAdmin) fetchData() }, [])
-
-  async function fetchData() {
-    setLoading(true)
+  const fetchData = useCallback(async () => {
     const { data: rows } = await supabaseLapor
       .from("laporan")
       .select("id,created_at,jenis,proyek,isi,status,foto_urls")
       .order("created_at", { ascending: false })
     setData((rows || []) as Laporan[])
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => { if (isAdmin) queueMicrotask(() => void fetchData()) }, [fetchData, isAdmin])
 
   function handleStatusChange(id: number, newStatus: string) {
     setData(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r))
@@ -140,7 +140,8 @@ export default function LaporMasPage() {
   function toggleExpand(id: number) {
     setExpanded(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -247,7 +248,7 @@ export default function LaporMasPage() {
                         <span className="text-xs text-slate-400">{r.proyek}</span>
                         {r.foto_urls?.length > 0 && (
                           <span className="text-xs text-slate-600 flex items-center gap-0.5">
-                            <Image size={11} /> {r.foto_urls.length}
+                            <ImageIcon size={11} /> {r.foto_urls.length}
                           </span>
                         )}
                         <span className="text-xs text-slate-600 ml-auto">

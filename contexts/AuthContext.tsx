@@ -20,9 +20,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const session = getSession()
-    if (session) setUserState(session)
-    setLoading(false)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) return
+      const session = getSession()
+      if (session) setUserState(session)
+      setLoading(false)
+    })
+    return () => { cancelled = true }
   }, [])
 
   const setUser = (u: AuthUser | null) => setUserState(u)

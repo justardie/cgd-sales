@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -40,6 +40,7 @@ type SpOmsetMap = Record<string, number>
 type SpClosingsMap = Record<string, ClosingDetail[]>
 
 const now = new Date()
+const ALL_HUNTER_DB_NAMES = new Set(HUNTER_GROUPS.map(h => h.dbName))
 
 export default function TeamPage() {
   const { user, isAdmin } = useAuth()
@@ -60,8 +61,6 @@ export default function TeamPage() {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
 
-  useEffect(() => { if (user) fetchData() }, [user, month, year])
-
   function prevMonth() {
     if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
   }
@@ -69,10 +68,7 @@ export default function TeamPage() {
     if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1)
   }
 
-  const allHunterDbNames = new Set(HUNTER_GROUPS.map(h => h.dbName))
-
-  async function fetchData() {
-    setLoading(true)
+  const fetchData = useCallback(async () => {
     const [usersRes, closingsRes] = await Promise.all([
       supabase.from("users").select("id,name,monthly_target,sp_level,hunter_name,role").eq("status", "active"),
       supabase.from("konsumen").select("user_id,nilai_hjr,sales_person,sales_hunter,name,project,unit").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
@@ -146,12 +142,12 @@ export default function TeamPage() {
     setHunterSpMap(newHunterSpMap)
 
     const allSpNamesDb = new Set(Object.values(newHunterSpMap).flat())
-    const allDbNames = new Set([...allHunterDbNames, ...allSpNamesDb])
+    const allDbNames = new Set([...ALL_HUNTER_DB_NAMES, ...allSpNamesDb])
 
     const list: MemberStatus[] = (usersRes.data || [])
       .filter(u => allDbNames.has(u.name) || u.role === "hunter" || u.role === "sales_person")
       .map(u => {
-        const isHunter = allHunterDbNames.has(u.name)
+        const isHunter = ALL_HUNTER_DB_NAMES.has(u.name)
         const hunterDef = isHunter ? HUNTER_GROUPS.find(h => h.dbName === u.name) : null
         const displayName = hunterDef ? hunterDef.name : u.name
         return {
@@ -167,7 +163,9 @@ export default function TeamPage() {
 
     setMembers(list)
     setLoading(false)
-  }
+  }, [month, year])
+
+  useEffect(() => { if (user) queueMicrotask(() => void fetchData()) }, [fetchData, user])
 
   function getMember(displayOrSpName: string): MemberStatus | undefined {
     return members.find(m => m.name === displayOrSpName)

@@ -67,8 +67,6 @@ function StatPill({ value, color, label }: { value: number; color: string; label
 export default function FunnelSummaryPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
-  const isAdmin  = role === "admin"
-  const isDgm    = role === "dgm" || role === "admin_dgm" || isAdmin
   const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
   const isHunter = role === "hunter"
 
@@ -79,8 +77,6 @@ export default function FunnelSummaryPage() {
 
   const fetchSummary = useCallback(async () => {
     if (!user) return
-    setLoading(true)
-
     // 1. Determine which TM users are visible
     let tmQuery = supabase
       .from("users")
@@ -127,7 +123,7 @@ export default function FunnelSummaryPage() {
     setLoading(false)
   }, [user, isTm, isHunter, period])
 
-  useEffect(() => { fetchSummary() }, [fetchSummary])
+  useEffect(() => { queueMicrotask(() => void fetchSummary()) }, [fetchSummary])
 
   // Team totals
   const teamTotal: Omit<TmStat, "tm"> = {

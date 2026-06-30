@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -29,16 +29,11 @@ export default function PotensiPage() {
   const [rows, setRows]       = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [year, setYear]   = useState(new Date().getFullYear())
+  const [month] = useState(new Date().getMonth() + 1)
+  const [year]  = useState(new Date().getFullYear())
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, month, year])
-
-  async function fetchData() {
-    setLoading(true)
+  const fetchData = useCallback(async () => {
+    if (!user) return
     const [konsumenRes, usersRes] = await Promise.all([
       supabase.from("konsumen")
         .select("sales_hunter,project,status,potensi_closing,nilai_hjr,closing_month,closing_year")
@@ -53,11 +48,13 @@ export default function PotensiPage() {
     if (isAdmin) {
       setRows(all)
     } else {
-      const name = (user!.name || "").toLowerCase()
+      const name = (user.name || "").toLowerCase()
       setRows(all.filter(r => (r.sales_hunter || "").toLowerCase() === name))
     }
     setLoading(false)
-  }
+  }, [isAdmin, user])
+
+  useEffect(() => { queueMicrotask(() => void fetchData()) }, [fetchData])
 
   const pipelineRows = rows.filter(r => r.status === "warm" || r.status === "hot")
   const closingMTD   = rows.filter(r => r.status === "closing" && r.closing_month === month && r.closing_year === year)

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -183,8 +183,8 @@ export default function OverviewPage() {
   const [topSales, setTopSales]   = useState<{ name: string; omset: number } | null>(null)
   const [projectTotals, setProjectTotals] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [year, setYear] = useState(now.getFullYear())
+  const [month] = useState(now.getMonth() + 1)
+  const [year] = useState(now.getFullYear())
   const [showCharts, setShowCharts] = useState(true)
 
   // dateMode: "today" | "mtd" | "ytd" | "custom"
@@ -215,10 +215,7 @@ export default function OverviewPage() {
   const lastMonth = effMonth === 1 ? 12 : effMonth - 1
   const lastYear  = effMonth === 1 ? effYear - 1 : effYear
 
-  useEffect(() => { if (user) fetchDashboard() }, [user, month, year, dateMode, customFrom, customTo])
-
-  async function fetchDashboard() {
-    setLoading(true)
+  const fetchDashboard = useCallback(async () => {
     try {
       // Build primary closings query based on mode
       let closingsPrimaryQ = supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing")
@@ -348,9 +345,10 @@ export default function OverviewPage() {
         spMenjual, totalActiveSps,
       })
     } finally { setLoading(false) }
-  }
+  }, [customFrom, customTo, dateMode, effMonth, effYear, lastMonth, lastYear])
 
-  const totalTarget = hunters.reduce((s, h) => s + h.monthly_target, 0)
+  useEffect(() => { if (user) void fetchDashboard() }, [fetchDashboard, user])
+
   const mtdGrowth   = totals.omsetLast > 0
     ? Math.round(((totals.omsetMtd - totals.omsetLast) / totals.omsetLast) * 100)
     : null

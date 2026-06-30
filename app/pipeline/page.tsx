@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -123,11 +123,7 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
   const [sending, setSending]     = useState(false)
   const bottomRef                 = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { loadNotes() }, [konsumenId])
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
-
-  async function loadNotes() {
-    setLoading(true)
+  const loadNotes = useCallback(async () => {
     const { data, error } = await supabase
       .from("pipeline_notes")
       .select("*")
@@ -142,7 +138,10 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
       setNotes((data || []) as PipelineNote[])
     }
     setLoading(false)
-  }
+  }, [konsumenId])
+
+  useEffect(() => { queueMicrotask(() => void loadNotes()) }, [loadNotes])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function handleSend() {
     if (!text.trim() || !user) return
@@ -291,7 +290,12 @@ export default function PipelinePage() {
   const [deleteTarget, setDeleteTarget] = useState<KonsumenRow | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => { if (user) fetchData() }, [user, isAdmin])
+  const openNew = useCallback(() => {
+    setEditing(null)
+    setForm({ ...emptyForm, sales_hunter: (isAdmin || isTf) ? "" : (user?.name || "") })
+    setFormError("")
+    setShowModal(true)
+  }, [isAdmin, isTf, user?.name])
 
   // Auto-open add modal when navigated with ?add=1 (from FAB bottom nav)
   // Also listen for custom event when already on pipeline page
@@ -299,21 +303,20 @@ export default function PipelinePage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search)
       if (params.get("add") === "1" && user && !loading) {
-        openNew()
+        queueMicrotask(openNew)
         // Clean the URL without reload
         window.history.replaceState({}, "", "/pipeline")
       }
     }
-  }, [user, loading])
+  }, [user, loading, openNew])
 
   useEffect(() => {
     const handler = () => openNew()
     window.addEventListener("pipeline:openNew", handler)
     return () => window.removeEventListener("pipeline:openNew", handler)
-  }, [])
+  }, [openNew])
 
-  async function fetchData() {
-    setLoading(true)
+  const fetchData = useCallback(async () => {
     const [{ data }, spsRes, projRes, cbRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).or("board.eq.pipeline,board.is.null").order("created_at", { ascending: false }),
       supabase.from("users").select("name,hunter_name").in("role", ["sales_person", "telemarketing"]).neq("status", "resigned"),
@@ -362,14 +365,9 @@ export default function PipelinePage() {
     }
 
     setLoading(false)
-  }
+  }, [isAdmin, isTf, user])
 
-  function openNew() {
-    setEditing(null)
-    setForm({ ...emptyForm, sales_hunter: (isAdmin || isTf) ? "" : (user?.name || "") })
-    setFormError("")
-    setShowModal(true)
-  }
+  useEffect(() => { if (user) queueMicrotask(() => void fetchData()) }, [fetchData, user])
 
   function openEdit(r: KonsumenRow) {
     setEditing(r)

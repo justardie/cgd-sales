@@ -1,10 +1,10 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
-import { formatRupiah, getMonthName, MONTHS, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
+import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Edit2, Trash2, ChevronDown, Calendar } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
@@ -43,10 +43,23 @@ function projColor(p: string | null) {
   return PROJECT_COLORS[p] ?? "bg-slate-500/10 text-slate-400"
 }
 
+interface ClosingFormState {
+  sales_hunter: string
+  sales_person: string
+  name: string
+  project: string
+  unit: string
+  nilai_hjr: string
+  cara_bayar: string
+  visit_date: string
+  closing_date: string
+  notes: string
+}
+
 interface ClosingFormProps {
   isAdmin: boolean
-  form: Record<string, string>
-  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  form: ClosingFormState
+  setForm: React.Dispatch<React.SetStateAction<ClosingFormState>>
   spOptions: string[]
   projects: string[]
   caraBayarOptions: string[]
@@ -287,9 +300,6 @@ export default function ClosingPage() {
   }
   const [form, setForm] = useState(blankForm)
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user) fetchData() }, [user, month, year, ytdMode, isAdmin])
-
   useEffect(() => {
     if (!user) return
     const currentMonth = new Date().getMonth() + 1
@@ -304,9 +314,7 @@ export default function ClosingPage() {
       })
   }, [user, year])
 
-  async function fetchData() {
-    setLoading(true)
-
+  const fetchData = useCallback(async () => {
     let closingQuery = supabase.from("konsumen")
       .select("id,user_id,sales_hunter,sales_person,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
       .eq("status", "closing")
@@ -362,7 +370,9 @@ export default function ClosingPage() {
     }
     setActiveSps(spsMap)
     setLoading(false)
-  }
+  }, [isAdmin, isTf, month, user, year, ytdMode])
+
+  useEffect(() => { if (user) queueMicrotask(() => void fetchData()) }, [fetchData, user])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -956,7 +966,7 @@ export default function ClosingPage() {
       {showInputModal && (
         <Modal onClose={() => setShowInputModal(false)}>
           <ClosingFormFields
-            isAdmin={isAdmin} form={form} setForm={setForm as any}
+            isAdmin={isAdmin} form={form} setForm={setForm}
             spOptions={spOptions} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
             onCancel={() => setShowInputModal(false)}
             onSubmit={handleSave} title="Input Closing" submitLabel="Simpan Closing"
@@ -967,7 +977,7 @@ export default function ClosingPage() {
       {showEditModal && editingClosing && (
         <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }}>
           <ClosingFormFields
-            isAdmin={isAdmin} form={form} setForm={setForm as any}
+            isAdmin={isAdmin} form={form} setForm={setForm}
             spOptions={spOptions} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
             onCancel={() => { setShowEditModal(false); setEditingClosing(null) }}
             onSubmit={handleEditSave}

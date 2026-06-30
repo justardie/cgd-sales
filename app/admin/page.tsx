@@ -21,7 +21,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 }
 
 export default function AdminPage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,9 +43,9 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
-    if (!isAdmin && !loading) { router.replace("/"); return }
+    if (!isAdmin && !authLoading) { router.replace("/"); return }
     if (user) fetchData()
-  }, [user, isAdmin])
+  }, [user, isAdmin, authLoading, router])
 
   async function fetchData() {
     setLoading(true)
@@ -65,8 +65,7 @@ export default function AdminPage() {
     setForm({
       name: u.name,
       role: u.role,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      hunter_name: (u as any).hunter_name || "",
+      hunter_name: u.hunter_name || "",
       monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
       visit_target: u.visit_target.toString(),
@@ -77,8 +76,7 @@ export default function AdminPage() {
 
   function openTransfer(u: User) {
     setTransferTarget(u)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setTransferHunter((u as any).hunter_name || "")
+    setTransferHunter(u.hunter_name || "")
     setShowTransferModal(true)
   }
 
@@ -171,8 +169,8 @@ export default function AdminPage() {
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
                     <div className="font-medium text-white">{u.name}</div>
-                    {u.role === "sales_person" && (u as any).hunter_name && (
-                      <div className="text-xs text-slate-500 mt-0.5">Tim: {(u as any).hunter_name}</div>
+                    {u.role === "sales_person" && u.hunter_name && (
+                      <div className="text-xs text-slate-500 mt-0.5">Tim: {u.hunter_name}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">

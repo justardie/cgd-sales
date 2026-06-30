@@ -1,5 +1,5 @@
 ﻿"use client"
-import React, { useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -119,15 +119,7 @@ function NotesModal({ lead, user, onClose }: {
   const [sending, setSending]   = useState(false)
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
-  useEffect(() => { loadNotes() }, [lead.id])
-
-  // Scroll to bottom when notes load/change
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [notes])
-
-  async function loadNotes() {
-    setLoading(true)
+  const loadNotes = useCallback(async () => {
     const { data } = await supabase
       .from("task_force_notes")
       .select("*")
@@ -135,7 +127,14 @@ function NotesModal({ lead, user, onClose }: {
       .order("created_at", { ascending: true })
     setNotes((data || []) as TFNote[])
     setLoading(false)
-  }
+  }, [lead.id])
+
+  useEffect(() => { queueMicrotask(() => void loadNotes()) }, [loadNotes])
+
+  // Scroll to bottom when notes load/change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [notes])
 
   async function handleSend() {
     if (!text.trim() || !user) return
@@ -268,10 +267,8 @@ export default function TaskForcePage() {
   const [deleteTarget, setDeleteTarget] = useState<KonsumenRow | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => { if (user) fetchData() }, [user, canSeeAll])
-
-  async function fetchData() {
-    setLoading(true)
+  const fetchData = useCallback(async () => {
+    if (!user) return
     const [{ data }, spsRes, projRes, cbRes, notesCountRes] = await Promise.all([
       supabase.from("task_force_leads").select("*")
         .in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
@@ -291,8 +288,8 @@ export default function TaskForcePage() {
     if (canSeeAll) {
       setRows(all)
     } else {
-      const name = (user!.name || "").toLowerCase()
-      setRows(all.filter(r => r.user_id === user!.id || (r.sales_hunter || "").toLowerCase() === name))
+      const name = (user.name || "").toLowerCase()
+      setRows(all.filter(r => r.user_id === user.id || (r.sales_hunter || "").toLowerCase() === name))
     }
     const spsMap: Record<string, string[]> = {}
     for (const sp of (spsRes.data || [])) {
@@ -308,7 +305,9 @@ export default function TaskForcePage() {
     }
     setNotesCounts(countsMap)
     setLoading(false)
-  }
+  }, [canSeeAll, user])
+
+  useEffect(() => { queueMicrotask(() => void fetchData()) }, [fetchData])
 
   function openNew() {
     setEditing(null)
