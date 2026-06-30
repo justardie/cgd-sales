@@ -6,7 +6,8 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "eslint"
+        "lint": "eslint",
+        "test:rules": "node --test --experimental-strip-types lib/sales-dashboard-rules.test.ts"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.105.1",
