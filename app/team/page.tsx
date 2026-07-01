@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { formatRupiah, getMonthName, pct } from "@/lib/utils"
+import { formatRupiah, getMonthName, pct, PROJECT_NAMES } from "@/lib/utils"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const HUNTER_COLORS: Record<string, string> = {
@@ -40,7 +40,7 @@ const now = new Date()
 const ALL_HUNTER_DB_NAMES = new Set(HUNTER_GROUPS.map(h => h.dbName))
 
 export default function TeamPage() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [members, setMembers] = useState<MemberStatus[]>([])
   const [spOmsetMap, setSpOmsetMap] = useState<SpOmsetMap>({})
   const [spClosingsMap, setSpClosingsMap] = useState<SpClosingsMap>({})
@@ -56,6 +56,8 @@ export default function TeamPage() {
   const [hunterDirectClosings, setHunterDirectClosings] = useState<SpClosingsMap>({})
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
+  const [coverageMap, setCoverageMap] = useState<Record<string, string[]>>({})
+  const [editingCoverage, setEditingCoverage] = useState<string | null>(null)
 
   function prevMonth() {
     if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
@@ -66,7 +68,7 @@ export default function TeamPage() {
 
   const fetchData = useCallback(async () => {
     const [usersRes, closingsRes] = await Promise.all([
-      supabase.from("users").select("name,monthly_target,hunter_name,role").eq("status", "active"),
+      supabase.from("users").select("name,monthly_target,hunter_name,role,project_coverage").eq("status", "active"),
       supabase.from("konsumen").select("user_id,nilai_hjr,sales_person,sales_hunter,name,project,unit").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
     ])
 
@@ -136,6 +138,7 @@ export default function TeamPage() {
       }
     })
     setHunterSpMap(newHunterSpMap)
+    setCoverageMap(Object.fromEntries((usersRes.data || []).filter(u => u.role === "hunter").map(u => [u.name, (u as {project_coverage?: string[]}).project_coverage || []])))
 
     const allSpNamesDb = new Set(Object.values(newHunterSpMap).flat())
     const allDbNames = new Set([...ALL_HUNTER_DB_NAMES, ...allSpNamesDb])
@@ -169,6 +172,14 @@ export default function TeamPage() {
     return HUNTER_COLORS[dbName] || "bg-slate-500/10 border-slate-500/30 text-slate-400"
   }
 
+  async function toggleCoverage(hunterName: string, project: string) {
+    const current = coverageMap[hunterName] || []
+    const next = current.includes(project) ? current.filter(x => x !== project) : [...current, project]
+    setCoverageMap(map => ({ ...map, [hunterName]: next }))
+    const { error } = await supabase.from("users").update({ project_coverage: next }).eq("name", hunterName).eq("role", "hunter")
+    if (error) setCoverageMap(map => ({ ...map, [hunterName]: current }))
+  }
+
   return (
     <DashboardShell>
       <div className="space-y-6">
@@ -199,7 +210,7 @@ export default function TeamPage() {
           <div className="text-center py-12 text-slate-600 text-sm">Memuat data...</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {HUNTER_GROUPS.map((hunter, hIdx) => {
+            {HUNTER_GROUPS.filter(hunter => members.some(m => m.name === hunter.name)).map((hunter, hIdx) => {
               const color = hunterColor(hunter.dbName)
               const m = getMember(hunter.name)
               return (
@@ -239,6 +250,14 @@ export default function TeamPage() {
                     })() : (
                       <div className="text-xs text-slate-600 mt-1.5">Data tidak ditemukan</div>
                     )}
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] text-slate-500">Coverage:</span>
+                      {(coverageMap[hunter.dbName] || []).length ? (coverageMap[hunter.dbName] || []).map(project => <span key={project} className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{project}</span>) : <span className="text-[11px] text-slate-600">Belum diatur</span>}
+                      {isAdmin && <button onClick={() => setEditingCoverage(editingCoverage === hunter.dbName ? null : hunter.dbName)} className="text-[11px] text-blue-400 ml-auto">Atur Coverage</button>}
+                    </div>
+                    {isAdmin && editingCoverage === hunter.dbName && <div className="mt-2 grid grid-cols-2 gap-1.5 rounded-lg p-2" style={{background:"var(--surface)"}}>
+                      {PROJECT_NAMES.map(project => <label key={project} className="text-[11px] text-slate-300 flex gap-1.5 items-center"><input type="checkbox" checked={(coverageMap[hunter.dbName] || []).includes(project)} onChange={() => void toggleCoverage(hunter.dbName, project)}/>{project}</label>)}
+                    </div>}
                   </div>
 
                   {/* Sales Persons / Solo Hunter */}

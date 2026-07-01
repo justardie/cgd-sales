@@ -4,13 +4,14 @@ import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { LogOut, Shield, MessageSquare } from "lucide-react"
+import { LogOut, Shield, MessageSquare, ClipboardList } from "lucide-react"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview"                           },
   { href: "/pipeline",       label: "Pipeline"                           },
   { href: "/closing",        label: "Closing"                            },
   { href: "/team",           label: "Team Status"                        },
+  { href: "/report",         label: "REPORT",        reportAccess: true  },
   { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
   { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
 ]
@@ -45,6 +46,7 @@ export default function Header() {
     ? TF_NAV
     : SALES_NAV.filter((item) => {
         if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin) return false
+        if (item.reportAccess && role !== "hunter" && !isAdmin) return false
         return true
       })
 
@@ -103,6 +105,11 @@ export default function Header() {
 
           {profileOpen && (
             <div className="profile-dropdown">
+              {(role === "hunter" || isAdmin) && (
+                <Link href="/report" className="profile-dropdown-item" onClick={() => setProfileOpen(false)}>
+                  <ClipboardList size={14} /><span>REPORT</span>
+                </Link>
+              )}
               {isAdmin && (
                 <>
                   <Link

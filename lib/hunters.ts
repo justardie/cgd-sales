@@ -38,10 +38,10 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     dbName: "Aida",
     hasAgent: false,
     spNames: [
-      "M. Fadjri Saputra",
-      "Lenni Natalia",
+      "M Fadjri Saputra",
+      "Lenni Natalia Marpaung",
       "Seprita Rahma",
-      "M. Fiqri",
+      "M. Fiqri Zam Zami",
       "Vio Wahyuda",
     ],
   },
@@ -68,7 +68,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     dbName: "Andre",
     hasAgent: false,
     spNames: [
-      "Riezkya Adella",
+      "Riezkya Adella Hayuningtyas",
       "Ari Kurnia Sandy",
       "Syarah Mustika",
       "Kanigia Lubis",
@@ -81,10 +81,10 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     dbName: "Prediman",
     hasAgent: false,
     spNames: [
-      "Crisna Ardhianysah",
-      "Muhammad Rafie",
+      "Crisna Ardhiansyah",
+      "Muhammad Rafie Alfany",
       "Maria Oktavaini",
-      "Gallih Dwi Gumelar",
+      "Gallih Dwi Gumellar",
     ],
   },
   {
@@ -92,18 +92,18 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     dbName: "Ellen",
     hasAgent: false,
     spNames: [
-      "Amos Marihot",
+      "Amos Marihot Panggabean",
       "Ferdinan Bangun",
       "Nurlela",
       "Febry Nairi",
-      "Tri Andy Kurniawan",
+      "Tri Andi Kurniawan",
     ],
   },
   {
     name: "Rika Sanusi",
     dbName: "Rika Sanusi",
     hasAgent: false,
-    spNames: ["Santoso", "Sentia Julika", "Rio Pratama", "Eka Vitria Lestari"],
+    spNames: ["Santoso", "Sentia Julika Putri", "Rio Pratama", "Eka Vitria Lestari"],
   },
 ]
 

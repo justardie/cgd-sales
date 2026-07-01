@@ -61,3 +61,22 @@ test("dashboard removes performance chart and exposes Hot pipeline and target al
   assert.match(source, /TARGET OMSET ALERT/)
   assert.match(source, /\.eq\("status", "hot"\)/)
 })
+
+test("Weekly Report supports Pivot, drafts, final snapshots, and HTML download", async () => {
+  const page = await read("app/report/page.tsx")
+  const domain = await read("lib/weekly-report.ts")
+  const migration = await read("supabase/038_weekly_reports.sql")
+  assert.match(page, /Activities Analysis/)
+  assert.match(page, /Simpan Draft/)
+  assert.match(page, /Finalisasi &amp; Download/)
+  assert.match(domain, /@page\{size:A4 landscape/)
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS weekly_reports/)
+  assert.match(migration, /project_coverage/)
+})
+
+test("Team lets admins manage multi-project coverage", async () => {
+  const source = await read("app/team/page.tsx")
+  assert.match(source, /Atur Coverage/)
+  assert.match(source, /PROJECT_NAMES\.map/)
+  assert.match(source, /project_coverage/)
+})
