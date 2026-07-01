@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import DashboardShell from "@/components/DashboardShell"
+import { getFunnelMetrics } from "@/lib/sales-dashboard-rules"
 
 interface TmUser { id: string; name: string; hunter_name: string }
 
@@ -138,6 +139,7 @@ export default function FunnelSummaryPage() {
     closing:                  stats.reduce((s, t) => s + t.closing, 0),
     lost:                     stats.reduce((s, t) => s + t.lost, 0),
   }
+  const teamMetrics = getFunnelMetrics(teamTotal)
 
   const card: React.CSSProperties = {
     background: "var(--surface)", border: "1px solid var(--border)",
@@ -201,11 +203,13 @@ export default function FunnelSummaryPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
-              <StatPill value={teamTotal.new}                     color="#94a3b8" label="Belum" />
-              <StatPill value={teamTotal.bisa_dihub_tidak_angkat} color="#fbbf24" label="Follow Up" />
-              <StatPill value={teamTotal.angkat_tertarik + teamTotal.visit_dijadwalkan + teamTotal.sudah_visit} color="#a78bfa" label="Pipeline" />
-              <StatPill value={teamTotal.closing}                  color="#34d399" label="Closing" />
-              <StatPill value={teamTotal.angkat_tidak_tertarik + teamTotal.tidak_aktif + teamTotal.lost} color="#f87171" label="Dead" />
+              <StatPill value={teamMetrics.contacted}      color="#60a5fa" label="Sudah Dihubungi" />
+              <StatPill value={teamMetrics.followUp}       color="#fbbf24" label="Follow Up" />
+              <StatPill value={teamMetrics.pipeline}       color="#a78bfa" label="Pipeline" />
+              <StatPill value={teamMetrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
+              <StatPill value={teamMetrics.visited}        color="#2dd4bf" label="Sudah Visit" />
+              <StatPill value={teamMetrics.closing}        color="#34d399" label="Closing" />
+              <StatPill value={teamMetrics.dead}           color="#f87171" label="Dead" />
             </div>
           </div>
           {teamTotal.total > 0 && (
@@ -228,10 +232,9 @@ export default function FunnelSummaryPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {stats.map((stat) => {
-            const contacted    = stat.total - stat.new
-            const contactedPct = stat.total > 0 ? Math.round((contacted / stat.total) * 100) : 0
-            const pipeline     = stat.angkat_tertarik + stat.visit_dijadwalkan + stat.sudah_visit + stat.closing
-            const visitPct     = stat.total > 0 ? Math.round((pipeline / stat.total) * 100) : 0
+            const metrics = getFunnelMetrics(stat)
+            const contactedPct = stat.total > 0 ? Math.round((metrics.contacted / stat.total) * 100) : 0
+            const visitPct = stat.total > 0 ? Math.round((metrics.pipeline / stat.total) * 100) : 0
 
             return (
               <div key={stat.tm.id} style={{ ...card, padding: "18px 22px" }}>
@@ -248,7 +251,7 @@ export default function FunnelSummaryPage() {
                       </div>
                     )}
                     <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
-                      {contacted}/{stat.total} dihubungi ({contactedPct}%)
+                      {metrics.contacted}/{stat.total} dihubungi ({contactedPct}%)
                     </div>
                   </div>
 
@@ -263,11 +266,13 @@ export default function FunnelSummaryPage() {
 
                     <div style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
 
-                    <StatPill value={stat.new}                    color="#94a3b8" label="Belum" />
-                    <StatPill value={stat.bisa_dihub_tidak_angkat} color="#fbbf24" label="Follow Up" />
-                    <StatPill value={stat.angkat_tertarik + stat.visit_dijadwalkan + stat.sudah_visit} color="#a78bfa" label="Pipeline" />
-                    <StatPill value={stat.closing}                 color="#34d399" label="Closing" />
-                    <StatPill value={stat.angkat_tidak_tertarik + stat.tidak_aktif + stat.lost} color="#f87171" label="Dead" />
+                    <StatPill value={metrics.contacted}      color="#60a5fa" label="Sudah Dihubungi" />
+                    <StatPill value={metrics.followUp}       color="#fbbf24" label="Follow Up" />
+                    <StatPill value={metrics.pipeline}       color="#a78bfa" label="Pipeline" />
+                    <StatPill value={metrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
+                    <StatPill value={metrics.visited}        color="#2dd4bf" label="Sudah Visit" />
+                    <StatPill value={metrics.closing}        color="#34d399" label="Closing" />
+                    <StatPill value={metrics.dead}           color="#f87171" label="Dead" />
 
                     <div style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
 

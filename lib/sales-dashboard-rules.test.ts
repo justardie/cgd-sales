@@ -30,6 +30,14 @@ test("computes contacted, pipeline, and separate visit metrics", () => {
   })
 })
 
+test("contacted excludes only untouched leads", () => {
+  const metrics = getFunnelMetrics(counters)
+  const total = Object.values(counters).reduce((sum, value) => sum + value, 0)
+  assert.equal(metrics.contacted, total - counters.new)
+  assert.equal(metrics.visitScheduled, counters.visit_dijadwalkan)
+  assert.equal(metrics.visited, counters.sudah_visit)
+})
+
 test("treats active as warm or hot", () => {
   assert.equal(matchesPipelineStatus("warm", "active"), true)
   assert.equal(matchesPipelineStatus("hot", "active"), true)
