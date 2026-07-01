@@ -44,3 +44,12 @@ test("Pipeline captures and displays Agent names", async () => {
   assert.match(source, /Nama Agent/)
   assert.match(source, /formatSalesPerson/)
 })
+
+test("Closing supports active Hunters, Agent names, and cancellation to Hot", async () => {
+  const source = await read("app/closing/page.tsx")
+  assert.match(source, /agent_name/)
+  assert.match(source, /Nama Agent/)
+  assert.match(source, /Batal Closing/)
+  assert.match(source, /status:\s*["']hot["']/)
+  assert.match(source, /\.eq\(["']status["'],\s*["']active["']\)/)
+})

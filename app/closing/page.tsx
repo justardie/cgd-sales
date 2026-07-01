@@ -6,8 +6,9 @@ import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
+import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Edit2, Trash2, ChevronDown, Calendar } from "lucide-react"
+import { Plus, X, Edit2, ChevronDown, Calendar } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { User } from "@/types"
 
@@ -16,6 +17,7 @@ interface KonsumenRow {
   user_id?: string
   sales_hunter: string
   sales_person: string | null
+  agent_name: string | null
   name: string
   project: string | null
   unit: string | null
@@ -47,6 +49,7 @@ function projColor(p: string | null) {
 interface ClosingFormState {
   sales_hunter: string
   sales_person: string
+  agent_name: string
   name: string
   project: string
   unit: string
@@ -62,6 +65,7 @@ interface ClosingFormProps {
   form: ClosingFormState
   setForm: React.Dispatch<React.SetStateAction<ClosingFormState>>
   spOptions: string[]
+  hunterOptions: User[]
   projects: string[]
   caraBayarOptions: string[]
   saving: boolean
@@ -69,6 +73,8 @@ interface ClosingFormProps {
   onSubmit: (e: React.FormEvent) => Promise<void>
   title: string
   submitLabel: string
+  formError: string
+  onCancelClosing?: () => void
 }
 
 function fmtRp(raw: string): string {
@@ -102,22 +108,27 @@ function RupiahInput({ value, onChange, placeholder, required, className, style 
 }
 
 function ClosingFormFields({
-  isAdmin, form, setForm, spOptions, projects, caraBayarOptions, saving, onCancel, onSubmit, title, submitLabel,
+  isAdmin, form, setForm, spOptions, hunterOptions, projects, caraBayarOptions, saving, onCancel, onSubmit, title, submitLabel, formError, onCancelClosing,
 }: ClosingFormProps) {
   return (
     <div className="p-5">
       <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
       <form onSubmit={onSubmit} className="space-y-3">
+        {formError && (
+          <div className="px-3 py-2.5 rounded-lg text-xs font-medium text-red-400" style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)" }}>
+            {formError}
+          </div>
+        )}
         {isAdmin && (
           <div>
             <label className="text-xs text-slate-500 block mb-1">Hunter</label>
             <select value={form.sales_hunter}
-              onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "" }))}
+              onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "", agent_name: "" }))}
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <option value="">— Pilih Hunter —</option>
-              {HUNTER_GROUPS.map(g => (
-                <option key={g.dbName} value={g.dbName}>{g.name}</option>
+              {hunterOptions.map(hunter => (
+                <option key={hunter.id} value={hunter.name}>{hunter.name}</option>
               ))}
             </select>
           </div>
@@ -126,7 +137,7 @@ function ClosingFormFields({
           <label className="text-xs text-slate-500 block mb-1">Sales Person</label>
           {spOptions.length > 0 ? (
             <select value={form.sales_person}
-              onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
+              onChange={e => setForm(f => ({ ...f, sales_person: e.target.value, agent_name: e.target.value === "Agent" ? f.agent_name : "" }))}
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <option value="">— Tanpa SP / Hunter Langsung —</option>
@@ -134,12 +145,21 @@ function ClosingFormFields({
             </select>
           ) : (
             <input type="text" value={form.sales_person}
-              onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
+              onChange={e => setForm(f => ({ ...f, sales_person: e.target.value, agent_name: e.target.value === "Agent" ? f.agent_name : "" }))}
               placeholder="Nama sales person (opsional)"
               className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
           )}
         </div>
+        {form.sales_person === "Agent" && (
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Nama Agent <span className="text-red-400">*</span></label>
+            <input required value={form.agent_name}
+              onChange={e => setForm(f => ({ ...f, agent_name: e.target.value }))}
+              className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
+          </div>
+        )}
         <div>
           <label className="text-xs text-slate-500 block mb-1">Nama Konsumen <span className="text-red-400">*</span></label>
           <input type="text" value={form.name} required
@@ -213,6 +233,13 @@ function ClosingFormFields({
             style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
         </div>
         <div className="flex gap-2 pt-1">
+          {onCancelClosing && (
+            <button type="button" onClick={onCancelClosing} disabled={saving}
+              className="flex-1 py-2 rounded-lg text-sm font-semibold text-red-400 hover:text-red-300 transition"
+              style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.35)" }}>
+              Batal Closing
+            </button>
+          )}
           <button type="button" onClick={onCancel}
             className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
             style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
@@ -275,7 +302,8 @@ export default function ClosingPage() {
   const [showInputModal,  setShowInputModal]  = useState(false)
   const [showEditModal,   setShowEditModal]   = useState(false)
   const [showTargetModal, setShowTargetModal] = useState(false)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [showCancelClosingConfirm, setShowCancelClosingConfirm] = useState(false)
+  const [formError, setFormError] = useState("")
   const [editingClosing,  setEditingClosing]  = useState<KonsumenRow | null>(null)
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
@@ -291,6 +319,7 @@ export default function ClosingPage() {
   const blankForm = {
     sales_hunter: isAdmin ? "" : (user?.name || ""),
     sales_person: "",
+    agent_name: "",
     name: "",
     project: "",
     unit: "",
@@ -318,7 +347,7 @@ export default function ClosingPage() {
 
   const fetchData = useCallback(async () => {
     let closingQuery = supabase.from("konsumen")
-      .select("id,user_id,sales_hunter,sales_person,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
+      .select("id,user_id,sales_hunter,sales_person,agent_name,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
       .eq("status", "closing")
       .order("closing_date", { ascending: false })
 
@@ -332,7 +361,8 @@ export default function ClosingPage() {
       closingQuery,
       supabase.from("users")
         .select("id,name,monthly_target,role,status")
-        .eq("role", "hunter"),
+        .eq("role", "hunter")
+        .eq("status", "active"),
       supabase.from("users")
         .select("name,hunter_name")
         .in("role", ["sales_person", "telemarketing"]),
@@ -378,13 +408,19 @@ export default function ClosingPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (form.sales_person === "Agent" && !form.agent_name.trim()) {
+      setFormError("Nama Agent wajib diisi")
+      return
+    }
     if (!form.nilai_hjr || Number(form.nilai_hjr) <= 0) return
+    setFormError("")
     setSaving(true)
     const d = new Date(form.closing_date)
     await supabase.from("konsumen").insert({
       user_id:       user!.id,
       sales_hunter:  isAdmin ? form.sales_hunter : user!.name,
       sales_person:  form.sales_person || null,
+      agent_name:    form.sales_person === "Agent" ? form.agent_name.trim() : null,
       name:          form.name,
       project:       form.project || null,
       unit:          form.unit || null,
@@ -406,6 +442,11 @@ export default function ClosingPage() {
   async function handleEditSave(e: React.FormEvent) {
     e.preventDefault()
     if (!editingClosing) return
+    if (form.sales_person === "Agent" && !form.agent_name.trim()) {
+      setFormError("Nama Agent wajib diisi")
+      return
+    }
+    setFormError("")
     setSaving(true)
     const d = new Date(form.closing_date)
     const newHunterName = form.sales_hunter || editingClosing.sales_hunter
@@ -414,6 +455,7 @@ export default function ClosingPage() {
       user_id:       newHunterUser?.id ?? editingClosing.user_id,
       sales_hunter:  newHunterName,
       sales_person:  form.sales_person || null,
+      agent_name:    form.sales_person === "Agent" ? form.agent_name.trim() : null,
       name:          form.name,
       project:       form.project || null,
       unit:          form.unit || null,
@@ -433,9 +475,11 @@ export default function ClosingPage() {
 
   function openEdit(c: KonsumenRow) {
     setEditingClosing(c)
+    setFormError("")
     setForm({
       sales_hunter: c.sales_hunter || "",
       sales_person: c.sales_person || "",
+      agent_name:   c.agent_name || "",
       name:         c.name,
       project:      c.project || "",
       unit:         c.unit || "",
@@ -448,14 +492,25 @@ export default function ClosingPage() {
     setShowEditModal(true)
   }
 
-  async function handleDelete(id: string) {
-    await supabase.from("konsumen").update({
-      status:        "tidak_potensial",
+  async function handleCancelClosing() {
+    if (!editingClosing) return
+    setSaving(true)
+    const { error } = await supabase.from("konsumen").update({
+      status:        "hot",
       nilai_hjr:     null,
       closing_date:  null,
       closing_month: null,
       closing_year:  null,
-    }).eq("id", id)
+    }).eq("id", editingClosing.id)
+    setSaving(false)
+    if (error) {
+      setShowCancelClosingConfirm(false)
+      setFormError(`Gagal membatalkan closing: ${error.message}`)
+      return
+    }
+    setShowCancelClosingConfirm(false)
+    setShowEditModal(false)
+    setEditingClosing(null)
     fetchData()
   }
 
@@ -485,21 +540,13 @@ export default function ClosingPage() {
     ? hunters
     : hunters.filter(h => h.id === user?.id)
 
-  // Closing records whose sales_hunter doesn't match any DB user (e.g. "Others", manual entries)
-  const orphanHunterNames = isAdmin || isTf
-    ? Array.from(new Set(
-        closings
-          .map(c => c.sales_hunter)
-          .filter((name): name is string => !!name && !hunters.some(h => h.name === name))
-      )).sort()
-    : []
-
   const filtered = closings.filter(c => {
     const query = search.trim().toLowerCase()
     if (query && ![
       c.name,
       c.sales_hunter,
       c.sales_person,
+      c.agent_name,
       c.project,
       c.unit,
     ].some(value => (value || "").toLowerCase().includes(query))) return false
@@ -625,7 +672,7 @@ export default function ClosingPage() {
             )}
 
             {!isTf && (
-              <button onClick={() => { setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
+              <button onClick={() => { setFormError(""); setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
                 className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
                 <Plus size={14} /> Input Closing
               </button>
@@ -745,19 +792,6 @@ export default function ClosingPage() {
                     </div>
                   )
                 })}
-                {orphanHunterNames.map(name => {
-                  const total = filtered
-                    .filter(c => c.sales_hunter === name)
-                    .reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-                  return (
-                    <div key={name} className="rounded-xl p-3"
-                      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                      <div className="text-xs text-slate-400 font-medium truncate">{name}</div>
-                      <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
-                      <div className="text-xs text-slate-600 mt-0.5">—</div>
-                    </div>
-                  )
-                })}
               </div>
             )}
 
@@ -846,7 +880,7 @@ export default function ClosingPage() {
               onSearchChange={setSearch}
               hunter={filterHunter}
               onHunterChange={setFilterHunter}
-              hunterOptions={[...displayHunters.map(h => ({ value: h.name, label: h.name })), ...orphanHunterNames.map(name => ({ value: name, label: name }))]}
+              hunterOptions={displayHunters.map(h => ({ value: h.name, label: h.name }))}
               project={filterProject}
               onProjectChange={setFilterProject}
               projectOptions={projectOptions.map(project => ({ value: project, label: project }))}
@@ -872,11 +906,9 @@ export default function ClosingPage() {
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                   {([
-                    { key: "hunter",    label: "Hunter",      align: "left",   sortable: true  },
-                    { key: "sales",     label: "Sales",       align: "left",   sortable: false },
+                    { key: "hunter",    label: "Hunter / Sales", align: "left", sortable: true  },
                     { key: "konsumen",  label: "Konsumen",    align: "left",   sortable: true  },
-                    { key: "project",   label: "Project",     align: "left",   sortable: true  },
-                    { key: "unit",      label: "Unit",        align: "left",   sortable: false },
+                    { key: "project",   label: "Project / Unit", align: "left", sortable: true  },
                     { key: "nilai",     label: "Nilai Omset", align: "right",  sortable: true  },
                     { key: "cara_bayar",label: "Cara Bayar",  align: "center", sortable: true  },
                     { key: "closing",   label: "Closing",     align: "center", sortable: true  },
@@ -897,23 +929,25 @@ export default function ClosingPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-600 text-xs">
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-600 text-xs">
                     {ytdMode ? `Belum ada closing YTD ${year}` : `Belum ada closing ${getMonthName(month)} ${year}`}
                   </td></tr>
                 ) : displayed.map(c => (
                   <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}
                     className="hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.sales_hunter || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.sales_person || "—"}</td>
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      <div className="text-slate-300">{c.sales_hunter || "—"}</div>
+                      <div className="text-slate-500 mt-0.5">{formatSalesPerson(c.sales_person, c.agent_name)}</div>
+                    </td>
                     <td className="px-4 py-3 font-medium text-white text-xs">{c.name}</td>
                     <td className="px-4 py-3">
                       {c.project
                         ? <span className={`text-xs px-2 py-0.5 rounded-full ${projColor(normalizeProject(c.project))}`}>{normalizeProject(c.project)}</span>
                         : <span className="text-xs text-slate-600">—</span>}
+                      <div className="text-xs text-slate-500 mt-1">{c.unit || "—"}</div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{c.unit || "—"}</td>
                     <td className="px-4 py-3 text-right text-xs font-semibold text-green-400 whitespace-nowrap">
                       {formatRupiah(c.nilai_hjr || 0)}
                     </td>
@@ -936,12 +970,6 @@ export default function ClosingPage() {
                             <Edit2 size={13} />
                           </button>
                         )}
-                        {isAdmin && (
-                          <button onClick={() => setConfirmDeleteId(c.id)}
-                            className="text-slate-600 hover:text-red-400 transition" title="Batalkan Closing">
-                            <Trash2 size={13} />
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -950,7 +978,7 @@ export default function ClosingPage() {
               {!loading && filtered.length > 0 && (
                 <tfoot>
                   <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
-                    <td colSpan={5} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    <td colSpan={3} className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
                       Total · {filtered.length} transaksi
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-bold whitespace-nowrap" style={{ color: "#22c55e" }}>
@@ -969,9 +997,10 @@ export default function ClosingPage() {
         <Modal onClose={() => setShowInputModal(false)}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm}
-            spOptions={spOptions} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
+            spOptions={spOptions} hunterOptions={hunters} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
             onCancel={() => setShowInputModal(false)}
             onSubmit={handleSave} title="Input Closing" submitLabel="Simpan Closing"
+            formError={formError}
           />
         </Modal>
       )}
@@ -980,11 +1009,13 @@ export default function ClosingPage() {
         <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm}
-            spOptions={spOptions} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
+            spOptions={spOptions} hunterOptions={hunters} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
             onCancel={() => { setShowEditModal(false); setEditingClosing(null) }}
             onSubmit={handleEditSave}
             title={`Edit: ${editingClosing.name}`}
             submitLabel="Simpan Perubahan"
+            formError={formError}
+            onCancelClosing={() => setShowCancelClosingConfirm(true)}
           />
         </Modal>
       )}
@@ -1018,13 +1049,13 @@ export default function ClosingPage() {
           </div>
         </Modal>
       )}
-      {confirmDeleteId && (
+      {showCancelClosingConfirm && editingClosing && (
         <ConfirmModal
           title="Batalkan Closing?"
-          message="Data closing akan dihapus dan konsumen dikembalikan ke status 'tidak_potensial'."
-          confirmLabel="Hapus"
-          onConfirm={() => { handleDelete(confirmDeleteId); setConfirmDeleteId(null) }}
-          onCancel={() => setConfirmDeleteId(null)}
+          message="Data akan dipindahkan kembali ke Pipeline dengan status Hot."
+          confirmLabel="Batal Closing"
+          onConfirm={handleCancelClosing}
+          onCancel={() => setShowCancelClosingConfirm(false)}
         />
       )}
     </DashboardShell>
