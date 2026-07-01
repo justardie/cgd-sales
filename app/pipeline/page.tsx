@@ -6,7 +6,7 @@ import DashboardShell from "@/components/DashboardShell"
 import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
+import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { Plus, X, FileText, Pencil, CheckCircle2, Trash2, Send, BookOpen } from "lucide-react"
 
 interface KonsumenRow {
@@ -14,6 +14,7 @@ interface KonsumenRow {
   user_id?: string
   sales_hunter: string
   sales_person: string | null
+  agent_name: string | null
   name: string
   project: string | null
   unit: string | null
@@ -250,6 +251,7 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
 const emptyForm = {
   sales_hunter:      "",
   sales_person:      "",
+  agent_name:        "",
   name:              "",
   project:           "",
   unit:              "",
@@ -379,6 +381,7 @@ export default function PipelinePage() {
     setForm({
       sales_hunter:      r.sales_hunter || "",
       sales_person:      r.sales_person || "",
+      agent_name:        r.agent_name || "",
       name:              r.name || "",
       project:           r.project || "",
       unit:              r.unit || "",
@@ -425,7 +428,19 @@ export default function PipelinePage() {
     fetchData()
   }
 
+  function handleSalesPersonChange(nextSalesPerson: string) {
+    setForm((current) => ({
+      ...current,
+      sales_person: nextSalesPerson,
+      agent_name: nextSalesPerson === "Agent" ? current.agent_name : "",
+    }))
+  }
+
   function validateForm(): boolean {
+    if (form.sales_person === "Agent" && !form.agent_name.trim()) {
+      setFormError("Nama Agent wajib diisi")
+      return false
+    }
     const checks: [string, string][] = [
       [(isAdmin || isTf) ? form.sales_hunter : "ok", "Hunter"],
       [form.sales_person, "Sales Person"],
@@ -454,6 +469,7 @@ export default function PipelinePage() {
       name:              form.name,
       sales_hunter:      (isAdmin || isTf) ? form.sales_hunter : user!.name,
       sales_person:      form.sales_person || null,
+      agent_name:        form.sales_person === "Agent" ? form.agent_name.trim() : null,
       project:           form.project || null,
       unit:              form.unit || null,
       potensi_closing:   form.potensi_closing ? Number(form.potensi_closing) : null,
@@ -497,6 +513,7 @@ export default function PipelinePage() {
       r.name,
       r.sales_hunter,
       r.sales_person,
+      r.agent_name,
       r.project,
       r.unit,
       latestNotes[r.id],
@@ -551,7 +568,7 @@ ${data.map(r => {
     ? "Rp " + Number(r.potensi_closing).toLocaleString("id-ID") : "—"
   return `<tr>
 <td>${esc(r.sales_hunter || "—")}</td>
-<td>${esc(r.sales_person || "—")}</td>
+<td>${esc(formatSalesPerson(r.sales_person, r.agent_name))}</td>
 <td><strong>${esc(r.name || "—")}</strong></td>
 <td>${esc(r.project || "—")}</td>
 <td>${esc(r.unit || "—")}</td>
@@ -670,11 +687,9 @@ ${data.map(r => {
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                   {([
-                    { key: "hunter",   label: "Hunter",        align: "left",   sortable: true  },
-                    { key: "sales",    label: "Sales",         align: "left",   sortable: false },
+                    { key: "hunter",   label: "Hunter / Sales", align: "left",  sortable: true  },
                     { key: "konsumen", label: "Konsumen",      align: "left",   sortable: true  },
-                    { key: "project",  label: "Project",       align: "left",   sortable: true  },
-                    { key: "unit",     label: "Unit",          align: "left",   sortable: false },
+                    { key: "project",  label: "Project / Unit", align: "left",  sortable: true  },
                     { key: "status",   label: "Status",        align: "center", sortable: true  },
                     { key: "nilai",    label: "Nilai Potensi", align: "right",  sortable: true  },
                     { key: "cara",     label: "Cara Bayar",    align: "center", sortable: false },
@@ -697,20 +712,24 @@ ${data.map(r => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={12} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
                 ) : displayed.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
                   const badge = statusBadge(r.status)
                   return (
                   <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}
                     className={`hover:bg-white/[0.02] ${isTidakPotensial ? "opacity-50" : ""}`}>
-                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_hunter || "—"}</td>
-                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.sales_person || "—"}</td>
+                    <td className="px-3 py-3 text-xs whitespace-nowrap">
+                      <div className="text-slate-300">{r.sales_hunter || "—"}</div>
+                      <div className="text-slate-500 mt-0.5">{formatSalesPerson(r.sales_person, r.agent_name)}</div>
+                    </td>
                     <td className="px-3 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
-                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.project || "—"}</td>
-                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">{r.unit || "—"}</td>
+                    <td className="px-3 py-3 text-xs whitespace-nowrap">
+                      <div className="text-slate-300">{r.project || "—"}</div>
+                      <div className="text-slate-500 mt-0.5">{r.unit || "—"}</div>
+                    </td>
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
                     </td>
@@ -753,7 +772,7 @@ ${data.map(r => {
               {!loading && filtered.length > 0 && (
                 <tfoot>
                   <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
-                    <td colSpan={6} className="px-3 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    <td colSpan={4} className="px-3 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
                       {filtered.filter(r => r.status !== "tidak_potensial").length} prospek aktif
                       {filtered.filter(r => r.status === "tidak_potensial").length > 0 &&
                         <span className="text-slate-600 ml-1">
@@ -855,7 +874,7 @@ ${data.map(r => {
                 <label className="text-xs text-slate-500 block mb-1">Hunter <span className="text-red-400">*</span></label>
                 {(isAdmin || isTf) ? (
                   <select value={form.sales_hunter} required
-                    onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "" }))}
+                    onChange={e => setForm(f => ({ ...f, sales_hunter: e.target.value, sales_person: "", agent_name: "" }))}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                     <option value="">— Pilih Hunter —</option>
@@ -872,7 +891,7 @@ ${data.map(r => {
                 <label className="text-xs text-slate-500 block mb-1">Sales Person <span className="text-red-400">*</span></label>
                 {spOptions.length > 0 ? (
                   <select value={form.sales_person} required
-                    onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
+                    onChange={e => handleSalesPersonChange(e.target.value)}
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                     <option value="">— Pilih SP —</option>
@@ -880,12 +899,24 @@ ${data.map(r => {
                   </select>
                 ) : (
                   <input type="text" value={form.sales_person} required
-                    onChange={e => setForm(f => ({ ...f, sales_person: e.target.value }))}
+                    onChange={e => handleSalesPersonChange(e.target.value)}
                     placeholder="Nama sales person"
                     className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
                 )}
               </div>
+              {form.sales_person === "Agent" && (
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">Nama Agent <span className="text-red-400">*</span></label>
+                  <input
+                    required
+                    value={form.agent_name}
+                    onChange={(event) => setForm((current) => ({ ...current, agent_name: event.target.value }))}
+                    className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+                  />
+                </div>
+              )}
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Nama Konsumen <span className="text-red-400">*</span></label>
                 <input type="text" value={form.name} required

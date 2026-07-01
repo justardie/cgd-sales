@@ -37,3 +37,10 @@ test("shared sales filter bar keeps the approved control order", async () => {
   assert.equal(positions.every((position) => position >= 0), true)
   assert.deepEqual([...positions].sort((a, b) => a - b), positions)
 })
+
+test("Pipeline captures and displays Agent names", async () => {
+  const source = await read("app/pipeline/page.tsx")
+  assert.match(source, /agent_name/)
+  assert.match(source, /Nama Agent/)
+  assert.match(source, /formatSalesPerson/)
+})
