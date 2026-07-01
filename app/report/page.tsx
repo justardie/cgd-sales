@@ -4,22 +4,21 @@ import * as XLSX from "xlsx"
 import DashboardShell from "@/components/DashboardShell"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
-import { buildReportHtml, calculateVisitSummary, getMtdRange, type PivotVisitRow, type ReportActivity, type ReportSnapshot } from "@/lib/weekly-report"
+import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, type PivotVisitRow, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
 import { formatRupiah } from "@/lib/utils"
 import { Download, FileSpreadsheet, Plus, Save, Trash2 } from "lucide-react"
 
 interface StoredReport { id: string; hunter_name: string; period_start: string; period_end: string; status: "draft"|"final"; snapshot: ReportSnapshot|null; updated_at: string }
 const iso = (date: Date) => date.toISOString().slice(0, 10)
-const today = new Date(); const initialEnd = iso(today); const start = new Date(today); start.setDate(start.getDate() - 6)
 const emptyActivity = (): ReportActivity => ({ activity: "", target: "" })
 
 export default function ReportPage() {
   const { user, isAdmin } = useAuth()
-  const [periodStart, setPeriodStart] = useState(iso(start))
-  const [periodEnd, setPeriodEnd] = useState(initialEnd)
-  const [profile, setProfile] = useState({ monthly_target: 0, win_or_die_target: 0, project_coverage: [] as string[] })
+  const [reportDate, setReportDate] = useState(iso(new Date()))
+  const { start: periodStart, end: periodEnd } = useMemo(() => getPreviousWeekPeriod(reportDate), [reportDate])
+  const [profile, setProfile] = useState({ monthly_target: 0, win_or_die_target: 0, visit_target: 0, project_coverage: [] as string[] })
   const [team, setTeam] = useState<string[]>([])
-  const [visits, setVisits] = useState({ hunterVisits: 0, sales: [] as {name:string;visits:number}[] })
+  const [visits, setVisits] = useState({ hunterVisits: 0, sales: [] as SalesVisit[] })
   const [pivotFilename, setPivotFilename] = useState("")
   const [activities, setActivities] = useState<ReportActivity[]>([emptyActivity()])
   const [closings, setClosings] = useState<ReportSnapshot["closings"]>([])
@@ -40,20 +39,19 @@ export default function ReportPage() {
     if (!user || isAdmin || user.role !== "hunter") return
     const mtd = getMtdRange(periodEnd)
     const [profileRes, teamRes, closingRes, pipelineRes] = await Promise.all([
-      supabase.from("users").select("monthly_target,win_or_die_target,project_coverage").eq("id", user.id).single(),
+      supabase.from("users").select("monthly_target,win_or_die_target,visit_target,project_coverage").eq("id", user.id).single(),
       supabase.from("users").select("name").eq("status", "active").in("role", ["sales_person", "telemarketing"]).eq("hunter_name", user.name),
       supabase.from("konsumen").select("sales_person,name,project,unit,nilai_hjr,visit_date,closing_date").eq("status", "closing").eq("sales_hunter", user.name).gte("closing_date", mtd.start).lte("closing_date", mtd.end),
       supabase.from("konsumen").select("sales_person,name,project,unit,potensi_closing,visit_date,sudah_booking_fee").eq("status", "hot").eq("sales_hunter", user.name).or("board.eq.pipeline,board.is.null"),
     ])
-    if (profileRes.data) setProfile({ monthly_target: profileRes.data.monthly_target || 0, win_or_die_target: profileRes.data.win_or_die_target || 0, project_coverage: profileRes.data.project_coverage || [] })
+    if (profileRes.data) setProfile({ monthly_target: profileRes.data.monthly_target || 0, win_or_die_target: profileRes.data.win_or_die_target || 0, visit_target: profileRes.data.visit_target || 0, project_coverage: profileRes.data.project_coverage || [] })
     setTeam((teamRes.data || []).map(x => x.name))
     setClosings((closingRes.data || []).map(x => ({ salesPerson: x.sales_person || user.name, customer: x.name, project: x.project, unit: x.unit, value: x.nilai_hjr || 0, visitDate: x.visit_date, closingDate: x.closing_date })))
     setPipelines((pipelineRes.data || []).map(x => ({ salesPerson: x.sales_person || user.name, customer: x.name, project: x.project, unit: x.unit, value: x.potensi_closing || 0, visitDate: x.visit_date, bookingFee: x.sudah_booking_fee })))
   }, [user, isAdmin, periodEnd])
 
   useEffect(() => { queueMicrotask(() => { void loadReports(); void loadOperationalData() }) }, [loadReports, loadOperationalData])
-  const validPeriod = useMemo(() => Math.round((new Date(periodEnd).getTime() - new Date(periodStart).getTime()) / 86400000) === 6, [periodStart, periodEnd])
-  const snapshot = useMemo<ReportSnapshot>(() => ({ hunterName: user?.name || "", periodStart, periodEnd, coverage: profile.project_coverage, monthlyTarget: profile.monthly_target, winOrDieTarget: profile.win_or_die_target, closings, pipelines, hunterVisits: visits.hunterVisits, salesVisits: visits.sales, activities: activities.filter(x => x.activity.trim() || x.target.trim()) }), [user, periodStart, periodEnd, profile, closings, pipelines, visits, activities])
+  const snapshot = useMemo<ReportSnapshot>(() => ({ hunterName: user?.name || "", reportDate, periodStart, periodEnd, coverage: profile.project_coverage, monthlyTarget: profile.monthly_target, winOrDieTarget: profile.win_or_die_target, visitTarget: profile.visit_target, closings, pipelines, hunterVisits: visits.hunterVisits, salesVisits: visits.sales, activities: activities.filter(x => x.activity.trim() || x.target.trim()) }), [user, reportDate, periodStart, periodEnd, profile, closings, pipelines, visits, activities])
 
   function download(data: ReportSnapshot) {
     const blob = new Blob([buildReportHtml(data)], { type: "text/html;charset=utf-8" })
@@ -75,7 +73,7 @@ export default function ReportPage() {
   }
 
   async function save(status: "draft"|"final") {
-    if (!user || !validPeriod) { setMessage("Periode harus tepat 7 hari."); return }
+    if (!user) return
     if (reports.some(r => r.period_start === periodStart && r.period_end === periodEnd && r.status === "final")) { setMessage("Report periode ini sudah final dan tidak dapat diubah."); return }
     if (status === "final" && !pivotFilename) { setMessage("Unggah Pivot Activities sebelum finalisasi."); return }
     if (status === "final" && snapshot.activities.length === 0) { setMessage("Isi minimal satu rencana aktivitas."); return }
@@ -93,8 +91,7 @@ export default function ReportPage() {
     <div><h1 className="text-xl font-bold text-white">REPORT</h1><p className="text-sm text-slate-500">Weekly Sales Report · MASCOL Division</p></div>
     {isAdmin ? <ReportHistory reports={reports} onDownload={download} /> : user?.role !== "hunter" ? <div className="card">REPORT hanya tersedia untuk Sales Hunter.</div> : <>
       <section className="rounded-xl border p-5 space-y-4" style={{background:"var(--surface)",borderColor:"var(--border)"}}>
-        <div className="grid md:grid-cols-4 gap-3"><Field label="Sales Hunter" value={user.name} disabled/><Field label="Periode Mulai" value={periodStart} type="date" onChange={setPeriodStart}/><Field label="Periode Selesai" value={periodEnd} type="date" onChange={setPeriodEnd}/><Field label="Coverage" value={profile.project_coverage.join(", ") || "Belum diatur"} disabled/></div>
-        {!validPeriod && <p className="text-xs text-red-400">Periode harus tepat 7 hari (tanggal awal hingga akhir).</p>}
+        <div className="grid md:grid-cols-4 gap-3"><Field label="Sales Hunter" value={user.name} disabled/><Field label="Tanggal Laporan" value={reportDate} type="date" onChange={setReportDate}/><Field label="Periode Otomatis (Senin–Minggu)" value={`${periodStart} – ${periodEnd}`} disabled/><Field label="Coverage" value={profile.project_coverage.join(", ") || "Belum diatur"} disabled/></div>
       </section>
       <div className="grid md:grid-cols-4 gap-3">{[["Closing MTD",closings.length.toString()],["Omset MTD",formatRupiah(closings.reduce((s,x)=>s+x.value,0))],["Pipeline Hot",pipelines.length.toString()],["Potensi Pipeline",formatRupiah(pipelines.reduce((s,x)=>s+x.value,0))]].map(([a,b])=><div key={a} className="rounded-xl border p-4" style={{background:"var(--surface)",borderColor:"var(--border)"}}><div className="text-xs text-slate-500">{a}</div><b className="text-white block mt-1">{b}</b></div>)}</div>
       <section className="rounded-xl border p-5 space-y-3" style={{background:"var(--surface)",borderColor:"var(--border)"}}><h2 className="font-semibold text-white">Pencapaian Visit Tim</h2><label className="inline-flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer bg-emerald-600 text-white text-sm"><FileSpreadsheet size={16}/> Upload Pivot Activities<input type="file" accept=".xlsx,.xls" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)void parsePivot(f)}}/></label>{pivotFilename&&<span className="ml-3 text-xs text-emerald-400">{pivotFilename}</span>}<div className="text-sm text-slate-300">Visit Hunter: <b>{visits.hunterVisits}</b> · {visits.sales.map(x=>`${x.name}: ${x.visits}`).join(" · ") || "Belum ada data"}</div></section>
