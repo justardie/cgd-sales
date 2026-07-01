@@ -4,8 +4,8 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { formatRupiah, getMonthName, pct, spBadgeColor } from "@/lib/utils"
-import { TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { formatRupiah, getMonthName, pct } from "@/lib/utils"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const HUNTER_COLORS: Record<string, string> = {
   "Lyndon Sumarli":         "bg-blue-500/10 border-blue-500/30 text-blue-400",
@@ -21,12 +21,9 @@ const HUNTER_COLORS: Record<string, string> = {
 }
 
 interface MemberStatus {
-  id: string
   name: string
-  role_type: "SH" | "SP"
   monthly_target: number
   omset: number
-  sp_level: number
 }
 
 interface ClosingDetail {
@@ -43,7 +40,7 @@ const now = new Date()
 const ALL_HUNTER_DB_NAMES = new Set(HUNTER_GROUPS.map(h => h.dbName))
 
 export default function TeamPage() {
-  const { user, isAdmin } = useAuth()
+  const { user } = useAuth()
   const [members, setMembers] = useState<MemberStatus[]>([])
   const [spOmsetMap, setSpOmsetMap] = useState<SpOmsetMap>({})
   const [spClosingsMap, setSpClosingsMap] = useState<SpClosingsMap>({})
@@ -57,7 +54,6 @@ export default function TeamPage() {
   /** Direct (no-SP, no-Agent) omset keyed by hunter dbName */
   const [hunterDirectOmset, setHunterDirectOmset] = useState<Record<string, number>>({})
   const [hunterDirectClosings, setHunterDirectClosings] = useState<SpClosingsMap>({})
-  const [saving, setSaving] = useState<string | null>(null)
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
 
@@ -70,7 +66,7 @@ export default function TeamPage() {
 
   const fetchData = useCallback(async () => {
     const [usersRes, closingsRes] = await Promise.all([
-      supabase.from("users").select("id,name,monthly_target,sp_level,hunter_name,role").eq("status", "active"),
+      supabase.from("users").select("name,monthly_target,hunter_name,role").eq("status", "active"),
       supabase.from("konsumen").select("user_id,nilai_hjr,sales_person,sales_hunter,name,project,unit").eq("status", "closing").eq("closing_month", month).eq("closing_year", year),
     ])
 
@@ -151,13 +147,10 @@ export default function TeamPage() {
         const hunterDef = isHunter ? HUNTER_GROUPS.find(h => h.dbName === u.name) : null
         const displayName = hunterDef ? hunterDef.name : u.name
         return {
-          id: u.id,
           name: displayName,
-          role_type: isHunter ? "SH" : "SP",
           monthly_target: u.monthly_target || 0,
           // Hunter omset: look up by dbName (u.name) in the sales_hunter-based map
           omset: isHunter ? (hunterOmsetByDbName[u.name] || 0) : 0,
-          sp_level: u.sp_level ?? 0,
         }
       })
 
@@ -169,15 +162,6 @@ export default function TeamPage() {
 
   function getMember(displayOrSpName: string): MemberStatus | undefined {
     return members.find(m => m.name === displayOrSpName)
-  }
-
-  async function adjustSP(memberId: string, delta: number, current: number) {
-    if (!isAdmin) return
-    const newLevel = Math.max(0, Math.min(5, current + delta))
-    setSaving(memberId)
-    await supabase.from("users").update({ sp_level: newLevel }).eq("id", memberId)
-    setSaving(null)
-    fetchData()
   }
 
   function borderColor(color: string) { return color.split(" ")[1] }
@@ -192,7 +176,7 @@ export default function TeamPage() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-xl font-bold text-white">Team Status</h1>
-            <p className="text-sm text-slate-500 mt-0.5">SP Level per Sales Person · MASCOL Division</p>
+            <p className="text-sm text-slate-500 mt-0.5">Omset Hunter &amp; Sales Person · MASCOL Division</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={prevMonth}
@@ -448,8 +432,8 @@ export default function TeamPage() {
                           <div
                             className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition"
                             onClick={() => setExpandedSP(isExpanded ? null : spName)}>
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${spBadgeColor(sp.sp_level)}`}>
-                              <span className="text-xs font-bold">{sp.sp_level > 0 ? `SP${sp.sp_level}` : "OK"}</span>
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500/10 border border-blue-500/30 text-blue-400">
+                              <span className="text-xs font-bold">SP</span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -458,33 +442,9 @@ export default function TeamPage() {
                                   <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
                                 )}
                               </div>
-                              <div className="text-xs text-slate-400 mt-0.5">
-                                {formatRupiah(spOmset)}
-                                {sp.sp_level > 0 && (
-                                  <span className="ml-2 text-red-400 font-semibold">SP{sp.sp_level}</span>
-                                )}
-                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">{formatRupiah(spOmset)}</div>
                             </div>
-                            {isAdmin ? (
-                              <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                                <button
-                                  onClick={() => adjustSP(sp.id, -1, sp.sp_level)}
-                                  disabled={sp.sp_level <= 0 || saving === sp.id}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-green-400 hover:bg-green-500/10 disabled:opacity-30 transition"
-                                  title="Turunkan SP">
-                                  <TrendingDown size={13} />
-                                </button>
-                                <button
-                                  onClick={() => adjustSP(sp.id, 1, sp.sp_level)}
-                                  disabled={sp.sp_level >= 5 || saving === sp.id}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500/10 disabled:opacity-30 transition"
-                                  title="Naikkan SP">
-                                  <TrendingUp size={13} />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
-                            )}
+                            <span className="text-xs text-slate-600 flex-shrink-0">{isExpanded ? "▲" : "▼"}</span>
                           </div>
                           <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
                             <div className="px-4 py-3">

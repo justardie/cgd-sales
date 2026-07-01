@@ -22,3 +22,10 @@ test("Admin no longer exposes Target Visit", async () => {
   const source = await read("app/admin/page.tsx")
   assert.doesNotMatch(source, /Target Visit|visit_target/)
 })
+
+test("Team preserves Sales Persons without SP warning controls", async () => {
+  const source = await read("app/team/page.tsx")
+  assert.doesNotMatch(source, /sp_level|adjustSP|Turunkan SP|Naikkan SP|SP Level per Sales Person/)
+  assert.match(source, /Sales Person/)
+  assert.match(source, /spOmsetMap/)
+})
