@@ -71,7 +71,7 @@ export default function Header() {
           alt="CGD"
           width={140}
           height={52}
-          style={{ objectFit: "contain", height: "44px", width: "auto" }}
+          style={{ objectFit: "contain", height: "44px", width: "auto", filter: "brightness(0) invert(1)" }}
           priority
         />
       </div>

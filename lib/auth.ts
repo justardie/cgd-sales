@@ -7,6 +7,8 @@ const NAME_ALIASES: Record<string, string[]> = {
   'Rika Sanusi': ['Rika Sanusi', 'Asun', 'Rika Sanusi (Asun)'],
 }
 
+const SESSION_KEY = 'cgd_user'
+
 export async function loginUser(name: string, pin?: string): Promise<AuthUser | null> {
   const namesToTry = NAME_ALIASES[name] ?? [name]
   for (const n of namesToTry) {
@@ -27,20 +29,27 @@ export async function loginUser(name: string, pin?: string): Promise<AuthUser | 
 }
 
 export function saveSession(user: AuthUser) {
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem('cgd_user', JSON.stringify(user))
-  }
+  if (typeof window !== 'undefined') localStorage.setItem(SESSION_KEY, JSON.stringify(user))
 }
 
 export function getSession(): AuthUser | null {
   if (typeof window === 'undefined') return null
-  const raw = sessionStorage.getItem('cgd_user')
+  const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
   if (!raw) return null
-  try { return JSON.parse(raw) } catch { return null }
+  try {
+    const user = JSON.parse(raw) as AuthUser
+    localStorage.setItem(SESSION_KEY, raw)
+    sessionStorage.removeItem(SESSION_KEY)
+    return user
+  } catch {
+    localStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
+    return null
+  }
 }
 
 export function clearSession() {
-  if (typeof window !== 'undefined') {
-    sessionStorage.removeItem('cgd_user')
-  }
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(SESSION_KEY)
+  sessionStorage.removeItem(SESSION_KEY)
 }

@@ -38,7 +38,6 @@ export default function AdminPage() {
     hunter_name: "",
     monthly_target: "",
     win_or_die_target: "",
-    visit_target: "40",
     pin: "",
   })
 
@@ -56,7 +55,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", visit_target: "40", pin: "" })
+    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", pin: "" })
     setShowModal(true)
   }
 
@@ -68,7 +67,6 @@ export default function AdminPage() {
       hunter_name: u.hunter_name || "",
       monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
-      visit_target: u.visit_target.toString(),
       pin: "",
     })
     setShowModal(true)
@@ -89,7 +87,6 @@ export default function AdminPage() {
       role: form.role as Role,
       monthly_target: isHunterRole ? (Number(form.monthly_target) || 0) : (editing ? editing.monthly_target : 0),
       win_or_die_target: isHunterRole ? (Number(form.win_or_die_target) || 0) : 0,
-      visit_target: Number(form.visit_target) || 40,
       // Sync has_tm_access with role: telemarketing always gets TM access,
       // all other roles lose it (so changing away from TM also clears it)
       has_tm_access: form.role === "telemarketing",
@@ -155,7 +152,6 @@ export default function AdminPage() {
               <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                 <th className="px-4 py-3 text-left text-xs text-slate-500 font-medium">Nama</th>
                 <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Role</th>
-                <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Visit</th>
                 <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">Target Omset</th>
                 <th className="px-4 py-3 text-right text-xs text-slate-500 font-medium">WoD</th>
                 <th className="px-4 py-3 text-center text-xs text-slate-500 font-medium">Status</th>
@@ -164,7 +160,7 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
               ) : users.map(u => (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
@@ -185,9 +181,6 @@ export default function AdminPage() {
                        u.role === "sales_person"  ? "Sales Person"   :
                        u.role === "telemarketing" ? "Telemarketing"  : u.role}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-xs text-slate-400">
-                    {u.visit_target ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-400">
                     {u.role === "hunter" ? formatRupiah(u.monthly_target) : "—"}
@@ -287,12 +280,6 @@ export default function AdminPage() {
                     style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
                 </div>
               )}
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Target Visit/bulan</label>
-                <input type="number" value={form.visit_target} onChange={e => setForm(f => ({ ...f, visit_target: e.target.value }))}
-                  className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }} />
-              </div>
               {(form.role === "hunter" || form.role === "admin" || form.role === "telemarketing") && (
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">PIN {editing ? "(kosongkan jika tidak diubah)" : ""}</label>
