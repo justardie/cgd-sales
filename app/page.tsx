@@ -6,12 +6,8 @@ import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import {
   TrendingUp, DollarSign, AlertTriangle, Trophy,
-  Users, Activity, ChevronDown, ChevronUp,
+  Users, Activity,
 } from "lucide-react"
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  Cell, Legend,
-} from "recharts"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 
 interface HunterStat {
@@ -21,6 +17,7 @@ interface HunterStat {
   win_or_die_target: number
   visit_target: number
   omset_mtd: number
+  omset_current_month: number
   omset_ytd: number
   omset_last: number
   visits: number
@@ -119,54 +116,6 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
   )
 }
 
-const ChartTooltip = ({ active, payload, label }: {
-  active?: boolean; payload?: { name: string; value: number; fill?: string }[]; label?: string
-}) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="rounded-xl p-3 text-xs" style={{
-      background: "var(--surface)",
-      border: "1px solid var(--border-medium)",
-      boxShadow: "var(--shadow-lg)",
-    }}>
-      <div className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>{label}</div>
-      {payload.map(p => (
-        <div key={p.name} className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-          <span className="w-2 h-2 rounded-full inline-block flex-shrink-0" style={{ background: p.fill || "#888" }} />
-          {p.name}: {p.name === "Visit" || p.name === "Target Visit"
-            ? p.value
-            : formatRupiah(p.value * 1_000_000)}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-const Swatch = ({ color }: { color: string }) => (
-  <span style={{
-    display: "inline-block", width: 10, height: 10,
-    borderRadius: 3, background: color, flexShrink: 0,
-  }} />
-)
-
-const OmsetLegend = () => (
-  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", fontSize: 11, paddingTop: 8 }}>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="rgba(59,130,246,0.50)" /> Target
-    </span>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="#22c55e" /> ≥ Target
-    </span>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="#FF6A3D" /> 70–99%
-    </span>
-    <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-secondary)" }}>
-      <Swatch color="#ef4444" /> &lt; 70%
-    </span>
-  </div>
-)
-
-
 const now = new Date()
 
 export default function OverviewPage() {
@@ -185,7 +134,6 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true)
   const [month] = useState(now.getMonth() + 1)
   const [year] = useState(now.getFullYear())
-  const [showCharts, setShowCharts] = useState(true)
 
   // dateMode: "today" | "mtd" | "ytd" | "custom"
   const [dateMode, setDateMode] = useState<"today" | "mtd" | "ytd" | "custom">("mtd")
@@ -233,12 +181,13 @@ export default function OverviewPage() {
         }
       }
 
-      const [usersRes, closingsMtd, closingsYtd, closingsLast, pipelineRes, activeSpsRes] = await Promise.all([
+      const [usersRes, closingsMtd, closingsCurrentMonth, closingsYtd, closingsLast, pipelineRes, activeSpsRes] = await Promise.all([
         supabase.from("users").select("id,name,monthly_target,win_or_die_target,visit_target,status,role,hunter_name").eq("status", "active"),
         closingsPrimaryQ,
+        supabase.from("konsumen").select("user_id,nilai_hjr,project,sales_person,sales_hunter").eq("status", "closing").eq("closing_month", now.getMonth() + 1).eq("closing_year", now.getFullYear()),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", effYear).lte("closing_month", effMonth),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", lastMonth).eq("closing_year", lastYear),
-        supabase.from("konsumen").select("user_id,potensi_closing,status").in("status", ["warm", "hot", "tidak_potensial"]).or("board.eq.pipeline,board.is.null"),
+        supabase.from("konsumen").select("user_id,potensi_closing,status").eq("status", "hot").or("board.eq.pipeline,board.is.null"),
         supabase.from("users").select("name").eq("role", "sales_person").eq("status", "active"),
       ])
 
@@ -259,7 +208,7 @@ export default function OverviewPage() {
       // Top Performers: best hunter + best sales person by MTD omset
       const hunterUsers = allUsers.filter((u: { role: string }) => u.role === "hunter")
       const spUsers     = allUsers.filter((u: { role: string }) => u.role === "sales_person")
-      const mtdData = closingsMtd.data || []
+      const mtdData = closingsCurrentMonth.data || []
 
       const hunterOmset: Record<string, number> = {}
       mtdData.forEach(c => {
@@ -300,6 +249,7 @@ export default function OverviewPage() {
           if (!hu) return null
 
           const omset_mtd  = (closingsMtd.data  || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+          const omset_current_month = (closingsCurrentMonth.data || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
           const omset_ytd  = (closingsYtd.data  || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
           const omset_last = (closingsLast.data || []).filter(c => c.sales_hunter === group.dbName).reduce((s, c) => s + (c.nilai_hjr || 0), 0)
 
@@ -308,7 +258,7 @@ export default function OverviewPage() {
             monthly_target: hu.monthly_target,
             win_or_die_target: hu.win_or_die_target,
             visit_target: hu.visit_target,
-            omset_mtd, omset_ytd, omset_last, visits: 0,
+            omset_mtd, omset_current_month, omset_ytd, omset_last, visits: 0,
           }
         })
         .filter((h): h is HunterStat => h !== null)
@@ -326,7 +276,7 @@ export default function OverviewPage() {
       const activeSpNames = new Set((activeSpsRes.data || []).map(u => (u.name || "").toLowerCase().trim()))
       const totalActiveSps = (activeSpsRes.data || []).length
       const spMenjual = new Set(
-        (closingsMtd.data || [])
+        (closingsCurrentMonth.data || [])
           .map(c => (c.sales_person || "").toLowerCase().trim())
           .filter(n => n && activeSpNames.has(n))
       ).size
@@ -354,12 +304,11 @@ export default function OverviewPage() {
     : null
   const warnHunters = hunters.filter(h => h.win_or_die_target > 0 && h.omset_mtd < h.win_or_die_target)
   const wodHunters  = hunters.filter(h => h.win_or_die_target > 0)
-
-  const omsetChart = hunters.map(h => ({
-    name: h.name.split(" ")[0],
-    "Target":    Math.round((ytdMode ? h.monthly_target * (now.getMonth() + 1) : h.monthly_target) / 1_000_000),
-    "Realisasi": Math.round((ytdMode ? h.omset_ytd : h.omset_mtd) / 1_000_000),
-  }))
+  const targetAlertHunters = hunters
+    .filter(hunter => hunter.monthly_target > 0 && hunter.omset_current_month < hunter.monthly_target)
+    .sort((a, b) =>
+      a.omset_current_month / a.monthly_target - b.omset_current_month / b.monthly_target
+    )
 
 
   return (
@@ -550,7 +499,7 @@ export default function OverviewPage() {
               achievement={totals.omsetMtd / TEAM_MONTHLY_TARGET} />
           </div>
           <div className="card-enter-3 kpi-card">
-            <StatCard label="Pipeline Aktif" icon={Activity}
+            <StatCard label="Pipeline Hot" icon={Activity}
               value={totals.pipeline.toString()}
               sub={formatRupiah(totals.pipelineVal)}
               color="#8b5cf6" />
@@ -707,56 +656,48 @@ export default function OverviewPage() {
           </div>
         )}
 
-        {/* Charts Section — collapsible */}
-        <div className="rounded-2xl overflow-hidden section-fade-2" style={{
-          background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
-          border: "1px solid var(--border)",
-          boxShadow: "var(--shadow-md)",
-        }}>
-          <button
-            className="w-full flex items-center justify-between px-5 py-4"
-            onClick={() => setShowCharts(v => !v)}
-          >
-            <div className="flex items-center gap-2">
-              <Activity size={14} style={{ color: "var(--accent)" }} />
-              <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Grafik Performa — {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
-              </span>
-            </div>
-            {showCharts
-              ? <ChevronUp size={16} style={{ color: "var(--text-muted)" }} />
-              : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
-          </button>
-
-          <div className={`expand-panel ${showCharts ? "open" : "closed"}`} style={{ borderTop: "1px solid var(--border)" }}>
-            <div className="px-5 pb-5 space-y-6">
-              {omsetChart.length > 0 && (
-                <div className="pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
-                    Capaian Omset per Hunter (juta Rp)
-                  </p>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={omsetChart} barCategoryGap="25%" barGap={3}>
-                      <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                      <Legend content={<OmsetLegend />} />
-                      <Bar dataKey="Target"    fill="rgba(59,130,246,0.50)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Realisasi" radius={[4, 4, 0, 0]}>
-                        {omsetChart.map((e, i) => (
-                          <Cell key={i} fill={
-                            e["Realisasi"] >= e["Target"] ? "#22c55e" :
-                            e["Realisasi"] >= e["Target"] * 0.7 ? "#FF6A3D" : "#ef4444"
-                          } />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+        {targetAlertHunters.length > 0 && (
+          <div className="rounded-2xl overflow-hidden section-fade-2" style={{
+            background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
+            border: "1px solid rgba(245,158,11,0.35)",
+            boxShadow: "0 0 32px rgba(245,158,11,0.06), var(--shadow-md)",
+          }}>
+            <div className="flex items-center justify-between px-6 pt-5 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(245,158,11,0.14)", border: "1px solid rgba(245,158,11,0.28)" }}>
+                  <DollarSign size={15} style={{ color: "#fbbf24" }} />
                 </div>
-              )}
+                <div>
+                  <div className="text-sm font-black tracking-wide" style={{ color: "#fbbf24", letterSpacing: "0.05em" }}>
+                    TARGET OMSET ALERT
+                  </div>
+                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {getMonthName(now.getMonth() + 1)} {now.getFullYear()} · {targetAlertHunters.length} Hunter belum mencapai target bulanan
+                  </div>
+                </div>
+              </div>
+              <div className="text-3xl font-black" style={{ color: "rgba(245,158,11,0.55)" }}>{targetAlertHunters.length}</div>
+            </div>
+            <div className="px-6 pb-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {targetAlertHunters.map(hunter => {
+                const progress = Math.round((hunter.omset_current_month / hunter.monthly_target) * 100)
+                const gap = hunter.monthly_target - hunter.omset_current_month
+                return (
+                  <div key={hunter.id} className="rounded-xl p-3" style={{ background: "var(--surface2)", border: "1px solid rgba(245,158,11,0.22)" }}>
+                    <div className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>{hunter.name}</div>
+                    <div className="text-base font-black mt-1" style={{ color: "var(--text-primary)" }}>{formatRupiah(hunter.omset_current_month)}</div>
+                    <div className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Target: {formatRupiah(hunter.monthly_target)}</div>
+                    <div className="text-xs mt-0.5" style={{ color: "#fbbf24" }}>Kurang: {formatRupiah(gap)}</div>
+                    <div className="h-1 rounded-full overflow-hidden mt-2" style={{ background: "var(--border)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(progress, 100)}%`, background: "linear-gradient(90deg, #d97706, #f59e0b)" }} />
+                    </div>
+                    <div className="text-xs font-bold mt-1.5" style={{ color: "#fbbf24" }}>{progress}%</div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Project Omset */}
         {Object.keys(projectTotals).length > 0 && (

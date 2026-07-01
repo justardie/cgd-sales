@@ -53,3 +53,11 @@ test("Closing supports active Hunters, Agent names, and cancellation to Hot", as
   assert.match(source, /status:\s*["']hot["']/)
   assert.match(source, /\.eq\(["']status["'],\s*["']active["']\)/)
 })
+
+test("dashboard removes performance chart and exposes Hot pipeline and target alert", async () => {
+  const source = await read("app/page.tsx")
+  assert.doesNotMatch(source, /Grafik Performa|BarChart|ResponsiveContainer|showCharts/)
+  assert.match(source, /Pipeline Hot/)
+  assert.match(source, /TARGET OMSET ALERT/)
+  assert.match(source, /\.eq\("status", "hot"\)/)
+})
