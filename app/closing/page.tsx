@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
+import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Plus, X, Edit2, Trash2, ChevronDown, Calendar } from "lucide-react"
@@ -269,6 +270,7 @@ export default function ClosingPage() {
   const [filterHunter,    setFilterHunter]    = useState("")
   const [filterProject,   setFilterProject]   = useState("")
   const [filterCaraBayar, setFilterCaraBayar] = useState("")
+  const [search, setSearch] = useState("")
 
   const [showInputModal,  setShowInputModal]  = useState(false)
   const [showEditModal,   setShowEditModal]   = useState(false)
@@ -479,12 +481,12 @@ export default function ClosingPage() {
     ? HUNTER_GROUPS.find(g => g.dbName === user?.name || g.name === user?.name)
     : null
 
-  const displayHunters = isAdmin
+  const displayHunters = isAdmin || isTf
     ? hunters
     : hunters.filter(h => h.id === user?.id)
 
   // Closing records whose sales_hunter doesn't match any DB user (e.g. "Others", manual entries)
-  const orphanHunterNames = isAdmin
+  const orphanHunterNames = isAdmin || isTf
     ? Array.from(new Set(
         closings
           .map(c => c.sales_hunter)
@@ -493,6 +495,14 @@ export default function ClosingPage() {
     : []
 
   const filtered = closings.filter(c => {
+    const query = search.trim().toLowerCase()
+    if (query && ![
+      c.name,
+      c.sales_hunter,
+      c.sales_person,
+      c.project,
+      c.unit,
+    ].some(value => (value || "").toLowerCase().includes(query))) return false
     if (filterHunter    && (c.sales_hunter || "") !== filterHunter) return false
     if (filterProject   && normalizeProject(c.project)  !== filterProject)  return false
     if (filterCaraBayar && c.cara_bayar !== filterCaraBayar) return false
@@ -829,34 +839,26 @@ export default function ClosingPage() {
         )}
 
         {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
-          <select value={filterHunter} onChange={e => setFilterHunter(e.target.value)}
-            className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <option value="">Semua Hunter</option>
-            {displayHunters.map(h => (
-              <option key={h.id} value={h.name}>{h.name}</option>
-            ))}
-            {orphanHunterNames.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-          </select>
-          <select value={filterProject} onChange={e => setFilterProject(e.target.value)}
-            className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <option value="">Semua Project</option>
-            {projectOptions.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <select value={filterCaraBayar} onChange={e => setFilterCaraBayar(e.target.value)}
-            className="text-xs px-3 py-1.5 rounded-lg text-slate-300 outline-none"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <option value="">Semua Cara Bayar</option>
-            {dbCaraBayar.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
-          {(filterHunter || filterProject || filterCaraBayar) && (
+        <div className="flex gap-2 flex-wrap items-end">
+          <div className="flex-1">
+            <SalesFilterBar
+              search={search}
+              onSearchChange={setSearch}
+              hunter={filterHunter}
+              onHunterChange={setFilterHunter}
+              hunterOptions={[...displayHunters.map(h => ({ value: h.name, label: h.name })), ...orphanHunterNames.map(name => ({ value: name, label: name }))]}
+              project={filterProject}
+              onProjectChange={setFilterProject}
+              projectOptions={projectOptions.map(project => ({ value: project, label: project }))}
+              caraBayar={filterCaraBayar}
+              onCaraBayarChange={setFilterCaraBayar}
+              caraBayarOptions={dbCaraBayar.map(option => ({ value: option, label: option }))}
+            />
+          </div>
+          {(search || filterHunter || filterProject || filterCaraBayar) && (
             <button
-              onClick={() => { setFilterHunter(""); setFilterProject(""); setFilterCaraBayar("") }}
-              className="text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition"
+              onClick={() => { setSearch(""); setFilterHunter(""); setFilterProject(""); setFilterCaraBayar("") }}
+              className="text-xs px-3 py-2 rounded-lg text-slate-400 hover:text-white transition"
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               Reset Filter
             </button>

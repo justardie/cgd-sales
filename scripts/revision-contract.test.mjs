@@ -29,3 +29,11 @@ test("Team preserves Sales Persons without SP warning controls", async () => {
   assert.match(source, /Sales Person/)
   assert.match(source, /spOmsetMap/)
 })
+
+test("shared sales filter bar keeps the approved control order", async () => {
+  const source = await read("components/SalesFilterBar.tsx").catch(() => "")
+  const labels = ["Search", "Hunter", "Project", "Cara Bayar", "Status"]
+  const positions = labels.map((label) => source.indexOf(label))
+  assert.equal(positions.every((position) => position >= 0), true)
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions)
+})

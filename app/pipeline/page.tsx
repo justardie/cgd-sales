@@ -3,9 +3,11 @@ import { useCallback, useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
+import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Search, FileText, Pencil, CheckCircle2, Trash2, Send, BookOpen } from "lucide-react"
+import { matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
+import { Plus, X, FileText, Pencil, CheckCircle2, Trash2, Send, BookOpen } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -33,9 +35,9 @@ const STATUSES = [
 ]
 
 // "Aktif" = Warm + Hot combined (no Tidak Potensial)
-const FILTER_OPTIONS = [
+const PIPELINE_STATUS_OPTIONS = [
   { value: "all",             label: "Semua" },
-  { value: "aktif",           label: "Aktif" },
+  { value: "active",          label: "Aktif" },
   { value: "warm",            label: "Warm" },
   { value: "hot",             label: "Hot" },
   { value: "tidak_potensial", label: "Tdk Potensial" },
@@ -270,7 +272,10 @@ export default function PipelinePage() {
   const [editing, setEditing] = useState<KonsumenRow | null>(null)
   const [closingTarget, setClosingTarget] = useState<KonsumenRow | null>(null)
   const [search, setSearch] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
+  const [filterHunter, setFilterHunter] = useState("")
+  const [filterProject, setFilterProject] = useState("")
+  const [filterCaraBayar, setFilterCaraBayar] = useState("")
+  const [filterStatus, setFilterStatus] = useState<PipelineStatusFilter>("all")
   const [saving, setSaving] = useState(false)
   const [savingClosing, setSavingClosing] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -487,15 +492,21 @@ export default function PipelinePage() {
   }
 
   const filtered = rows.filter(r => {
-    const matchSearch = !search ||
-      (r.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (r.project || "").toLowerCase().includes(search.toLowerCase()) ||
-      (r.sales_hunter || "").toLowerCase().includes(search.toLowerCase())
-    const matchStatus =
-      filterStatus === "all"    ? true :
-      filterStatus === "aktif"  ? r.status !== "tidak_potensial" :
-      r.status === filterStatus
-    return matchSearch && matchStatus
+    const query = search.trim().toLowerCase()
+    const matchSearch = !query || [
+      r.name,
+      r.sales_hunter,
+      r.sales_person,
+      r.project,
+      r.unit,
+      latestNotes[r.id],
+      r.notes,
+    ].some(value => (value || "").toLowerCase().includes(query))
+    return matchSearch
+      && (!filterHunter || r.sales_hunter === filterHunter)
+      && (!filterProject || r.project === filterProject)
+      && (!filterCaraBayar || r.cara_bayar === filterCaraBayar)
+      && matchesPipelineStatus(r.status, filterStatus)
   })
 
   function toggleSort(col: string) {
@@ -585,6 +596,8 @@ ${data.map(r => {
     hot:        activeRows.filter(r => r.status === "hot").length,
     totalValue: activeRows.reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0),
   }
+  const hunterFilterOptions = Array.from(new Set(rows.map(row => row.sales_hunter).filter(Boolean))).sort()
+  const projectFilterOptions = Array.from(new Set(rows.map(row => row.project).filter((value): value is string => Boolean(value)))).sort()
 
   const hunterKey = (isAdmin || isTf) ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
@@ -621,27 +634,26 @@ ${data.map(r => {
           ))}
         </div>
 
-        <div className="flex gap-3 flex-wrap">
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Cari konsumen / proyek / hunter..."
-              className="pl-8 pr-3 py-2 text-sm rounded-lg text-white outline-none w-64"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
+        <div className="flex gap-3 flex-wrap items-end">
+          <div className="flex-1">
+            <SalesFilterBar
+              search={search}
+              onSearchChange={setSearch}
+              hunter={filterHunter}
+              onHunterChange={setFilterHunter}
+              hunterOptions={hunterFilterOptions.map(hunter => ({ value: hunter, label: hunter }))}
+              project={filterProject}
+              onProjectChange={setFilterProject}
+              projectOptions={projectFilterOptions.map(project => ({ value: project, label: project }))}
+              caraBayar={filterCaraBayar}
+              onCaraBayarChange={setFilterCaraBayar}
+              caraBayarOptions={dbCaraBayar.map(option => ({ value: option, label: option }))}
+              status={filterStatus}
+              onStatusChange={(value) => setFilterStatus(value as PipelineStatusFilter)}
+              statusOptions={PIPELINE_STATUS_OPTIONS}
+            />
           </div>
-          <div className="flex gap-1 flex-wrap">
-            {FILTER_OPTIONS.map(s => (
-              <button key={s.value} onClick={() => setFilterStatus(s.value)}
-                className={`text-xs px-3 py-1.5 rounded-lg transition ${
-                  filterStatus === s.value ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"
-                }`}
-                style={filterStatus !== s.value
-                  ? { background: "var(--surface)", border: "1px solid var(--border)" } : {}}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">{filtered.length} hasil</span>
             <button onClick={handleSharePDF}
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition"
