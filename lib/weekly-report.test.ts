@@ -40,4 +40,7 @@ test("report HTML uses readable type and visit cards without a detail table", ()
   assert.match(html, /class="visit-grid"/)
   const visitSection = html.match(/Pencapaian Visit Tim[\s\S]*?Pipeline Hot/)?.[0] || ""
   assert.doesNotMatch(visitSection, /<table>/)
+  assert.match(visitSection, /Target 40/)
+  assert.match(visitSection, /Belum tercapai/)
+  assert.match(visitSection, /⚠/)
 })

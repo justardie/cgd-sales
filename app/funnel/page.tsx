@@ -701,8 +701,9 @@ export default function FunnelPage() {
   const kpis = [
     { label: "Total",         val: leads.length, color: "var(--text-primary)" },
     { label: "Belum",         val: leads.filter((l) => l.status === "new").length, color: "#94a3b8" },
-    { label: "Follow Up",     val: leads.filter((l) => l.status === "bisa_dihub_tidak_angkat").length, color: "#fbbf24" },
-    { label: "Pipeline",      val: leads.filter((l) => ["angkat_tertarik","visit_dijadwalkan","sudah_visit"].includes(l.status)).length, color: "#a78bfa" },
+    { label: "Follow Up",     val: leads.filter((l) => ["bisa_dihub_tidak_angkat","angkat_tertarik"].includes(l.status)).length, color: "#fbbf24" },
+    { label: "Visit Dijadwalkan", val: leads.filter((l) => l.status === "visit_dijadwalkan").length, color: "#c084fc" },
+    { label: "Visit",         val: leads.filter((l) => l.status === "sudah_visit").length, color: "#2dd4bf" },
     { label: "Closing",       val: leads.filter((l) => l.status === "closing").length, color: "#34d399" },
     { label: "Dead",          val: leads.filter((l) => ["angkat_tidak_tertarik","tidak_aktif","lost"].includes(l.status)).length, color: "#f87171" },
   ]

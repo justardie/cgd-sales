@@ -203,11 +203,10 @@ export default function FunnelSummaryPage() {
               </div>
             </div>
             <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
-              <StatPill value={teamMetrics.contacted}      color="#60a5fa" label="Sudah Dihubungi" />
+              <StatPill value={teamMetrics.new}             color="#94a3b8" label="Belum" />
               <StatPill value={teamMetrics.followUp}       color="#fbbf24" label="Follow Up" />
-              <StatPill value={teamMetrics.pipeline}       color="#a78bfa" label="Pipeline" />
               <StatPill value={teamMetrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
-              <StatPill value={teamMetrics.visited}        color="#2dd4bf" label="Sudah Visit" />
+              <StatPill value={teamMetrics.visited}        color="#2dd4bf" label="Visit" />
               <StatPill value={teamMetrics.closing}        color="#34d399" label="Closing" />
               <StatPill value={teamMetrics.dead}           color="#f87171" label="Dead" />
             </div>
@@ -234,7 +233,6 @@ export default function FunnelSummaryPage() {
           {stats.map((stat) => {
             const metrics = getFunnelMetrics(stat)
             const contactedPct = stat.total > 0 ? Math.round((metrics.contacted / stat.total) * 100) : 0
-            const visitPct = stat.total > 0 ? Math.round((metrics.pipeline / stat.total) * 100) : 0
 
             return (
               <div key={stat.tm.id} style={{ ...card, padding: "18px 22px" }}>
@@ -266,24 +264,13 @@ export default function FunnelSummaryPage() {
 
                     <div style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
 
-                    <StatPill value={metrics.contacted}      color="#60a5fa" label="Sudah Dihubungi" />
+                    <StatPill value={metrics.new}             color="#94a3b8" label="Belum" />
                     <StatPill value={metrics.followUp}       color="#fbbf24" label="Follow Up" />
-                    <StatPill value={metrics.pipeline}       color="#a78bfa" label="Pipeline" />
                     <StatPill value={metrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
-                    <StatPill value={metrics.visited}        color="#2dd4bf" label="Sudah Visit" />
+                    <StatPill value={metrics.visited}        color="#2dd4bf" label="Visit" />
                     <StatPill value={metrics.closing}        color="#34d399" label="Closing" />
                     <StatPill value={metrics.dead}           color="#f87171" label="Dead" />
 
-                    <div style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
-
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
-                      <span style={{ fontSize: "16px", fontWeight: 700, color: "#4ade80", lineHeight: 1 }}>
-                        {visitPct}%
-                      </span>
-                      <span style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "3px", textAlign: "center", lineHeight: 1.2 }}>
-                        Conv.<br />Rate
-                      </span>
-                    </div>
                   </div>
                 </div>
 

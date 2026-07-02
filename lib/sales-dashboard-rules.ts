@@ -13,14 +13,13 @@ export interface FunnelCounters {
 export type PipelineStatusFilter = "all" | "active" | "warm" | "hot" | "tidak_potensial"
 
 export function getFunnelMetrics(c: FunnelCounters) {
-  const followUp = c.bisa_dihub_tidak_angkat
-  const pipeline = c.angkat_tertarik + c.visit_dijadwalkan + c.sudah_visit
+  const followUp = c.bisa_dihub_tidak_angkat + c.angkat_tertarik
   const closing = c.closing
   const dead = c.tidak_aktif + c.angkat_tidak_tertarik + c.lost
   return {
-    contacted: followUp + pipeline + closing + dead,
+    contacted: followUp + c.visit_dijadwalkan + c.sudah_visit + closing + dead,
+    new: c.new,
     followUp,
-    pipeline,
     closing,
     dead,
     visitScheduled: c.visit_dijadwalkan,

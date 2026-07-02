@@ -89,6 +89,16 @@ test("Pipeline removes PDF export and collapses inactive records", async () => {
   assert.match(source, /inactiveRows/)
 })
 
+test("Funnel pages expose approved cards without Pipeline", async () => {
+  const funnel = await read("app/funnel/page.tsx")
+  const summary = await read("app/funnel-summary/page.tsx")
+  for (const source of [funnel, summary]) {
+    assert.match(source, /Visit Dijadwalkan/)
+    assert.match(source, /label="Visit"|label:\s*"Visit"/)
+    assert.doesNotMatch(source, /label="Pipeline"|label:\s*"Pipeline"/)
+  }
+})
+
 test("Weekly Report supports Pivot, final snapshots, deletion, and HTML download", async () => {
   const page = await read("app/report/page.tsx")
   const domain = await read("lib/weekly-report.ts")

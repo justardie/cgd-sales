@@ -18,11 +18,11 @@ const counters = {
   lost: 9,
 }
 
-test("computes contacted, pipeline, and separate visit metrics", () => {
+test("maps funnel statuses into the approved cards", () => {
   assert.deepEqual(getFunnelMetrics(counters), {
     contacted: 44,
-    followUp: 3,
-    pipeline: 17,
+    new: 10,
+    followUp: 7,
     closing: 8,
     dead: 16,
     visitScheduled: 6,
@@ -34,6 +34,7 @@ test("contacted excludes only untouched leads", () => {
   const metrics = getFunnelMetrics(counters)
   const total = Object.values(counters).reduce((sum, value) => sum + value, 0)
   assert.equal(metrics.contacted, total - counters.new)
+  assert.equal(metrics.followUp, counters.bisa_dihub_tidak_angkat + counters.angkat_tertarik)
   assert.equal(metrics.visitScheduled, counters.visit_dijadwalkan)
   assert.equal(metrics.visited, counters.sudah_visit)
 })
