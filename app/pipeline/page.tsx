@@ -4,10 +4,10 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import SalesFilterBar from "@/components/SalesFilterBar"
-import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
+import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
-import { Plus, X, FileText, Pencil, CheckCircle2, Trash2, Send, BookOpen } from "lucide-react"
+import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -274,6 +274,7 @@ export default function PipelinePage() {
   const [editing, setEditing] = useState<KonsumenRow | null>(null)
   const [closingTarget, setClosingTarget] = useState<KonsumenRow | null>(null)
   const [search, setSearch] = useState("")
+  const [showInactive, setShowInactive] = useState(false)
   const [filterHunter, setFilterHunter] = useState("")
   const [filterProject, setFilterProject] = useState("")
   const [filterCaraBayar, setFilterCaraBayar] = useState("")
@@ -535,60 +536,6 @@ export default function PipelinePage() {
     }
   }
 
-  function handleSharePDF() {
-    const data = displayed
-    const printDate = fmtDDMMYYYY(new Date().toISOString())
-    const html = `<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8">
-<title>Pipeline Report — CGD Sales</title>
-<style>
-  body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 20px; }
-  h2 { font-size: 15px; margin: 0 0 4px; }
-  .sub { color: #666; font-size: 10px; margin: 0 0 14px; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #eee; padding: 6px 8px; font-size: 10px; color: #444; border: 1px solid #ccc; text-align: left; }
-  td { padding: 5px 8px; border: 1px solid #ddd; vertical-align: top; word-break: break-word; }
-  tr:nth-child(even) { background: #f9f9f9; }
-  .notes-col { min-width: 180px; white-space: pre-wrap; }
-  .right { text-align: right; }
-  .center { text-align: center; }
-  @media print { body { margin: 8px; } }
-</style>
-</head><body>
-<h2>Pipeline Report — CGD Sales</h2>
-<p class="sub">Dicetak: ${printDate} · ${data.length} data</p>
-<table><thead>
-<tr><th>Hunter</th><th>Sales</th><th>Konsumen</th><th>Project</th><th>Unit</th><th>Status</th><th class="right">Nilai Potensi</th><th>Cara Bayar</th><th class="center">Visit</th><th class="center">BF</th><th class="notes-col">Catatan</th></tr>
-</thead><tbody>
-${data.map(r => {
-  const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-  const statusLabel: Record<string, string> = { warm: "Warm", hot: "Hot", tidak_potensial: "Tdk Potensial" }
-  const nilai = r.status !== "tidak_potensial" && r.potensi_closing
-    ? "Rp " + Number(r.potensi_closing).toLocaleString("id-ID") : "—"
-  return `<tr>
-<td>${esc(r.sales_hunter || "—")}</td>
-<td>${esc(formatSalesPerson(r.sales_person, r.agent_name))}</td>
-<td><strong>${esc(r.name || "—")}</strong></td>
-<td>${esc(r.project || "—")}</td>
-<td>${esc(r.unit || "—")}</td>
-<td>${statusLabel[r.status] || esc(r.status || "—")}</td>
-<td class="right">${nilai}</td>
-<td>${esc(r.cara_bayar || "—")}</td>
-<td class="center">${r.sudah_visit ? "Y" : "N"}</td>
-<td class="center">${r.sudah_booking_fee ? "Y" : "N"}</td>
-<td class="notes-col">${r.notes ? esc(r.notes) : "—"}</td>
-</tr>`}).join("")}
-</tbody></table>
-</body></html>`
-    const w = window.open("", "_blank")
-    if (!w) return
-    w.document.write(html)
-    w.document.close()
-    w.focus()
-    setTimeout(() => w.print(), 600)
-  }
-
   const displayed = [...filtered].sort((a, b) => {
     // Tidak potensial always last
     const aTp = a.status === "tidak_potensial" ? 1 : 0
@@ -606,6 +553,10 @@ ${data.map(r => {
     if (typeof av === "number") return sortDir === "asc" ? av - (bv as number) : (bv as number) - av
     return sortDir === "asc" ? av.localeCompare(bv as string) : (bv as string).localeCompare(av)
   })
+
+  const activeDisplayed = displayed.filter(row => row.status !== "tidak_potensial")
+  const inactiveRows = displayed.filter(row => row.status === "tidak_potensial")
+  const visibleRows = showInactive ? [...activeDisplayed, ...inactiveRows] : activeDisplayed
 
   const activeRows = rows.filter(r => r.status !== "tidak_potensial")
   const stats = {
@@ -672,12 +623,6 @@ ${data.map(r => {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">{filtered.length} hasil</span>
-            <button onClick={handleSharePDF}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
-              title="Export ke PDF">
-              <FileText size={13} /> PDF
-            </button>
           </div>
         </div>
 
@@ -713,9 +658,9 @@ ${data.map(r => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
-                ) : filtered.length === 0 ? (
+                ) : visibleRows.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
-                ) : displayed.map(r => {
+                ) : visibleRows.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
                   const badge = statusBadge(r.status)
                   return (
@@ -769,7 +714,7 @@ ${data.map(r => {
                   </tr>
                 )})}
               </tbody>
-              {!loading && filtered.length > 0 && (
+              {!loading && visibleRows.length > 0 && (
                 <tfoot>
                   <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
                     <td colSpan={4} className="px-3 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
@@ -790,6 +735,18 @@ ${data.map(r => {
             </table>
           </div>
         </div>
+        {inactiveRows.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowInactive(open => !open)}
+            aria-expanded={showInactive}
+            aria-label="Tampilkan Tidak Potensial"
+            className="w-full rounded-xl px-4 py-3 flex items-center justify-between text-sm transition"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+            <span>{showInactive ? "Sembunyikan" : "Tampilkan"} Tidak Potensial ({inactiveRows.length})</span>
+            <ChevronDown size={15} style={{ transform: showInactive ? "rotate(180deg)" : undefined, transition: "transform .2s" }} />
+          </button>
+        )}
       </div>
 
       {/* Closing Confirmation Modal */}

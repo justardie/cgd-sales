@@ -8,8 +8,7 @@ import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Plus, X, Edit2, ChevronDown, Calendar } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { Plus, X, Edit2, Calendar, AlertTriangle } from "lucide-react"
 import type { User } from "@/types"
 
 interface KonsumenRow {
@@ -288,6 +287,7 @@ export default function ClosingPage() {
   const ytdMode = dateMode === "ytd"
 
   const [closings, setClosings] = useState<KonsumenRow[]>([])
+  const [currentMonthClosings, setCurrentMonthClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [dbProjects, setDbProjects] = useState<string[]>([])
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
@@ -310,9 +310,6 @@ export default function ClosingPage() {
 
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
 
-  const [chartOpen,     setChartOpen]    = useState(true)
-  const [chartProject,  setChartProject] = useState("")
-  const [chartRawData,  setChartRawData] = useState<{ nilai_hjr: number; project: string | null; closing_month: number }[]>([])
   const [sortCol, setSortCol] = useState("")
   const [sortDir, setSortDir] = useState<"asc"|"desc">("asc")
 
@@ -331,20 +328,6 @@ export default function ClosingPage() {
   }
   const [form, setForm] = useState(blankForm)
 
-  useEffect(() => {
-    if (!user) return
-    const currentMonth = new Date().getMonth() + 1
-    supabase
-      .from("konsumen")
-      .select("nilai_hjr,project,closing_month")
-      .eq("status", "closing")
-      .eq("closing_year", year)
-      .lte("closing_month", currentMonth)
-      .then(({ data }) => {
-        setChartRawData((data || []) as { nilai_hjr: number; project: string | null; closing_month: number }[])
-      })
-  }, [user, year])
-
   const fetchData = useCallback(async () => {
     let closingQuery = supabase.from("konsumen")
       .select("id,user_id,sales_hunter,sales_person,agent_name,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
@@ -357,10 +340,15 @@ export default function ClosingPage() {
       closingQuery = closingQuery.eq("closing_month", month).eq("closing_year", year)
     }
 
-    const [closingsRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
+    const [closingsRes, currentMonthRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
       closingQuery,
+      supabase.from("konsumen")
+        .select("id,user_id,sales_hunter,sales_person,agent_name,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
+        .eq("status", "closing")
+        .eq("closing_month", now.getMonth() + 1)
+        .eq("closing_year", now.getFullYear()),
       supabase.from("users")
-        .select("id,name,monthly_target,role,status")
+        .select("id,name,monthly_target,win_or_die_target,role,status")
         .eq("role", "hunter")
         .eq("status", "active"),
       supabase.from("users")
@@ -385,6 +373,7 @@ export default function ClosingPage() {
     const extraCb = dbCb.filter(v => !(CANONICAL_CARA_BAYAR as readonly string[]).includes(v))
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     setHunters((usersRes.data || []) as User[])
+    setCurrentMonthClosings((currentMonthRes.data || []) as KonsumenRow[])
     const allClosings = (closingsRes.data || []) as KonsumenRow[]
     if (isAdmin || isTf) {
       setClosings(allClosings)
@@ -586,15 +575,15 @@ export default function ClosingPage() {
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
   const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
 
-  // Chart derived from raw data — filter applied client-side so project dropdown always works
-  const chartCurrentMonth = new Date().getMonth() + 1
-  const CHART_MONTH_NAMES = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-  const chartData = Array.from({ length: chartCurrentMonth }, (_, i) => {
-    const m = i + 1
-    const rows = chartRawData.filter(r => r.closing_month === m && (!chartProject || r.project === chartProject))
-    return { month: CHART_MONTH_NAMES[i], total: rows.reduce((s, r) => s + (r.nilai_hjr || 0), 0) }
-  })
-  const chartProjectOptions = Array.from(new Set(chartRawData.map(r => r.project).filter(Boolean))) as string[]
+  const winOrDieHunters = displayHunters
+    .filter(hunter => hunter.win_or_die_target > 0)
+    .map(hunter => ({
+      ...hunter,
+      omset: currentMonthClosings
+        .filter(closing => closing.sales_hunter.toLowerCase() === hunter.name.toLowerCase())
+        .reduce((sum, closing) => sum + (closing.nilai_hjr || 0), 0),
+    }))
+    .sort((a, b) => a.omset / a.win_or_die_target - b.omset / b.win_or_die_target)
 
   return (
     <DashboardShell>
@@ -680,85 +669,39 @@ export default function ClosingPage() {
           </div>
         </div>
 
-        {/* Monthly Omset Chart */}
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px" }}>
-          <div className="flex items-center justify-between px-4 py-3"
-            style={{ borderBottom: chartOpen ? "1px solid var(--border)" : "none" }}>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-white">{`Omset Bulanan ${year}`}</span>
-              <select
-                value={chartProject}
-                onChange={e => setChartProject(e.target.value)}
-                className="text-xs px-2 py-1 rounded-lg text-slate-300 outline-none"
-                style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                <option value="">Semua Proyek</option>
-                {chartProjectOptions.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+        {winOrDieHunters.length > 0 && (
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(239,68,68,0.35)" }}>
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(239,68,68,0.14)" }}>
+                  <AlertTriangle size={15} className="text-red-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-black tracking-wide text-red-400">WIN-OR-DIE ALERT</div>
+                  <div className="text-xs text-slate-500">{getMonthName(now.getMonth() + 1)} {now.getFullYear()} · perhitungan bulan berjalan</div>
+                </div>
+              </div>
+              <div className="text-3xl font-black text-red-400/60">{winOrDieHunters.filter(hunter => hunter.omset < hunter.win_or_die_target).length}</div>
             </div>
-            <button
-              onClick={() => setChartOpen(o => !o)}
-              className="text-slate-400 hover:text-white transition"
-              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px" }}>
-              <span>{chartOpen ? "Sembunyikan" : "Tampilkan"}</span>
-              <ChevronDown size={14} style={{ transform: chartOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
-            </button>
+            <div className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {winOrDieHunters.map(hunter => {
+                const progress = Math.min(100, Math.round((hunter.omset / hunter.win_or_die_target) * 100))
+                const achieved = progress >= 100
+                return (
+                  <div key={hunter.id} className="rounded-xl p-3" style={{ background: "var(--surface2)", border: `1px solid ${achieved ? "rgba(34,197,94,.28)" : "rgba(239,68,68,.25)"}` }}>
+                    <div className="text-xs text-slate-400">{hunter.name}</div>
+                    <div className="text-base font-black text-white mt-1">{formatRupiah(hunter.omset)}</div>
+                    <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.win_or_die_target)}</div>
+                    <div className="h-1 rounded-full overflow-hidden mt-2" style={{ background: "var(--border)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${progress}%`, background: achieved ? "#22c55e" : "#ef4444" }} />
+                    </div>
+                    <div className={`text-xs font-bold mt-1 ${achieved ? "text-green-400" : "text-red-400"}`}>{progress}%</div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-          {chartOpen && (
-            <div className="px-4 pt-4 pb-5">
-              {chartRawData.length === 0 ? (
-                <div className="flex items-center justify-center h-32 text-xs text-slate-600">Memuat data chart...</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 11, fill: "#64748b" }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tickFormatter={(v: number) => `Rp ${(v / 1_000_000).toFixed(1)}jt`}
-                      tick={{ fontSize: 10, fill: "#64748b" }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={72}
-                    />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload || payload.length === 0) return null
-                        const val = payload[0]?.value
-                        return (
-                          <div style={{
-                            background: "var(--surface2)",
-                            border: "1px solid var(--border)",
-                            borderRadius: "10px",
-                            padding: "8px 12px",
-                          }}>
-                            <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "2px" }}>{label}</div>
-                            <div style={{ fontSize: "13px", fontWeight: 700, color: "#FF6A3D" }}>
-                              {typeof val === "number" ? formatRupiah(val) : "—"}
-                            </div>
-                          </div>
-                        )
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#FF6A3D"
-                      strokeWidth={2.5}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "#FF6A3D", stroke: "none" }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Hunter Summary Cards */}
         {!loading && (

@@ -54,12 +54,39 @@ test("Closing supports active Hunters, Agent names, and cancellation to Hot", as
   assert.match(source, /\.eq\(["']status["'],\s*["']active["']\)/)
 })
 
-test("dashboard removes performance chart and exposes Hot pipeline and target alert", async () => {
+test("dashboard applies period-independent KPIs and includes both active sales roles", async () => {
   const source = await read("app/page.tsx")
-  assert.doesNotMatch(source, /Grafik Performa|BarChart|ResponsiveContainer|showCharts/)
+  assert.match(source, /periodTarget/)
+  assert.match(source, /isActiveSalesRole/)
+  assert.match(source, /closingsCurrentMonth/)
+  assert.match(source, /closingsPreviousMonth/)
   assert.match(source, /Pipeline Hot/)
   assert.match(source, /TARGET OMSET ALERT/)
   assert.match(source, /\.eq\("status", "hot"\)/)
+})
+
+test("monthly chart and always-visible project donut live on Overview", async () => {
+  const source = await read("app/page.tsx")
+  assert.match(source, /Omset Bulanan/)
+  assert.match(source, /ResponsiveContainer/)
+  assert.match(source, /canonicalProjectTotals/)
+  assert.match(source, /PieChart/)
+  assert.doesNotMatch(source, /WIN-OR-DIE ALERT/)
+})
+
+test("Closing owns current-month WIN-OR-DIE and no longer owns monthly chart", async () => {
+  const source = await read("app/closing/page.tsx")
+  assert.match(source, /WIN-OR-DIE ALERT/)
+  assert.match(source, /win_or_die_target/)
+  assert.doesNotMatch(source, /Omset Bulanan|LineChart|ResponsiveContainer/)
+})
+
+test("Pipeline removes PDF export and collapses inactive records", async () => {
+  const source = await read("app/pipeline/page.tsx")
+  assert.doesNotMatch(source, /handleSharePDF|Export ke PDF|> PDF/)
+  assert.match(source, /showInactive/)
+  assert.match(source, /Tampilkan Tidak Potensial/)
+  assert.match(source, /inactiveRows/)
 })
 
 test("Weekly Report supports Pivot, drafts, final snapshots, and HTML download", async () => {

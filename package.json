@@ -9,7 +9,7 @@
         "lint": "eslint",
         "test:rules": "node --test --experimental-strip-types lib/sales-dashboard-rules.test.ts",
         "test:report": "node --test --experimental-strip-types lib/weekly-report.test.ts",
-        "test:contracts": "node --test scripts/revision-contract.test.mjs"
+        "test:contracts": "node --test --experimental-strip-types lib/dashboard-rules.test.ts && node --test scripts/revision-contract.test.mjs"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.105.1",
