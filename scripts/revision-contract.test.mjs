@@ -106,6 +106,15 @@ test("Weekly Report supports Pivot, drafts, final snapshots, and HTML download",
   assert.match(migration, /project_coverage/)
 })
 
+test("Weekly Report date picker uses a larger white calendar icon", async () => {
+  const page = await read("app/report/page.tsx")
+  const css = await read("app/globals.css")
+  assert.match(page, /report-date-input/)
+  assert.match(css, /report-date-input::-webkit-calendar-picker-indicator/)
+  assert.match(css, /filter:\s*brightness\(0\) invert\(1\)/)
+  assert.match(css, /width:\s*20px/)
+})
+
 test("Team lets admins manage multi-project coverage", async () => {
   const source = await read("app/team/page.tsx")
   assert.match(source, /Atur Coverage/)
