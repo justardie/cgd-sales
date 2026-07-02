@@ -33,3 +33,11 @@ test("report HTML is print-ready, shows progress and escapes user content", () =
   assert.doesNotMatch(html, /Aida <script>/)
   assert.match(html, /Aida &lt;script&gt;/)
 })
+
+test("report HTML uses readable type and visit cards without a detail table", () => {
+  const html = buildReportHtml({ hunterName: "Andre", periodStart: "2026-06-22", periodEnd: "2026-06-28", coverage: [], monthlyTarget: 100, winOrDieTarget: 50, closings: [], pipelines: [], hunterVisits: 2, salesVisits: [{ name: "Sales A", visitKonsumen: 1, accompanied: 2, visitLokasi: 3, visits: 6 }], activities: [] })
+  assert.match(html, /body\{[^}]*font:12px Arial/)
+  assert.match(html, /class="visit-grid"/)
+  const visitSection = html.match(/Pencapaian Visit Tim[\s\S]*?Pipeline Hot/)?.[0] || ""
+  assert.doesNotMatch(visitSection, /<table>/)
+})
