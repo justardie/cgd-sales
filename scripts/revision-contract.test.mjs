@@ -89,7 +89,7 @@ test("Pipeline removes PDF export and collapses inactive records", async () => {
   assert.match(source, /inactiveRows/)
 })
 
-test("Weekly Report supports Pivot, drafts, final snapshots, and HTML download", async () => {
+test("Weekly Report supports Pivot, final snapshots, deletion, and HTML download", async () => {
   const page = await read("app/report/page.tsx")
   const domain = await read("lib/weekly-report.ts")
   const migration = await read("supabase/038_weekly_reports.sql")
@@ -97,8 +97,10 @@ test("Weekly Report supports Pivot, drafts, final snapshots, and HTML download",
   assert.match(page, /Tanggal Laporan/)
   assert.match(page, /Periode Otomatis \(Senin–Minggu\)/)
   assert.match(page, /getPreviousWeekPeriod/)
-  assert.match(page, /Simpan Draft/)
+  assert.doesNotMatch(page, /Simpan Draft|save\("draft"\)/)
   assert.match(page, /Finalisasi &amp; Download/)
+  assert.match(page, /deleteReport/)
+  assert.match(page, /Hapus report ini\?/)
   assert.match(domain, /@page\{size:A4 landscape/)
   assert.match(domain, /Print \/ PDF/)
   assert.match(domain, /Progress Target Omset/)
