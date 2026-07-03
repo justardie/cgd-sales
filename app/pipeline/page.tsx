@@ -234,6 +234,7 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
       {/* Input */}
       {user && (
         <div className="space-y-2">
+          <label className="text-xs text-slate-500 block mb-1">Kendala <span className="text-red-400">*</span></label>
           <textarea
             value={progress.kendala}
             onChange={e => setProgress(current => ({ ...current, kendala: e.target.value }))}
@@ -242,6 +243,7 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
             className="w-full text-sm text-white outline-none resize-none rounded-lg px-3 py-2"
             style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
           />
+          <label className="text-xs text-slate-500 block mb-1">Next Action <span className="text-red-400">*</span></label>
           <textarea
             value={progress.nextAction}
             onChange={e => setProgress(current => ({ ...current, nextAction: e.target.value }))}
@@ -251,7 +253,7 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
             style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
           />
           <div className="flex gap-2 items-end">
-            <label className="flex-1 text-xs text-slate-500">Target Closing
+            <label className="flex-1 text-xs text-slate-500">Target Closing <span className="text-red-400">*</span>
               <input type="date" value={progress.targetClosing}
                 onChange={e => setProgress(current => ({ ...current, targetClosing: e.target.value }))}
                 className="w-full mt-1 text-sm text-white outline-none rounded-lg px-3 py-2"
@@ -499,6 +501,13 @@ export default function PipelinePage() {
     if (missing.length > 0) {
       setFormError(`Wajib diisi: ${missing.join(", ")}`)
       return false
+    }
+    if (editing) {
+      const prog = latestProgress[editing.id]
+      if (!prog || !prog.kendala || !prog.nextAction || !prog.targetClosing) {
+        setFormError("Silakan isi dan simpan Kendala, Next Action, dan Target Closing terlebih dahulu")
+        return false
+      }
     }
     setFormError("")
     return true
