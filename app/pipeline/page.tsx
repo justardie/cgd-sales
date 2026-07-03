@@ -768,7 +768,7 @@ export default function PipelinePage() {
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <YNBadge value={r.sudah_booking_fee} />
                     </td>
-                    <td className="px-3 py-3 text-xs text-slate-400 max-w-[180px] truncate" title={latestNotes[r.id] || r.notes || ""}>
+                    <td className="px-3 py-3 text-xs text-slate-400 min-w-[220px] whitespace-pre-wrap">
                       {latestNotes[r.id] || r.notes || "—"}
                     </td>
                     <td className="px-3 py-3 text-center">
