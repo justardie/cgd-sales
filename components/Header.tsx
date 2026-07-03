@@ -34,6 +34,10 @@ export default function Header() {
 
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
+  const navRef = useRef<HTMLElement>(null)
+  const navLinkRefs = useRef<Record<string, HTMLAnchorElement | null>>({})
+  const [glider, setGlider] = useState({ left: 0, width: 0, visible: false })
+  const [hoveredHref, setHoveredHref] = useState<string | null>(null)
 
   const role = user?.role ?? ""
   const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
@@ -65,6 +69,22 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [profileOpen])
 
+  function moveGlider(href: string) {
+    const link = navLinkRefs.current[href]
+    if (!link) return
+    setGlider({ left: link.offsetLeft, width: link.offsetWidth, visible: true })
+  }
+
+  useEffect(() => {
+    const sync = () => moveGlider(pathname)
+    const frame = requestAnimationFrame(sync)
+    window.addEventListener("resize", sync)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("resize", sync)
+    }
+  }, [pathname, role, hasTmAccess, isAdmin])
+
   return (
     <header className="app-header">
       <div className="header-logo">
@@ -78,12 +98,19 @@ export default function Header() {
         />
       </div>
 
-      <nav className="header-nav" aria-label="Main navigation">
+      <nav ref={navRef} className="header-nav" aria-label="Main navigation" onMouseLeave={() => { setHoveredHref(null); moveGlider(pathname) }}>
+        <span
+          className="nav-glider"
+          aria-hidden="true"
+          style={{ width: glider.width, transform: `translateX(${glider.left}px)`, opacity: glider.visible ? 1 : 0 }}
+        />
         {navItems.map(({ href, label }) => (
           <Link
             key={href}
             href={href}
-            className={`nav-pill${pathname === href ? " nav-pill--active" : ""}`}
+            ref={(node) => { navLinkRefs.current[href] = node }}
+            className={`nav-pill${pathname === href && hoveredHref === null ? " nav-pill--active" : ""}`}
+            onMouseEnter={() => { setHoveredHref(href); moveGlider(href) }}
           >
             {label}
           </Link>

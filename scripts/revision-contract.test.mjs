@@ -65,6 +65,16 @@ test("dashboard applies period-independent KPIs and includes both active sales r
   assert.match(source, /\.eq\("status", "hot"\)/)
 })
 
+test("desktop header navigation uses a sliding hover glider", async () => {
+  const header = await read("components/Header.tsx")
+  const css = await read("app/globals.css")
+  assert.match(header, /nav-glider/)
+  assert.match(header, /onMouseEnter/)
+  assert.match(header, /onMouseLeave/)
+  assert.match(css, /\.nav-glider/)
+  assert.match(css, /prefers-reduced-motion:\s*reduce/)
+})
+
 test("monthly chart and always-visible project donut live on Overview", async () => {
   const source = await read("app/page.tsx")
   assert.match(source, /Omset Bulanan/)
