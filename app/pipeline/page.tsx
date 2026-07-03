@@ -389,25 +389,35 @@ export default function PipelinePage() {
     }
     setActiveSps(spsMap)
 
-    // Fetch latest pipeline_note for each konsumen (single query, no N+1)
+    // Fetch latest pipeline_note for each konsumen — chunked to avoid URL-length
+    // limits when the pipeline has many rows (a single huge .in() fails silently)
     const ids = (data || []).map((r: { id: string }) => r.id)
     if (ids.length > 0) {
-      const { data: pnData } = await supabase
-        .from("pipeline_notes")
-        .select("konsumen_id, content, kendala, next_action, target_closing, created_at")
-        .in("konsumen_id", ids)
-        .order("created_at", { ascending: false })
-      // Keep only the latest note per konsumen_id
+      const CHUNK_SIZE = 50
+      const chunks: string[][] = []
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        chunks.push(ids.slice(i, i + CHUNK_SIZE))
+      }
+      const results = await Promise.all(chunks.map(chunk =>
+        supabase
+          .from("pipeline_notes")
+          .select("konsumen_id, content, kendala, next_action, target_closing, created_at")
+          .in("konsumen_id", chunk)
+          .order("created_at", { ascending: false })
+      ))
       const noteMap: Record<string, string> = {}
       const progressMap: Record<string, PipelineProgressExport> = {}
-      for (const pn of (pnData || []) as { konsumen_id: string; content: string; kendala: string | null; next_action: string | null; target_closing: string | null }[]) {
-        if (!noteMap[pn.konsumen_id]) {
-          noteMap[pn.konsumen_id] = pn.content
-          if (pn.kendala || pn.next_action || pn.target_closing) {
-            progressMap[pn.konsumen_id] = {
-              kendala: pn.kendala || "",
-              nextAction: pn.next_action || "",
-              targetClosing: pn.target_closing || "",
+      for (const { data: pnData, error } of results) {
+        if (error) continue
+        for (const pn of (pnData || []) as { konsumen_id: string; content: string; kendala: string | null; next_action: string | null; target_closing: string | null }[]) {
+          if (!noteMap[pn.konsumen_id]) {
+            noteMap[pn.konsumen_id] = pn.content
+            if (pn.kendala || pn.next_action || pn.target_closing) {
+              progressMap[pn.konsumen_id] = {
+                kendala: pn.kendala || "",
+                nextAction: pn.next_action || "",
+                targetClosing: pn.target_closing || "",
+              }
             }
           }
         }
