@@ -710,19 +710,19 @@ export default function PipelinePage() {
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
                   {([
-                    { key: "hunter",   label: "Hunter / Sales", align: "left",  sortable: true  },
-                    { key: "konsumen", label: "Konsumen",      align: "left",   sortable: true  },
-                    { key: "project",  label: "Project / Unit", align: "left",  sortable: true  },
-                    { key: "status",   label: "Status",        align: "center", sortable: true  },
-                    { key: "nilai",    label: "Nilai Potensi", align: "right",  sortable: true  },
-                    { key: "cara",     label: "Cara Bayar",    align: "center", sortable: false },
-                    { key: "visit",    label: "Visit",         align: "center", sortable: false },
-                    { key: "bf",       label: "BF",            align: "center", sortable: false },
-                    { key: "catatan",  label: "Catatan",       align: "left",   sortable: false },
-                    { key: "aksi",     label: "",              align: "center", sortable: false },
-                  ] as { key: string; label: string; align: string; sortable: boolean }[]).map(col => (
+                    { key: "hunter",   label: "Hunter / Sales", align: "left",  sortable: true,  colClass: ""                   },
+                    { key: "konsumen", label: "Konsumen",      align: "left",   sortable: true,  colClass: ""                   },
+                    { key: "project",  label: "Project / Unit", align: "left",  sortable: true,  colClass: ""                   },
+                    { key: "status",   label: "Status",        align: "center", sortable: true,  colClass: ""                   },
+                    { key: "nilai",    label: "Nilai Potensi", align: "right",  sortable: true,  colClass: ""                   },
+                    { key: "cara",     label: "Cara Bayar",    align: "center", sortable: false, colClass: ""                   },
+                    { key: "visit",    label: "Visit",         align: "center", sortable: false, colClass: ""                   },
+                    { key: "bf",       label: "BF",            align: "center", sortable: false, colClass: ""                   },
+                    { key: "catatan",  label: "Catatan",       align: "left",   sortable: false, colClass: "hidden md:table-cell" },
+                    { key: "aksi",     label: "",              align: "center", sortable: false, colClass: ""                   },
+                  ] as { key: string; label: string; align: string; sortable: boolean; colClass: string }[]).map(col => (
                     <th key={col.key}
-                      className={`px-3 py-3 text-xs font-medium whitespace-nowrap ${col.sortable ? "cursor-pointer select-none hover:opacity-80" : ""}`}
+                      className={`px-3 py-3 text-xs font-medium whitespace-nowrap ${col.sortable ? "cursor-pointer select-none hover:opacity-80" : ""} ${col.colClass}`}
                       style={{ color: sortCol === col.key ? "var(--text-primary)" : "var(--text-muted)", textAlign: col.align as React.CSSProperties["textAlign"] }}
                       onClick={col.sortable ? () => toggleSort(col.key) : undefined}>
                       <span className={`inline-flex items-center ${col.align === "right" ? "justify-end w-full" : col.align === "center" ? "justify-center w-full" : ""}`}>
@@ -748,7 +748,14 @@ export default function PipelinePage() {
                       <div className="text-slate-300">{r.sales_hunter || "—"}</div>
                       <div className="text-slate-500 mt-0.5">{formatSalesPerson(r.sales_person, r.agent_name)}</div>
                     </td>
-                    <td className="px-3 py-3 font-medium text-white text-xs">{r.name || "—"}</td>
+                    <td className="px-3 py-3 text-xs">
+                      <div className="font-medium text-white">{r.name || "—"}</div>
+                      {(latestNotes[r.id] || r.notes) && (
+                        <div className="text-slate-500 mt-1 whitespace-pre-wrap md:hidden" style={{ fontSize: "10px", lineHeight: "1.4" }}>
+                          {latestNotes[r.id] || r.notes}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-3 py-3 text-xs whitespace-nowrap">
                       <div className="text-slate-300">{r.project || "—"}</div>
                       <div className="text-slate-500 mt-0.5">{r.unit || "—"}</div>
@@ -768,7 +775,7 @@ export default function PipelinePage() {
                     <td className="px-3 py-3 text-center whitespace-nowrap">
                       <YNBadge value={r.sudah_booking_fee} />
                     </td>
-                    <td className="px-3 py-3 text-xs text-slate-400 min-w-[220px] whitespace-pre-wrap">
+                    <td className="px-3 py-3 text-xs text-slate-400 min-w-[220px] whitespace-pre-wrap hidden md:table-cell">
                       {latestNotes[r.id] || r.notes || "—"}
                     </td>
                     <td className="px-3 py-3 text-center">
