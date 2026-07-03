@@ -99,6 +99,21 @@ test("Pipeline removes PDF export and collapses inactive records", async () => {
   assert.match(source, /inactiveRows/)
 })
 
+test("Pipeline exports active filtered rows and stores structured progress", async () => {
+  const source = await read("app/pipeline/page.tsx")
+  const formatter = await read("lib/pipeline-export.ts")
+  const migration = await read("supabase/040_structured_pipeline_progress.sql")
+  assert.match(source, /Export Aktif \(\.txt\)/)
+  assert.match(source, /formatPipelineExport\(filtered\.map/)
+  assert.match(source, /Kendala/)
+  assert.match(source, /Next Action/)
+  assert.match(source, /Target Closing/)
+  assert.match(formatter, /status === "warm" \|\| row\.status === "hot"/)
+  assert.match(migration, /kendala TEXT/)
+  assert.match(migration, /next_action TEXT/)
+  assert.match(migration, /target_closing DATE/)
+})
+
 test("Funnel pages expose approved cards without Pipeline", async () => {
   const funnel = await read("app/funnel/page.tsx")
   const summary = await read("app/funnel-summary/page.tsx")

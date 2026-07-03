@@ -7,7 +7,8 @@ import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
-import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown } from "lucide-react"
+import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
+import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -113,16 +114,19 @@ interface PipelineNote {
   id: string
   konsumen_id: string
   content: string
+  kendala: string | null
+  next_action: string | null
+  target_closing: string | null
   author_name: string
   created_by: string | null
   created_at: string
 }
 
-function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string }) {
+function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void }) {
   const [notes, setNotes]         = useState<PipelineNote[]>([])
   const [loading, setLoading]     = useState(true)
   const [tableExists, setTableExists] = useState(true)
-  const [text, setText]           = useState("")
+  const [progress, setProgress]   = useState({ kendala: "", nextAction: "", targetClosing: "" })
   const [sending, setSending]     = useState(false)
   const bottomRef                 = useRef<HTMLDivElement>(null)
 
@@ -147,11 +151,15 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function handleSend() {
-    if (!text.trim() || !user) return
+    if (!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || !user) return
     setSending(true)
+    const content = `Kendala: ${progress.kendala.trim()}\nNext Action: ${progress.nextAction.trim()}\nTarget Closing: ${progress.targetClosing}`
     const { error } = await supabase.from("pipeline_notes").insert({
       konsumen_id: konsumenId,
-      content:     text.trim(),
+      content,
+      kendala: progress.kendala.trim(),
+      next_action: progress.nextAction.trim(),
+      target_closing: progress.targetClosing,
       author_name: user.name,
       created_by:  user.id,
     })
@@ -160,7 +168,8 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
       alert(`Gagal menyimpan catatan: ${error.message}`)
       return
     }
-    setText("")
+    onSaved(progress)
+    setProgress({ kendala: "", nextAction: "", targetClosing: "" })
     loadNotes()
   }
 
@@ -206,7 +215,15 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
                   <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>{n.author_name}</span>
                   <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
                 </div>
-                <div className="text-sm text-white" style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
+                {n.kendala || n.next_action || n.target_closing ? (
+                  <div className="text-xs space-y-1 text-slate-300">
+                    <div><b className="text-slate-400">Kendala:</b> {n.kendala || "—"}</div>
+                    <div><b className="text-slate-400">Next Action:</b> {n.next_action || "—"}</div>
+                    <div><b className="text-slate-400">Target Closing:</b> {n.target_closing || "—"}</div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-white" style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
+                )}
               </div>
             ))}
           </>
@@ -216,32 +233,45 @@ function PipelineNotes({ konsumenId, user, legacyNote }: { konsumenId: string; u
 
       {/* Input */}
       {user && (
-        <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
+        <div className="space-y-2">
           <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSend() } }}
-            placeholder="Tulis progress / catatan... (Ctrl+Enter kirim)"
+            value={progress.kendala}
+            onChange={e => setProgress(current => ({ ...current, kendala: e.target.value }))}
+            placeholder="Kendala"
             rows={2}
-            className="text-sm text-white outline-none resize-none"
-            style={{
-              flex: 1, background: "var(--surface2)", border: "1px solid var(--border)",
-              borderRadius: "8px", padding: "8px 10px", fontSize: "13px", lineHeight: "1.5", boxSizing: "border-box",
-            }}
+            className="w-full text-sm text-white outline-none resize-none rounded-lg px-3 py-2"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
           />
+          <textarea
+            value={progress.nextAction}
+            onChange={e => setProgress(current => ({ ...current, nextAction: e.target.value }))}
+            placeholder="Next Action"
+            rows={2}
+            className="w-full text-sm text-white outline-none resize-none rounded-lg px-3 py-2"
+            style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+          />
+          <div className="flex gap-2 items-end">
+            <label className="flex-1 text-xs text-slate-500">Target Closing
+              <input type="date" value={progress.targetClosing}
+                onChange={e => setProgress(current => ({ ...current, targetClosing: e.target.value }))}
+                className="w-full mt-1 text-sm text-white outline-none rounded-lg px-3 py-2"
+                style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark" }} />
+            </label>
           <button
             onClick={handleSend}
-            disabled={!text.trim() || sending}
+            disabled={!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || sending}
+            title="Simpan Progress"
             style={{
-              flexShrink: 0, width: 34, height: 34, borderRadius: "8px", border: "none",
-              background: !text.trim() || sending ? "var(--surface3, #2a2a2a)" : "var(--accent)",
-              color: !text.trim() || sending ? "#666" : "#fff",
-              cursor: !text.trim() || sending ? "not-allowed" : "pointer",
+              flexShrink: 0, width: 40, height: 40, borderRadius: "8px", border: "none",
+              background: !progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || sending ? "var(--surface3, #2a2a2a)" : "var(--accent)",
+              color: !progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || sending ? "#666" : "#fff",
+              cursor: !progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || sending ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
             <Send size={14} />
           </button>
+          </div>
         </div>
       )}
     </div>
@@ -285,6 +315,7 @@ export default function PipelinePage() {
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
   const [dbProjects, setDbProjects] = useState<string[]>([])
   const [latestNotes, setLatestNotes] = useState<Record<string, string>>({})
+  const [latestProgress, setLatestProgress] = useState<Record<string, PipelineProgressExport>>({})
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
   const [closingForm, setClosingForm] = useState({
     unit:         "",
@@ -361,15 +392,26 @@ export default function PipelinePage() {
     if (ids.length > 0) {
       const { data: pnData } = await supabase
         .from("pipeline_notes")
-        .select("konsumen_id, content, created_at")
+        .select("konsumen_id, content, kendala, next_action, target_closing, created_at")
         .in("konsumen_id", ids)
         .order("created_at", { ascending: false })
       // Keep only the latest note per konsumen_id
       const noteMap: Record<string, string> = {}
-      for (const pn of (pnData || []) as { konsumen_id: string; content: string }[]) {
-        if (!noteMap[pn.konsumen_id]) noteMap[pn.konsumen_id] = pn.content
+      const progressMap: Record<string, PipelineProgressExport> = {}
+      for (const pn of (pnData || []) as { konsumen_id: string; content: string; kendala: string | null; next_action: string | null; target_closing: string | null }[]) {
+        if (!noteMap[pn.konsumen_id]) {
+          noteMap[pn.konsumen_id] = pn.content
+          if (pn.kendala || pn.next_action || pn.target_closing) {
+            progressMap[pn.konsumen_id] = {
+              kendala: pn.kendala || "",
+              nextAction: pn.next_action || "",
+              targetClosing: pn.target_closing || "",
+            }
+          }
+        }
       }
       setLatestNotes(noteMap)
+      setLatestProgress(progressMap)
     }
 
     setLoading(false)
@@ -567,6 +609,28 @@ export default function PipelinePage() {
   const hunterFilterOptions = Array.from(new Set(rows.map(row => row.sales_hunter).filter(Boolean))).sort()
   const projectFilterOptions = Array.from(new Set(rows.map(row => row.project).filter((value): value is string => Boolean(value)))).sort()
 
+  function handleExportActive() {
+    const text = formatPipelineExport(filtered.map(row => ({
+      id: row.id,
+      salesPerson: formatSalesPerson(row.sales_person, row.agent_name),
+      prospect: row.name,
+      visited: row.sudah_visit,
+      project: row.project,
+      unit: row.unit,
+      status: row.status,
+    })), latestProgress)
+    if (!text) {
+      alert("Tidak ada pipeline aktif pada filter saat ini.")
+      return
+    }
+    const url = URL.createObjectURL(new Blob([`\uFEFF${text}`], { type: "text/plain;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `Pipeline Aktif - ${new Date().toISOString().slice(0, 10)}.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const hunterKey = (isAdmin || isTf) ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
@@ -623,6 +687,11 @@ export default function PipelinePage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">{filtered.length} hasil</span>
+            <button type="button" onClick={handleExportActive}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-blue-300 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <FileDown size={14} /> Export Aktif (.txt)
+            </button>
           </div>
         </div>
 
@@ -965,6 +1034,13 @@ export default function PipelinePage() {
                     konsumenId={editing.id}
                     user={user ? { id: user.id, name: user.name } : null}
                     legacyNote={editing.notes || ""}
+                    onSaved={progress => {
+                      setLatestProgress(current => ({ ...current, [editing.id]: progress }))
+                      setLatestNotes(current => ({
+                        ...current,
+                        [editing.id]: `Kendala: ${progress.kendala}\nNext Action: ${progress.nextAction}\nTarget Closing: ${progress.targetClosing}`,
+                      }))
+                    }}
                   />
                 </div>
               )}
