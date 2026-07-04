@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
-import { HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { Plus, X, Search, FileText, Pencil, MessageSquare, Send, Trash2 } from "lucide-react"
 
 interface KonsumenRow {
@@ -408,7 +408,7 @@ export default function TaskForcePage() {
   const hunterKey = canSeeAll ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
-  const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
+  const spOptions = buildSpOptions(hunterGroup, spBase)
 
   function canDelete(r: KonsumenRow): boolean {
     if (isAdmin) return true

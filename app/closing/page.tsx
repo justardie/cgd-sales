@@ -7,7 +7,7 @@ import ConfirmModal from "@/components/ConfirmModal"
 import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
-import { HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { Plus, X, Edit2, Calendar, AlertTriangle } from "lucide-react"
 import type { User } from "@/types"
 
@@ -573,7 +573,7 @@ export default function ClosingPage() {
   const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
-  const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
+  const spOptions = buildSpOptions(hunterGroup, spBase)
 
   const winOrDieHunters = displayHunters
     .filter(hunter => hunter.win_or_die_target > 0)

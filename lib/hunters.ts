@@ -7,6 +7,8 @@ export interface HunterGroup {
   spNames: string[]
   /** True for Lyndon, Jimmy, Firyal — they sell via Agent channel */
   hasAgent: boolean
+  /** True for hunters who also close deals themselves (e.g. Jimmy, Firyal) */
+  sellsOwnLeads?: boolean
 }
 
 export const HUNTER_GROUPS: HunterGroup[] = [
@@ -25,12 +27,14 @@ export const HUNTER_GROUPS: HunterGroup[] = [
     name: "Jimmy Darmadi",
     dbName: "Jimmy Darmadi",
     hasAgent: true,
+    sellsOwnLeads: true,
     spNames: [],
   },
   {
     name: "Firyal Badriyyah (Al)",
     dbName: "Firyal Badriyyah",
     hasAgent: true,
+    sellsOwnLeads: true,
     spNames: ["Adi Chandra"],
   },
   {
@@ -125,4 +129,18 @@ export function getSpOptions(hunterName: string): string[] {
  */
 export function findHunterGroup(name: string): HunterGroup | undefined {
   return HUNTER_GROUPS.find((g) => g.dbName === name || g.name === name)
+}
+
+/**
+ * Builds the Sales Person dropdown options for a hunter form field.
+ * Appends "Agent" for Agent-channel hunters and the hunter's own name
+ * for hunters who also close deals themselves (e.g. Jimmy, Firyal).
+ */
+export function buildSpOptions(hunterGroup: HunterGroup | undefined, spBase: string[]): string[] {
+  if (!hunterGroup) return spBase
+  return [
+    ...spBase,
+    ...(hunterGroup.sellsOwnLeads ? [hunterGroup.dbName] : []),
+    ...(hunterGroup.hasAgent ? ["Agent"] : []),
+  ]
 }

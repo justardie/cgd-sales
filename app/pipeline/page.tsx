@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
-import { HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
 import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown } from "lucide-react"
@@ -512,13 +512,6 @@ export default function PipelinePage() {
       setFormError(`Wajib diisi: ${missing.join(", ")}`)
       return false
     }
-    if (editing) {
-      const prog = latestProgress[editing.id]
-      if (!prog || !prog.kendala || !prog.nextAction || !prog.targetClosing) {
-        setFormError("Silakan isi dan simpan Kendala, Next Action, dan Target Closing terlebih dahulu")
-        return false
-      }
-    }
     setFormError("")
     return true
   }
@@ -653,7 +646,7 @@ export default function PipelinePage() {
   const hunterKey = (isAdmin || isTf) ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
-  const spOptions = hunterGroup?.hasAgent ? [...spBase, "Agent"] : spBase
+  const spOptions = buildSpOptions(hunterGroup, spBase)
 
   return (
     <DashboardShell>
