@@ -1047,6 +1047,15 @@ export default function PipelinePage() {
                   </select>
                 </div>
               </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>Batal</button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
+                  {saving ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
               {editing && (
                 <div>
                   <PipelineNotes
@@ -1063,15 +1072,6 @@ export default function PipelinePage() {
                   />
                 </div>
               )}
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"
-                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>Batal</button>
-                <button type="submit" disabled={saving}
-                  className="flex-1 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
-                  {saving ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
             </form>
           </div>
         </Modal>
