@@ -40,6 +40,20 @@ function parseMonthYearLabel(label: string): { year: number; month: number } | n
   return { year: Number(match[2]), month }
 }
 
+/** Returns every {year, month} (month 0-indexed) spanned by a date range — a report week can span at most two calendar months. */
+export function monthsInRange(startISO: string, endISO: string): { year: number; month: number }[] {
+  const start = new Date(`${startISO}T00:00:00Z`)
+  const end = new Date(`${endISO}T00:00:00Z`)
+  const months: { year: number; month: number }[] = []
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1))
+  const endCursor = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1))
+  while (cursor <= endCursor) {
+    months.push({ year: cursor.getUTCFullYear(), month: cursor.getUTCMonth() })
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1)
+  }
+  return months
+}
+
 /**
  * Locates the pivot header row and its column layout by scanning every cell
  * instead of assuming fixed column positions — different hunters' Odoo
@@ -49,12 +63,12 @@ function parseMonthYearLabel(label: string): { year: number; month: number } | n
  *
  * Odoo also groups pivot rows by Month > Salesperson with indented labels
  * (e.g. "     July 2026" then "          HERIYANDI" nested under it), so the
- * same salesperson can appear once per month. We pick the group matching the
- * report's target month/year (falling back to the most recent group found)
- * and read only that month's per-person rows — otherwise a later month's row
- * for the same name would silently overwrite an earlier one.
+ * same salesperson can appear once per month. When the report week spans two
+ * calendar months (e.g. Mon 29 Jun – Sun 5 Jul), both months' groups are
+ * summed per person; otherwise only the single matching month is used. Falls
+ * back to the most recent group if none of the target months are present.
  */
-export function parsePivotSheet(raw: (string | number)[][], target?: { year: number; month: number }): PivotVisitRow[] {
+export function parsePivotSheet(raw: (string | number)[][], targets?: { year: number; month: number }[]): PivotVisitRow[] {
   let headerRowIndex = -1
   let visitKonsumenCol = -1, accompaniedCol = -1, visitLokasiCol = -1
   for (let r = 0; r < raw.length; r++) {
@@ -93,17 +107,36 @@ export function parsePivotSheet(raw: (string | number)[][], target?: { year: num
     return entries.map(e => toRow(e.row))
   }
 
-  const matching = target ? groups.find(g => g.monthYear.year === target.year && g.monthYear.month === target.month) : undefined
-  const chosen = matching ?? groups.reduce((latest, g) =>
-    (g.monthYear.year * 12 + g.monthYear.month) > (latest.monthYear.year * 12 + latest.monthYear.month) ? g : latest
-  )
+  const matchingGroups = targets
+    ? groups.filter(g => targets.some(t => t.year === g.monthYear.year && t.month === g.monthYear.month))
+    : []
+  const chosenGroups = matchingGroups.length > 0
+    ? matchingGroups
+    : [groups.reduce((latest, g) =>
+        (g.monthYear.year * 12 + g.monthYear.month) > (latest.monthYear.year * 12 + latest.monthYear.month) ? g : latest
+      )]
 
-  const nextBoundary = groups.find(g => g.index > chosen.index && g.indent <= chosen.indent)
-  const endIndex = nextBoundary ? nextBoundary.index : entries.length
-  return entries
-    .slice(chosen.index + 1, endIndex)
-    .filter(e => e.indent > chosen.indent)
-    .map(e => toRow(e.row))
+  const combined = new Map<string, PivotVisitRow>()
+  for (const group of chosenGroups) {
+    const nextBoundary = groups.find(g => g.index > group.index && g.indent <= group.indent)
+    const endIndex = nextBoundary ? nextBoundary.index : entries.length
+    const rows = entries
+      .slice(group.index + 1, endIndex)
+      .filter(e => e.indent > group.indent)
+      .map(e => toRow(e.row))
+    for (const row of rows) {
+      const key = normalizePersonName(row.name)
+      const existing = combined.get(key)
+      if (existing) {
+        existing.visitKonsumen += row.visitKonsumen
+        existing.accompanied += row.accompanied
+        existing.visitLokasi += row.visitLokasi
+      } else {
+        combined.set(key, { ...row })
+      }
+    }
+  }
+  return Array.from(combined.values())
 }
 
 const isoUtc = (value: Date) => value.toISOString().slice(0, 10)

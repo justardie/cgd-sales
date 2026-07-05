@@ -4,7 +4,7 @@ import * as XLSX from "xlsx"
 import DashboardShell from "@/components/DashboardShell"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
-import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, parsePivotSheet, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
+import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, monthsInRange, parsePivotSheet, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
 import { formatRupiah } from "@/lib/utils"
 import { Download, FileSpreadsheet, Plus, Trash2 } from "lucide-react"
 
@@ -65,8 +65,7 @@ export default function ReportPage() {
       const sheetName = workbook.SheetNames.find(name => name.trim().toLowerCase() === "activities analysis") || workbook.SheetNames[0]
       const sheet = workbook.Sheets[sheetName]
       const raw = XLSX.utils.sheet_to_json<(string|number)[]>(sheet, { header: 1, defval: 0 })
-      const [targetYear, targetMonth] = periodEnd.split("-").map(Number)
-      const rows = parsePivotSheet(raw, { year: targetYear, month: targetMonth - 1 })
+      const rows = parsePivotSheet(raw, monthsInRange(periodStart, periodEnd))
       const summary = calculateVisitSummary(rows, team)
       setVisits(summary); setPivotFilename(file.name); setMessage(summary.missingNames.length ? `Pivot dibaca, tetapi nama ini tidak ditemukan: ${summary.missingNames.join(", ")}` : "Pivot berhasil dibaca; semua nama tim cocok.")
     } catch (error) { setMessage(error instanceof Error ? error.message : "File Pivot tidak dapat dibaca.") }
