@@ -14,6 +14,44 @@ export function normalizePersonName(value: string) {
   return value.trim().toUpperCase().replace(/[^A-Z0-9\s]/g, " ").replace(/\s+/g, " ")
 }
 
+const normalizeHeader = (value: unknown) => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ")
+
+/**
+ * Locates the pivot header row and its column layout by scanning every cell
+ * instead of assuming fixed column positions — different hunters export the
+ * "Activities Analysis" pivot with an extra leading column (e.g. "No") or a
+ * differently-cased header, which shifts "Visit Konsumen" / "Accompanied
+ * Visit" out of columns 1/2.
+ */
+export function parsePivotSheet(raw: (string | number)[][]): PivotVisitRow[] {
+  let headerRowIndex = -1
+  let nameCol = -1, visitKonsumenCol = -1, accompaniedCol = -1, visitLokasiCol = -1
+  for (let r = 0; r < raw.length; r++) {
+    const row = raw[r]
+    const vk = row.findIndex(cell => normalizeHeader(cell).includes("visit konsumen"))
+    const ac = row.findIndex(cell => normalizeHeader(cell).includes("accompanied"))
+    if (vk < 0 || ac < 0) continue
+    headerRowIndex = r
+    visitKonsumenCol = vk
+    accompaniedCol = ac
+    visitLokasiCol = row.findIndex(cell => normalizeHeader(cell).includes("visit lokasi"))
+    nameCol = row.findIndex(cell => ["nama", "name"].includes(normalizeHeader(cell)))
+    if (nameCol < 0) nameCol = Math.max(0, Math.min(vk, ac) - 1)
+    break
+  }
+  if (headerRowIndex < 0) throw new Error("Header Visit Konsumen dan Accompanied Visit tidak ditemukan.")
+
+  return raw
+    .slice(headerRowIndex + 1)
+    .filter(row => String(row[nameCol] ?? "").trim() && normalizeHeader(row[nameCol]) !== "total")
+    .map(row => ({
+      name: String(row[nameCol]),
+      visitKonsumen: Number(row[visitKonsumenCol]) || 0,
+      accompanied: Number(row[accompaniedCol]) || 0,
+      visitLokasi: visitLokasiCol >= 0 ? Number(row[visitLokasiCol]) || 0 : 0,
+    }))
+}
+
 const isoUtc = (value: Date) => value.toISOString().slice(0, 10)
 export function getPreviousWeekPeriod(reportDate: string) {
   const selected = new Date(`${reportDate}T00:00:00Z`)

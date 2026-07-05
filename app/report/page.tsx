@@ -4,7 +4,7 @@ import * as XLSX from "xlsx"
 import DashboardShell from "@/components/DashboardShell"
 import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
-import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, type PivotVisitRow, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
+import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, parsePivotSheet, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
 import { formatRupiah } from "@/lib/utils"
 import { Download, FileSpreadsheet, Plus, Trash2 } from "lucide-react"
 
@@ -62,11 +62,10 @@ export default function ReportPage() {
   async function parsePivot(file: File) {
     try {
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" })
-      const sheet = workbook.Sheets["Activities Analysis"] || workbook.Sheets[workbook.SheetNames[0]]
+      const sheetName = workbook.SheetNames.find(name => name.trim().toLowerCase() === "activities analysis") || workbook.SheetNames[0]
+      const sheet = workbook.Sheets[sheetName]
       const raw = XLSX.utils.sheet_to_json<(string|number)[]>(sheet, { header: 1, defval: 0 })
-      const headerIndex = raw.findIndex(row => String(row[1]).includes("Visit Konsumen") && String(row[2]).includes("Accompanied Visit"))
-      if (headerIndex < 0) throw new Error("Header Visit Konsumen dan Accompanied Visit tidak ditemukan.")
-      const rows: PivotVisitRow[] = raw.slice(headerIndex + 1).filter(row => String(row[0]).trim() && String(row[0]).toLowerCase() !== "total").map(row => ({ name: String(row[0]), visitKonsumen: Number(row[1]) || 0, accompanied: Number(row[2]) || 0, visitLokasi: Number(row[3]) || 0 }))
+      const rows = parsePivotSheet(raw)
       const summary = calculateVisitSummary(rows, team)
       setVisits(summary); setPivotFilename(file.name); setMessage(summary.missingNames.length ? `Pivot dibaca, tetapi nama ini tidak ditemukan: ${summary.missingNames.join(", ")}` : "Pivot berhasil dibaca; semua nama tim cocok.")
     } catch (error) { setMessage(error instanceof Error ? error.message : "File Pivot tidak dapat dibaca.") }
