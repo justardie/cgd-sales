@@ -65,7 +65,8 @@ export default function ReportPage() {
       const sheetName = workbook.SheetNames.find(name => name.trim().toLowerCase() === "activities analysis") || workbook.SheetNames[0]
       const sheet = workbook.Sheets[sheetName]
       const raw = XLSX.utils.sheet_to_json<(string|number)[]>(sheet, { header: 1, defval: 0 })
-      const rows = parsePivotSheet(raw)
+      const [targetYear, targetMonth] = periodEnd.split("-").map(Number)
+      const rows = parsePivotSheet(raw, { year: targetYear, month: targetMonth - 1 })
       const summary = calculateVisitSummary(rows, team)
       setVisits(summary); setPivotFilename(file.name); setMessage(summary.missingNames.length ? `Pivot dibaca, tetapi nama ini tidak ditemukan: ${summary.missingNames.join(", ")}` : "Pivot berhasil dibaca; semua nama tim cocok.")
     } catch (error) { setMessage(error instanceof Error ? error.message : "File Pivot tidak dapat dibaca.") }

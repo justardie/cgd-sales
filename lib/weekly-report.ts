@@ -15,17 +15,48 @@ export function normalizePersonName(value: string) {
 }
 
 const normalizeHeader = (value: unknown) => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ")
+const SKIP_LABELS = new Set(["total", "count", "0", ""])
+
+const MONTH_NAMES: Record<string, number> = {
+  jan: 0, january: 0, januari: 0,
+  feb: 1, february: 1, februari: 1,
+  mar: 2, march: 2, maret: 2,
+  apr: 3, april: 3,
+  may: 4, mei: 4,
+  jun: 5, june: 5, juni: 5,
+  jul: 6, july: 6, juli: 6,
+  aug: 7, august: 7, agu: 7, agustus: 7,
+  sep: 8, september: 8, sept: 8,
+  oct: 9, october: 9, okt: 9, oktober: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11, des: 11, desember: 11,
+}
+
+function parseMonthYearLabel(label: string): { year: number; month: number } | null {
+  const match = label.trim().match(/^([a-zA-Z]+)\.?\s+(\d{4})$/)
+  if (!match) return null
+  const month = MONTH_NAMES[match[1].toLowerCase()]
+  if (month === undefined) return null
+  return { year: Number(match[2]), month }
+}
 
 /**
  * Locates the pivot header row and its column layout by scanning every cell
- * instead of assuming fixed column positions — different hunters export the
- * "Activities Analysis" pivot with an extra leading column (e.g. "No") or a
- * differently-cased header, which shifts "Visit Konsumen" / "Accompanied
- * Visit" out of columns 1/2.
+ * instead of assuming fixed column positions — different hunters' Odoo
+ * exports insert extra measure columns (e.g. "None", "Prospect (Call/Chat)")
+ * before "Visit Konsumen" / "Accompanied Visit", which shifts them out of
+ * columns 1/2, and use different header casing.
+ *
+ * Odoo also groups pivot rows by Month > Salesperson with indented labels
+ * (e.g. "     July 2026" then "          HERIYANDI" nested under it), so the
+ * same salesperson can appear once per month. We pick the group matching the
+ * report's target month/year (falling back to the most recent group found)
+ * and read only that month's per-person rows — otherwise a later month's row
+ * for the same name would silently overwrite an earlier one.
  */
-export function parsePivotSheet(raw: (string | number)[][]): PivotVisitRow[] {
+export function parsePivotSheet(raw: (string | number)[][], target?: { year: number; month: number }): PivotVisitRow[] {
   let headerRowIndex = -1
-  let nameCol = -1, visitKonsumenCol = -1, accompaniedCol = -1, visitLokasiCol = -1
+  let visitKonsumenCol = -1, accompaniedCol = -1, visitLokasiCol = -1
   for (let r = 0; r < raw.length; r++) {
     const row = raw[r]
     const vk = row.findIndex(cell => normalizeHeader(cell).includes("visit konsumen"))
@@ -35,21 +66,44 @@ export function parsePivotSheet(raw: (string | number)[][]): PivotVisitRow[] {
     visitKonsumenCol = vk
     accompaniedCol = ac
     visitLokasiCol = row.findIndex(cell => normalizeHeader(cell).includes("visit lokasi"))
-    nameCol = row.findIndex(cell => ["nama", "name"].includes(normalizeHeader(cell)))
-    if (nameCol < 0) nameCol = Math.max(0, Math.min(vk, ac) - 1)
     break
   }
   if (headerRowIndex < 0) throw new Error("Header Visit Konsumen dan Accompanied Visit tidak ditemukan.")
 
-  return raw
-    .slice(headerRowIndex + 1)
-    .filter(row => String(row[nameCol] ?? "").trim() && normalizeHeader(row[nameCol]) !== "total")
-    .map(row => ({
-      name: String(row[nameCol]),
-      visitKonsumen: Number(row[visitKonsumenCol]) || 0,
-      accompanied: Number(row[accompaniedCol]) || 0,
-      visitLokasi: visitLokasiCol >= 0 ? Number(row[visitLokasiCol]) || 0 : 0,
-    }))
+  const nameCol = 0
+  const toRow = (row: (string | number)[]): PivotVisitRow => ({
+    name: String(row[nameCol]).trim(),
+    visitKonsumen: Number(row[visitKonsumenCol]) || 0,
+    accompanied: Number(row[accompaniedCol]) || 0,
+    visitLokasi: visitLokasiCol >= 0 ? Number(row[visitLokasiCol]) || 0 : 0,
+  })
+
+  type Entry = { label: string; indent: number; row: (string | number)[] }
+  const entries: Entry[] = raw.slice(headerRowIndex + 1)
+    .map(row => ({ label: String(row[nameCol] ?? ""), row }))
+    .filter(({ label }) => !SKIP_LABELS.has(normalizeHeader(label)))
+    .map(({ label, row }) => ({ label: label.trim(), indent: (label.match(/^ */)?.[0].length) ?? 0, row }))
+
+  const groups = entries
+    .map((entry, index) => ({ index, indent: entry.indent, monthYear: parseMonthYearLabel(entry.label) }))
+    .filter((entry): entry is { index: number; indent: number; monthYear: { year: number; month: number } } => entry.monthYear !== null)
+
+  if (groups.length === 0) {
+    // Flat pivot with no month grouping — every remaining row is a person row.
+    return entries.map(e => toRow(e.row))
+  }
+
+  const matching = target ? groups.find(g => g.monthYear.year === target.year && g.monthYear.month === target.month) : undefined
+  const chosen = matching ?? groups.reduce((latest, g) =>
+    (g.monthYear.year * 12 + g.monthYear.month) > (latest.monthYear.year * 12 + latest.monthYear.month) ? g : latest
+  )
+
+  const nextBoundary = groups.find(g => g.index > chosen.index && g.indent <= chosen.indent)
+  const endIndex = nextBoundary ? nextBoundary.index : entries.length
+  return entries
+    .slice(chosen.index + 1, endIndex)
+    .filter(e => e.indent > chosen.indent)
+    .map(e => toRow(e.row))
 }
 
 const isoUtc = (value: Date) => value.toISOString().slice(0, 10)
