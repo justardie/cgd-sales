@@ -334,8 +334,15 @@ export default function ClosingPage() {
       .eq("status", "closing")
       .order("closing_date", { ascending: false })
 
+    const fromKey = customFrom.year * 12 + customFrom.month
+    const toKey = customTo.year * 12 + customTo.month
+    const customMinYear = Math.min(customFrom.year, customTo.year)
+    const customMaxYear = Math.max(customFrom.year, customTo.year)
+
     if (ytdMode) {
       closingQuery = closingQuery.eq("closing_year", now.getFullYear()).lte("closing_month", now.getMonth() + 1)
+    } else if (dateMode === "custom") {
+      closingQuery = closingQuery.gte("closing_year", customMinYear).lte("closing_year", customMaxYear)
     } else {
       closingQuery = closingQuery.eq("closing_month", month).eq("closing_year", year)
     }
@@ -374,7 +381,15 @@ export default function ClosingPage() {
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     setHunters((usersRes.data || []) as User[])
     setCurrentMonthClosings((currentMonthRes.data || []) as KonsumenRow[])
-    const allClosings = (closingsRes.data || []) as KonsumenRow[]
+    let allClosings = (closingsRes.data || []) as KonsumenRow[]
+    if (dateMode === "custom") {
+      const minKey = Math.min(fromKey, toKey)
+      const maxKey = Math.max(fromKey, toKey)
+      allClosings = allClosings.filter(c => {
+        const key = (c.closing_year || 0) * 12 + (c.closing_month || 0)
+        return key >= minKey && key <= maxKey
+      })
+    }
     if (isAdmin || isTf) {
       setClosings(allClosings)
     } else {
@@ -391,7 +406,7 @@ export default function ClosingPage() {
     }
     setActiveSps(spsMap)
     setLoading(false)
-  }, [isAdmin, isTf, month, user, year, ytdMode])
+  }, [isAdmin, isTf, month, user, year, ytdMode, dateMode, customFrom, customTo])
 
   useEffect(() => { if (user) queueMicrotask(() => void fetchData()) }, [fetchData, user])
 
@@ -594,7 +609,11 @@ export default function ClosingPage() {
           <div>
             <h1 className="text-xl font-bold text-white">Closing</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
+              {ytdMode
+                ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
+                : dateMode === "custom"
+                ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
+                : `${getMonthName(month)} ${year}`} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
