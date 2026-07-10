@@ -8,7 +8,8 @@ import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
-import { Plus, X, Edit2, Calendar, AlertTriangle } from "lucide-react"
+import { formatClosingExport } from "@/lib/closing-export"
+import { Plus, X, Edit2, Calendar, AlertTriangle, FileDown } from "lucide-react"
 import type { User } from "@/types"
 
 interface KonsumenRow {
@@ -585,6 +586,29 @@ export default function ClosingPage() {
   const totalOmset = filtered.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
   const projectOptions = Array.from(new Set(closings.map(c => normalizeProject(c.project)).filter(Boolean))) as string[]
 
+  function handleExportClosings() {
+    const text = formatClosingExport(filtered.map(c => ({
+      salesPerson: formatSalesPerson(c.sales_person, c.agent_name),
+      prospect: c.name,
+      project: c.project,
+      unit: c.unit,
+      nilaiOmset: c.nilai_hjr,
+      caraBayar: c.cara_bayar,
+      closingDate: c.closing_date,
+      notes: c.notes,
+    })))
+    if (!text) {
+      alert("Tidak ada data closing pada filter saat ini.")
+      return
+    }
+    const url = URL.createObjectURL(new Blob([`﻿${text}`], { type: "text/plain;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `Closing - ${new Date().toISOString().slice(0, 10)}.txt`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
   const spBase = activeSps[hunterKey] || []
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
@@ -850,6 +874,14 @@ export default function ClosingPage() {
               onCaraBayarChange={setFilterCaraBayar}
               caraBayarOptions={dbCaraBayar.map(option => ({ value: option, label: option }))}
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">{filtered.length} hasil</span>
+            <button type="button" onClick={handleExportClosings}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-blue-300 hover:text-white transition"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              <FileDown size={14} /> Export Closing (.txt)
+            </button>
           </div>
           {(search || filterHunter || filterProject || filterCaraBayar) && (
             <button
