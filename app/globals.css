@@ -566,6 +566,12 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+[data-theme="light"] .greeting-title {
+  background: linear-gradient(135deg, #0B1220 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 .greeting-sub {
   font-size: 15px;
