@@ -653,7 +653,7 @@ export default function OverviewPage() {
             <LineChart data={monthlyRevenue} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <XAxis dataKey="month" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={value => `${Math.round(Number(value) / 1_000_000_000)}M`} tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} width={42} />
-              <Tooltip formatter={value => formatRupiah(Number(value))} contentStyle={{ background: "#111827", border: "1px solid #334155", borderRadius: 10 }} />
+              <Tooltip formatter={value => formatRupiah(Number(value))} contentStyle={{ background: "var(--surface3)", border: "1px solid var(--border-medium)", borderRadius: 10, color: "var(--text-primary)" }} />
               <Line type="monotone" dataKey="total" stroke="#FF6A3D" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -671,7 +671,7 @@ export default function OverviewPage() {
                     <Pie data={projectChartData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={2}>
                       {projectChartData.map((project, index) => <Cell key={project.name} fill={["#FF6A3D", "#8b5cf6", "#10b981", "#3b82f6", "#f59e0b"][index % 5]} />)}
                     </Pie>
-                    <Tooltip formatter={value => formatRupiah(Number(value))} contentStyle={{ background: "#111827", border: "1px solid #334155", borderRadius: 10 }} />
+                    <Tooltip formatter={value => formatRupiah(Number(value))} contentStyle={{ background: "var(--surface3)", border: "1px solid var(--border-medium)", borderRadius: 10, color: "var(--text-primary)" }} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (

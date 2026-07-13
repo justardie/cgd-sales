@@ -4,7 +4,8 @@ import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { LogOut, Shield, MessageSquare, ClipboardList } from "lucide-react"
+import { useTheme } from "@/contexts/ThemeContext"
+import { LogOut, Shield, MessageSquare, ClipboardList, Sun, Moon } from "lucide-react"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview"                           },
@@ -31,6 +32,7 @@ const TF_NAV = [
 export default function Header() {
   const pathname = usePathname()
   const { user, isAdmin, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
 
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
@@ -132,6 +134,25 @@ export default function Header() {
 
           {profileOpen && (
             <div className="profile-dropdown">
+              <div className="theme-toggle" role="group" aria-label="Pilih tema">
+                <button
+                  type="button"
+                  className={`theme-toggle__btn${theme === "light" ? " theme-toggle__btn--active" : ""}`}
+                  onClick={() => setTheme("light")}
+                  aria-pressed={theme === "light"}
+                >
+                  <Sun size={13} /><span>Light</span>
+                </button>
+                <button
+                  type="button"
+                  className={`theme-toggle__btn${theme === "dark" ? " theme-toggle__btn--active" : ""}`}
+                  onClick={() => setTheme("dark")}
+                  aria-pressed={theme === "dark"}
+                >
+                  <Moon size={13} /><span>Dark</span>
+                </button>
+              </div>
+              <div className="profile-dropdown-divider" />
               {(role === "hunter" || isAdmin) && (
                 <Link href="/report" className="profile-dropdown-item" onClick={() => setProfileOpen(false)}>
                   <ClipboardList size={14} /><span>REPORT</span>

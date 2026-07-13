@@ -483,6 +483,37 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   margin: 4px 0;
 }
 
+.theme-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin: 2px 2px 6px;
+  background: var(--toggle-bg);
+  border-radius: 10px;
+}
+.theme-toggle__btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.theme-toggle__btn:hover { color: var(--text-primary); }
+.theme-toggle__btn--active {
+  background: var(--surface3);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
 /* Notes tooltip */
 .notes-cell {
   position: relative;
@@ -852,3 +883,129 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   .no-print { display: none !important; }
   body { background: white !important; color: #111 !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME — token overrides
+   Toggled via [data-theme="light"] on <html>, set from the avatar
+   menu (Header.tsx) and persisted in localStorage (ThemeContext).
+═══════════════════════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  --bg:      #F4F6FB;
+  --bg-warm: #EEF2FA;
+
+  --surface:   rgba(255,255,255,0.86);
+  --surface2:  rgba(255,255,255,0.94);
+  --surface3:  rgba(255,255,255,0.98);
+
+  --accent:        #C2410C;
+  --accent-start:  #EA580C;
+  --accent-end:    #9A3412;
+  --accent-soft:   rgba(194,65,12,0.10);
+  --accent-medium: rgba(194,65,12,0.18);
+
+  --text-primary:   #0B1220;
+  --text-secondary: #33415C;
+  --text-muted:     #55647A;
+
+  --border:        rgba(15,23,42,0.12);
+  --border-medium: rgba(15,23,42,0.18);
+  --border-strong: rgba(15,23,42,0.34);
+
+  --shadow-xs: 0 1px 2px rgba(15,23,42,0.08);
+  --shadow-sm: 0 2px 10px rgba(15,23,42,0.08), 0 0 0 1px rgba(15,23,42,0.06);
+  --shadow-md: 0 4px 24px rgba(15,23,42,0.10), 0 1px 4px rgba(15,23,42,0.06),
+               0 0 0 1px rgba(15,23,42,0.08),
+               inset 0 1px 0 rgba(255,255,255,0.6);
+  --shadow-lg: 0 8px 48px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.08),
+               0 0 0 1px rgba(15,23,42,0.08),
+               inset 0 1px 0 rgba(255,255,255,0.6);
+  --shadow-accent: 0 6px 28px rgba(194,65,12,0.28);
+
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
+  --sidebar-bg:      rgba(255,255,255,0.88);
+  --sidebar-border:  rgba(15,23,42,0.12);
+  --header-bg:       rgba(255,255,255,0.92);
+  --nav-active-bg:   #0B1220;
+  --nav-active-text: #FFFFFF;
+  --toggle-bg:       rgba(15,23,42,0.08);
+
+  --green:      #059669;
+  --green-soft: rgba(5,150,105,0.14);
+  --red:        #DC2626;
+  --red-soft:   rgba(220,38,38,0.14);
+  --blue:       #2563EB;
+  --blue-soft:  rgba(37,99,235,0.14);
+  --amber:      #B45309;
+  --amber-soft: rgba(180,83,9,0.14);
+}
+
+[data-theme="light"] body {
+  background:
+    radial-gradient(ellipse 70% 65% at 0%   0%,   rgba(59,130,246,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 55% at 100% 100%, rgba(29,78,216,0.08)  0%, transparent 52%),
+    radial-gradient(ellipse 45% 42% at 88%  8%,   rgba(236,202,62,0.14) 0%, transparent 46%),
+    radial-gradient(ellipse 50% 55% at 18%  80%,  rgba(59,130,246,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 38% 38% at 52%  48%,  rgba(100,150,255,0.05) 0%, transparent 48%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+[data-theme="light"] select option {
+  color: #0B1220;
+  background-color: #FFFFFF;
+}
+
+[data-theme="light"] input[type="date"] { color-scheme: light !important; }
+[data-theme="light"] .report-date-input::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(0);
+  opacity: 0.65;
+}
+
+/* ── Tailwind utility overrides — keep text readable on light surfaces ── */
+[data-theme="light"] .text-white       { color: #0B1220; }
+[data-theme="light"] .text-slate-200   { color: #1E293B; }
+[data-theme="light"] .text-slate-300   { color: #334155; }
+[data-theme="light"] .text-slate-400   { color: #475569; }
+[data-theme="light"] .text-slate-500   { color: #55647A; }
+[data-theme="light"] .text-slate-600   { color: #3F4B5C; }
+[data-theme="light"] .text-slate-700   { color: #1E293B; }
+[data-theme="light"] .bg-slate-800     { background-color: #E2E8F0; }
+[data-theme="light"] .border-slate-500 { border-color: #CBD5E1; }
+[data-theme="light"] .border-slate-700 { border-color: #CBD5E1; }
+
+[data-theme="light"] .text-red-300,
+[data-theme="light"] .text-red-400,
+[data-theme="light"] .text-red-500      { color: #B91C1C; }
+[data-theme="light"] .text-red-400\/60  { color: rgba(185,28,28,0.6); }
+
+[data-theme="light"] .text-green-300,
+[data-theme="light"] .text-green-400    { color: #15803D; }
+[data-theme="light"] .text-emerald-400  { color: #047857; }
+
+[data-theme="light"] .text-blue-300,
+[data-theme="light"] .text-blue-400     { color: #1D4ED8; }
+[data-theme="light"] .text-blue-400\/80 { color: rgba(29,78,216,0.8); }
+
+[data-theme="light"] .text-orange-300,
+[data-theme="light"] .text-orange-400   { color: #C2410C; }
+
+[data-theme="light"] .text-amber-300,
+[data-theme="light"] .text-amber-400    { color: #B45309; }
+[data-theme="light"] .text-amber-400\/80{ color: rgba(180,83,9,0.8); }
+
+[data-theme="light"] .text-yellow-300,
+[data-theme="light"] .text-yellow-400   { color: #A16207; }
+
+[data-theme="light"] .text-purple-300,
+[data-theme="light"] .text-purple-400   { color: #7E22CE; }
+
+[data-theme="light"] .text-indigo-400   { color: #4338CA; }
+[data-theme="light"] .text-cyan-400     { color: #0E7490; }
+[data-theme="light"] .text-violet-400   { color: #6D28D9; }
+[data-theme="light"] .text-fuchsia-400  { color: #A21CAF; }
+[data-theme="light"] .text-pink-400     { color: #BE185D; }
+[data-theme="light"] .text-rose-400     { color: #BE123C; }

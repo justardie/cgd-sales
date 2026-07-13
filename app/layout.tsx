@@ -12,9 +12,26 @@ export const metadata: Metadata = {
   description: 'PT Central Group Development · MASCOL Division Weekly Report',
 }
 
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var t = localStorage.getItem('cgd-theme');
+    if (t !== 'light' && t !== 'dark') t = 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add(t);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+  }
+})();
+`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className={inter.className}>
         <ThemeProvider>
           <AuthProvider>
