@@ -12,7 +12,7 @@ interface Props {
 export default function ConfirmModal({ title, message, confirmLabel = "Hapus", onConfirm, onCancel }: Props) {
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
       onClick={onCancel}
     >
