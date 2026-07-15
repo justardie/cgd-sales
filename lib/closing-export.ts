@@ -1,4 +1,5 @@
 export interface ClosingExportRow {
+  salesHunter: string
   salesPerson: string
   prospect: string
   project?: string | null
@@ -19,6 +20,7 @@ const displayRupiah = (value: number) => new Intl.NumberFormat("id-ID", { style:
 export function formatClosingExport(rows: ClosingExportRow[]): string {
   return rows
     .map(row => [
+      `Sales Hunter: ${row.salesHunter || "—"}`,
       `Sales: ${row.salesPerson || "—"}`,
       `Konsumen: ${row.prospect || "—"}`,
       `Project/Unit: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,

@@ -588,6 +588,7 @@ export default function ClosingPage() {
 
   function handleExportClosings() {
     const text = formatClosingExport(filtered.map(c => ({
+      salesHunter: c.sales_hunter,
       salesPerson: formatSalesPerson(c.sales_person, c.agent_name),
       prospect: c.name,
       project: c.project,
