@@ -707,6 +707,7 @@ export default function PipelinePage() {
       project: row.project,
       unit: row.unit,
       status: row.status,
+      nilaiPotensi: Number(row.potensi_closing) || 0,
     })), latestProgress)
     if (!text) {
       alert("Tidak ada pipeline aktif pada filter saat ini.")

@@ -4,6 +4,7 @@ export interface PipelineExportRow {
   project?: string | null
   unit?: string | null
   status: string
+  nilaiPotensi: number
 }
 
 export interface PipelineProgressExport {
@@ -17,6 +18,8 @@ const displayDate = (value: string) => value
       .format(new Date(`${value}T00:00:00Z`))
   : "—"
 
+const displayRupiah = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0)
+
 export function formatPipelineExport(
   rows: PipelineExportRow[],
   progressById: Record<string, PipelineProgressExport>,
@@ -28,6 +31,7 @@ export function formatPipelineExport(
       return [
         `Sales Hunter: ${row.salesHunter || "—"}`,
         `Minat: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,
+        `Nilai Potensi: ${displayRupiah(row.nilaiPotensi)}`,
         `Kendala: ${progress?.kendala || "—"}`,
         `Next Action: ${progress?.nextAction || "—"}`,
         `Target Closing: ${displayDate(progress?.targetClosing || "")}`,
