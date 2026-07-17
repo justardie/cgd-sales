@@ -624,8 +624,8 @@ export default function ClosingPage() {
         if (!topSales || omset > topSales.omset) topSales = { name, omset }
       }
 
-      const targetAlertHunters = hunters
-        .filter(hunter => hunter.monthly_target > 0 && (hunterOmsetMtd[hunter.name] || 0) < hunter.monthly_target)
+      const allHunters = hunters
+        .filter(hunter => hunter.monthly_target > 0)
         .map(hunter => ({ name: hunter.name, omset: hunterOmsetMtd[hunter.name] || 0, target: hunter.monthly_target }))
         .sort((a, b) => a.omset / a.target - b.omset / b.target)
 
@@ -669,7 +669,7 @@ export default function ClosingPage() {
           mtdTarget={TEAM_MONTHLY_TARGET}
           topHunter={topHunter}
           topSales={topSales}
-          targetAlertHunters={targetAlertHunters}
+          allHunters={allHunters}
           projectData={projectData}
           rows={rows}
           totalOmset={totalOmset}
@@ -680,11 +680,15 @@ export default function ClosingPage() {
       await new Promise(resolve => setTimeout(resolve, 150))
 
       const target = container.firstElementChild as HTMLElement
+      const targetRect = target.getBoundingClientRect()
       const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff" })
-      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, pageHeight)
+
+      // Size the PDF page to exactly fit the rendered report (fixed width, height
+      // follows content) so nothing gets clipped — this always stays a single page.
+      const pageWidthMm = 280
+      const pageHeightMm = pageWidthMm * (targetRect.height / targetRect.width)
+      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm] })
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidthMm, pageHeightMm)
       pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
 
       root.unmount()
