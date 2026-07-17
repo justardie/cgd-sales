@@ -1,14 +1,16 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
+import { createRoot } from "react-dom/client"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import SalesFilterBar from "@/components/SalesFilterBar"
-import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR } from "@/lib/utils"
+import ClosingReportTemplate, { type ClosingReportRow } from "@/components/ClosingReportTemplate"
+import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEAM_MONTHLY_TARGET, PROJECT_NAMES } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
+import { canonicalProjectTotals } from "@/lib/dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
-import { formatClosingExport } from "@/lib/closing-export"
 import { Plus, X, Edit2, Calendar, AlertTriangle, FileDown } from "lucide-react"
 import type { User } from "@/types"
 
@@ -294,6 +296,7 @@ export default function ClosingPage() {
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [reportBusy, setReportBusy] = useState(false)
 
   const [filterHunter,    setFilterHunter]    = useState("")
   const [filterProject,   setFilterProject]   = useState("")
@@ -586,28 +589,109 @@ export default function ClosingPage() {
   const totalOmset = filtered.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
   const projectOptions = Array.from(new Set(closings.map(c => normalizeProject(c.project)).filter(Boolean))) as string[]
 
-  function handleExportClosings() {
-    const text = formatClosingExport(filtered.map(c => ({
-      salesHunter: c.sales_hunter,
-      salesPerson: formatSalesPerson(c.sales_person, c.agent_name),
-      prospect: c.name,
-      project: c.project,
-      unit: c.unit,
-      nilaiOmset: c.nilai_hjr,
-      caraBayar: c.cara_bayar,
-      closingDate: c.closing_date,
-      notes: c.notes,
-    })))
-    if (!text) {
+  async function handleReportClosing() {
+    if (filtered.length === 0) {
       alert("Tidak ada data closing pada filter saat ini.")
       return
     }
-    const url = URL.createObjectURL(new Blob([`﻿${text}`], { type: "text/plain;charset=utf-8" }))
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `Closing - ${new Date().toISOString().slice(0, 10)}.txt`
-    link.click()
-    URL.revokeObjectURL(url)
+    setReportBusy(true)
+    try {
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas"),
+      ])
+
+      const mtdValue = currentMonthClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+
+      const hunterOmsetMtd: Record<string, number> = {}
+      for (const c of currentMonthClosings) {
+        if (c.sales_hunter) hunterOmsetMtd[c.sales_hunter] = (hunterOmsetMtd[c.sales_hunter] || 0) + (c.nilai_hjr || 0)
+      }
+      let topHunter: { name: string; omset: number; pct: number } | null = null
+      for (const hunter of hunters) {
+        const omset = hunterOmsetMtd[hunter.name] || 0
+        if (omset > 0 && (!topHunter || omset > topHunter.omset)) {
+          topHunter = { name: hunter.name, omset, pct: hunter.monthly_target > 0 ? Math.round((omset / hunter.monthly_target) * 100) : 0 }
+        }
+      }
+
+      const spOmsetMtd: Record<string, number> = {}
+      for (const c of currentMonthClosings) {
+        if (c.sales_person) spOmsetMtd[c.sales_person] = (spOmsetMtd[c.sales_person] || 0) + (c.nilai_hjr || 0)
+      }
+      let topSales: { name: string; omset: number } | null = null
+      for (const [name, omset] of Object.entries(spOmsetMtd)) {
+        if (!topSales || omset > topSales.omset) topSales = { name, omset }
+      }
+
+      const targetAlertHunters = hunters
+        .filter(hunter => hunter.monthly_target > 0 && (hunterOmsetMtd[hunter.name] || 0) < hunter.monthly_target)
+        .map(hunter => ({ name: hunter.name, omset: hunterOmsetMtd[hunter.name] || 0, target: hunter.monthly_target }))
+        .sort((a, b) => a.omset / a.target - b.omset / b.target)
+
+      const projMap: Record<string, number> = {}
+      for (const c of currentMonthClosings) {
+        const proj = normalizeProject(c.project)
+        if (proj) projMap[proj] = (projMap[proj] || 0) + (c.nilai_hjr || 0)
+      }
+      const projectData = canonicalProjectTotals(projMap, PROJECT_NAMES).filter(project => project.value > 0)
+
+      const rows: ClosingReportRow[] = filtered.map(c => ({
+        hunter: c.sales_hunter,
+        salesPerson: formatSalesPerson(c.sales_person, c.agent_name),
+        konsumen: c.name,
+        project: c.project || "",
+        unit: c.unit || "",
+        nilaiOmset: c.nilai_hjr || 0,
+        caraBayar: c.cara_bayar || "",
+        closingDate: c.closing_date,
+      }))
+
+      const periodLabel = ytdMode
+        ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
+        : dateMode === "custom"
+        ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
+        : `${getMonthName(month)} ${year}`
+
+      const generatedAt = new Date().toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+
+      const container = document.createElement("div")
+      container.style.position = "fixed"
+      container.style.left = "-99999px"
+      container.style.top = "0"
+      document.body.appendChild(container)
+      const root = createRoot(container)
+      root.render(
+        <ClosingReportTemplate
+          periodLabel={periodLabel}
+          generatedAt={generatedAt}
+          mtdValue={mtdValue}
+          mtdTarget={TEAM_MONTHLY_TARGET}
+          topHunter={topHunter}
+          topSales={topSales}
+          targetAlertHunters={targetAlertHunters}
+          projectData={projectData}
+          rows={rows}
+          totalOmset={totalOmset}
+          totalCount={filtered.length}
+        />
+      )
+
+      await new Promise(resolve => setTimeout(resolve, 150))
+
+      const target = container.firstElementChild as HTMLElement
+      const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff" })
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidth, pageHeight)
+      pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
+
+      root.unmount()
+      container.remove()
+    } finally {
+      setReportBusy(false)
+    }
   }
 
   const hunterKey = isAdmin ? form.sales_hunter : (user?.name || "")
@@ -878,10 +962,10 @@ export default function ClosingPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">{filtered.length} hasil</span>
-            <button type="button" onClick={handleExportClosings}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-blue-300 hover:text-white transition"
+            <button type="button" onClick={handleReportClosing} disabled={reportBusy}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-blue-300 hover:text-white transition disabled:opacity-50"
               style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-              <FileDown size={14} /> Export Closing (.txt)
+              <FileDown size={14} /> {reportBusy ? "Membuat PDF..." : "Report Closing (PDF)"}
             </button>
           </div>
           {(search || filterHunter || filterProject || filterCaraBayar) && (
