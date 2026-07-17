@@ -1,5 +1,6 @@
 "use client"
 import { useCallback, useEffect, useState, useRef } from "react"
+import { createPortal } from "react-dom"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
@@ -8,7 +9,7 @@ import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
-import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown } from "lucide-react"
+import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -107,6 +108,84 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
         {children}
       </div>
     </div>
+  )
+}
+
+interface RowAction {
+  label: string
+  icon: React.ReactNode
+  onClick: () => void
+  danger?: boolean
+}
+
+function RowActionsMenu({ actions }: { actions: RowAction[] }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const openMenu = () => {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const menuWidth = 180
+    const menuHeight = actions.length * 38 + 12
+    const left = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8)
+    const spaceBelow = window.innerHeight - rect.bottom
+    const top = spaceBelow >= menuHeight + 8 ? rect.bottom + 6 : rect.top - menuHeight - 6
+    setPos({ top: Math.max(8, top), left: Math.max(8, left) })
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current?.contains(e.target as Node) || triggerRef.current?.contains(e.target as Node)) return
+      setOpen(false)
+    }
+    function handleScroll() { setOpen(false) }
+    document.addEventListener("mousedown", handleClick)
+    window.addEventListener("scroll", handleScroll, true)
+    window.addEventListener("resize", handleScroll)
+    return () => {
+      document.removeEventListener("mousedown", handleClick)
+      window.removeEventListener("scroll", handleScroll, true)
+      window.removeEventListener("resize", handleScroll)
+    }
+  }, [open])
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        title="Aksi"
+        className="inline-flex items-center justify-center rounded-lg transition"
+        style={{ width: 30, height: 30, color: "var(--text-secondary)", background: open ? "var(--surface3)" : "transparent" }}
+      >
+        <MoreVertical size={16} />
+      </button>
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={menuRef}
+          className="profile-dropdown"
+          style={{ position: "fixed", top: pos.top, left: pos.left, right: "auto" }}
+        >
+          {actions.map(action => (
+            <button
+              key={action.label}
+              type="button"
+              className={`profile-dropdown-item${action.danger ? " profile-dropdown-item--danger" : ""}`}
+              onClick={() => { setOpen(false); action.onClick() }}
+            >
+              {action.icon}
+              <span>{action.label}</span>
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
@@ -782,21 +861,12 @@ export default function PipelinePage() {
                       {latestNotes[r.id] || r.notes || "—"}
                     </td>
                     <td className="px-3 py-3 text-center">
-                      <div className="flex items-center justify-center gap-3">
-                        <button onClick={() => openEdit(r)}
-                          className="text-blue-400 hover:text-blue-300 transition" title="Edit">
-                          <Pencil size={13} />
-                        </button>
-                        <button onClick={() => openClosingConfirm(r)}
-                          className="text-green-400 hover:text-green-300 transition" title="Closing">
-                          <CheckCircle2 size={13} />
-                        </button>
-                        {canDelete(r) && (
-                          <button onClick={() => setDeleteTarget(r)}
-                            className="text-red-500 hover:text-red-400 transition" title="Hapus">
-                            <Trash2 size={13} />
-                          </button>
-                        )}
+                      <div className="flex items-center justify-center">
+                        <RowActionsMenu actions={[
+                          { label: "Edit", icon: <Pencil size={14} />, onClick: () => openEdit(r) },
+                          { label: "Closing", icon: <CheckCircle2 size={14} />, onClick: () => openClosingConfirm(r) },
+                          ...(canDelete(r) ? [{ label: "Hapus", icon: <Trash2 size={14} />, onClick: () => setDeleteTarget(r), danger: true }] : []),
+                        ]} />
                       </div>
                     </td>
                   </tr>
