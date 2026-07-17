@@ -1,9 +1,6 @@
 export interface PipelineExportRow {
   id: string
   salesHunter: string
-  salesPerson: string
-  prospect: string
-  visited: boolean
   project?: string | null
   unit?: string | null
   status: string
@@ -30,9 +27,6 @@ export function formatPipelineExport(
       const progress = progressById[row.id]
       return [
         `Sales Hunter: ${row.salesHunter || "—"}`,
-        `Sales: ${row.salesPerson || "—"}`,
-        `Prospek: ${row.prospect || "—"}`,
-        `Status Visit: ${row.visited ? "Sudah" : "Belum"}`,
         `Minat: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,
         `Kendala: ${progress?.kendala || "—"}`,
         `Next Action: ${progress?.nextAction || "—"}`,
