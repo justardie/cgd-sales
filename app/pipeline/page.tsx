@@ -703,6 +703,7 @@ export default function PipelinePage() {
   function handleExportActive() {
     const text = formatPipelineExport(filtered.map(row => ({
       id: row.id,
+      salesHunter: row.sales_hunter,
       salesPerson: formatSalesPerson(row.sales_person, row.agent_name),
       prospect: row.name,
       visited: row.sudah_visit,
