@@ -15,6 +15,7 @@ export interface ClosingReportRow {
 export interface ClosingReportProps {
   periodLabel: string
   generatedAt: string
+  isYtd: boolean
   mtdValue: number
   mtdTarget: number
   topHunter: { name: string; omset: number; pct: number } | null
@@ -44,12 +45,14 @@ const amberBg    = "#FFFBEB"
 const amberBorder = "#FDE68A"
 
 export default function ClosingReportTemplate({
-  periodLabel, generatedAt, mtdValue, mtdTarget, topHunter, topSales,
+  periodLabel, generatedAt, isYtd, mtdValue, mtdTarget, topHunter, topSales,
   allHunters, projectData, rows, totalOmset, totalCount,
 }: ClosingReportProps) {
   const mtdPct = mtdTarget > 0 ? Math.round((mtdValue / mtdTarget) * 100) : 0
   const visibleRows = rows.slice(0, MAX_ROWS)
   const hiddenCount = rows.length - visibleRows.length
+  const periodWord = isYtd ? "tahun ini" : "bulan ini"
+  const omsetLabel = isYtd ? "Omset YTD" : "Omset MTD"
 
   return (
     <div style={{
@@ -72,7 +75,7 @@ export default function ClosingReportTemplate({
       {/* KPI row */}
       <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase" }}>Omset MTD</div>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase" }}>{omsetLabel}</div>
           <div style={{ fontSize: 34, fontWeight: 800, marginTop: 3 }}>{formatRupiahFull(mtdValue)}</div>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -89,9 +92,9 @@ export default function ClosingReportTemplate({
             <>
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 5 }}>{topHunter.name}</div>
               <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{formatRupiahFull(topHunter.omset)}</div>
-              <div style={{ fontSize: 14, color: inkMuted }}>Capaian bulan ini: {topHunter.pct}%</div>
+              <div style={{ fontSize: 14, color: inkMuted }}>Capaian {periodWord}: {topHunter.pct}%</div>
             </>
-          ) : <div style={{ fontSize: 15, color: inkFaint, marginTop: 8 }}>Belum ada closing bulan ini</div>}
+          ) : <div style={{ fontSize: 15, color: inkFaint, marginTop: 8 }}>Belum ada closing {periodWord}</div>}
         </div>
         <div style={{ flex: 1, background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 20px" }}>
           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase" }}>🌟 Top Sales Person</div>
@@ -99,9 +102,9 @@ export default function ClosingReportTemplate({
             <>
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 5 }}>{topSales.name}</div>
               <div style={{ fontSize: 24, fontWeight: 800, color: green }}>{formatRupiahFull(topSales.omset)}</div>
-              <div style={{ fontSize: 14, color: inkMuted }}>Kontribusi bulan ini</div>
+              <div style={{ fontSize: 14, color: inkMuted }}>Kontribusi {periodWord}</div>
             </>
-          ) : <div style={{ fontSize: 15, color: inkFaint, marginTop: 8 }}>Belum ada closing bulan ini</div>}
+          ) : <div style={{ fontSize: 15, color: inkFaint, marginTop: 8 }}>Belum ada closing {periodWord}</div>}
         </div>
       </div>
 

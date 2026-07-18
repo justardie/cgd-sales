@@ -9,7 +9,7 @@ import SalesFilterBar from "@/components/SalesFilterBar"
 import ClosingReportTemplate, { type ClosingReportRow } from "@/components/ClosingReportTemplate"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEAM_MONTHLY_TARGET, PROJECT_NAMES } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
-import { canonicalProjectTotals } from "@/lib/dashboard-rules"
+import { canonicalProjectTotals, periodTarget } from "@/lib/dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { Plus, X, Edit2, Calendar, AlertTriangle, FileDown } from "lucide-react"
 import type { User } from "@/types"
@@ -291,6 +291,7 @@ export default function ClosingPage() {
 
   const [closings, setClosings] = useState<KonsumenRow[]>([])
   const [currentMonthClosings, setCurrentMonthClosings] = useState<KonsumenRow[]>([])
+  const [periodClosings, setPeriodClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [dbProjects, setDbProjects] = useState<string[]>([])
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
@@ -394,6 +395,7 @@ export default function ClosingPage() {
         return key >= minKey && key <= maxKey
       })
     }
+    setPeriodClosings(allClosings)
     if (isAdmin || isTf) {
       setClosings(allClosings)
     } else {
@@ -601,36 +603,42 @@ export default function ClosingPage() {
         import("html2canvas"),
       ])
 
-      const mtdValue = currentMonthClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+      // Reflects whatever period is selected on the page (Bulan / YTD / Custom),
+      // across all hunters — same source the table's transactions come from,
+      // just before the ad-hoc search/hunter/project filters are applied.
+      const monthsElapsed = now.getMonth() + 1
+      const periodTargetTeam = periodTarget(TEAM_MONTHLY_TARGET, monthsElapsed, ytdMode)
+      const periodValue = periodClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
 
-      const hunterOmsetMtd: Record<string, number> = {}
-      for (const c of currentMonthClosings) {
-        if (c.sales_hunter) hunterOmsetMtd[c.sales_hunter] = (hunterOmsetMtd[c.sales_hunter] || 0) + (c.nilai_hjr || 0)
+      const hunterOmsetPeriod: Record<string, number> = {}
+      for (const c of periodClosings) {
+        if (c.sales_hunter) hunterOmsetPeriod[c.sales_hunter] = (hunterOmsetPeriod[c.sales_hunter] || 0) + (c.nilai_hjr || 0)
       }
       let topHunter: { name: string; omset: number; pct: number } | null = null
       for (const hunter of hunters) {
-        const omset = hunterOmsetMtd[hunter.name] || 0
+        const omset = hunterOmsetPeriod[hunter.name] || 0
+        const hunterTarget = periodTarget(hunter.monthly_target, monthsElapsed, ytdMode)
         if (omset > 0 && (!topHunter || omset > topHunter.omset)) {
-          topHunter = { name: hunter.name, omset, pct: hunter.monthly_target > 0 ? Math.round((omset / hunter.monthly_target) * 100) : 0 }
+          topHunter = { name: hunter.name, omset, pct: hunterTarget > 0 ? Math.round((omset / hunterTarget) * 100) : 0 }
         }
       }
 
-      const spOmsetMtd: Record<string, number> = {}
-      for (const c of currentMonthClosings) {
-        if (c.sales_person) spOmsetMtd[c.sales_person] = (spOmsetMtd[c.sales_person] || 0) + (c.nilai_hjr || 0)
+      const spOmsetPeriod: Record<string, number> = {}
+      for (const c of periodClosings) {
+        if (c.sales_person) spOmsetPeriod[c.sales_person] = (spOmsetPeriod[c.sales_person] || 0) + (c.nilai_hjr || 0)
       }
       let topSales: { name: string; omset: number } | null = null
-      for (const [name, omset] of Object.entries(spOmsetMtd)) {
+      for (const [name, omset] of Object.entries(spOmsetPeriod)) {
         if (!topSales || omset > topSales.omset) topSales = { name, omset }
       }
 
       const allHunters = hunters
         .filter(hunter => hunter.monthly_target > 0)
-        .map(hunter => ({ name: hunter.name, omset: hunterOmsetMtd[hunter.name] || 0, target: hunter.monthly_target }))
+        .map(hunter => ({ name: hunter.name, omset: hunterOmsetPeriod[hunter.name] || 0, target: periodTarget(hunter.monthly_target, monthsElapsed, ytdMode) }))
         .sort((a, b) => a.omset / a.target - b.omset / b.target)
 
       const projMap: Record<string, number> = {}
-      for (const c of currentMonthClosings) {
+      for (const c of periodClosings) {
         const proj = normalizeProject(c.project)
         if (proj) projMap[proj] = (projMap[proj] || 0) + (c.nilai_hjr || 0)
       }
@@ -665,8 +673,9 @@ export default function ClosingPage() {
         <ClosingReportTemplate
           periodLabel={periodLabel}
           generatedAt={generatedAt}
-          mtdValue={mtdValue}
-          mtdTarget={TEAM_MONTHLY_TARGET}
+          isYtd={ytdMode}
+          mtdValue={periodValue}
+          mtdTarget={periodTargetTeam}
           topHunter={topHunter}
           topSales={topSales}
           allHunters={allHunters}
