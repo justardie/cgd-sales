@@ -685,9 +685,13 @@ export default function ClosingPage() {
 
       // Size the PDF page to exactly fit the rendered report (fixed width, height
       // follows content) so nothing gets clipped — this always stays a single page.
+      // orientation must match width vs height, or jsPDF silently swaps the
+      // format array's dimensions to satisfy its default "portrait" assumption,
+      // which then clips whatever addImage draws using the un-swapped width.
       const pageWidthMm = 280
       const pageHeightMm = pageWidthMm * (targetRect.height / targetRect.width)
-      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm] })
+      const orientation = pageWidthMm >= pageHeightMm ? "landscape" : "portrait"
+      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm], orientation })
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidthMm, pageHeightMm)
       pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
 
