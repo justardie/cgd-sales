@@ -73,7 +73,6 @@ export default function ReportPage() {
 
   async function finalizeReport() {
     if (!user) return
-    if (reports.some(r => r.period_start === periodStart && r.period_end === periodEnd)) { setMessage("Report periode ini sudah final dan tidak dapat diubah."); return }
     if (!pivotFilename) { setMessage("Unggah Pivot Activities sebelum finalisasi."); return }
     if (snapshot.activities.length === 0) { setMessage("Isi minimal satu rencana aktivitas."); return }
     setBusy(true)
