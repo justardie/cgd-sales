@@ -32,6 +32,7 @@ export function formatPipelineExport(
       return [
         `Sales Hunter: ${row.salesHunter || "—"}`,
         `Nama Konsumen: ${row.konsumen || "—"}`,
+        `Status: ${row.status.toUpperCase()}`,
         `Minat: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,
         `Nilai Potensi: ${displayRupiah(row.nilaiPotensi)}`,
         `Kendala: ${progress?.kendala || "—"}`,
