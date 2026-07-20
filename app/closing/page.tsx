@@ -11,7 +11,7 @@ import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEA
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { canonicalProjectTotals, periodTarget } from "@/lib/dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
-import { Plus, X, Edit2, Calendar, AlertTriangle, FileDown } from "lucide-react"
+import { Plus, X, Edit2, Calendar, AlertTriangle, FileDown, Target } from "lucide-react"
 import type { User } from "@/types"
 
 interface KonsumenRow {
@@ -853,33 +853,46 @@ export default function ClosingPage() {
           <>
             {/* Admin: all hunters grid */}
             {isAdmin && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {displayHunters.map(hunter => {
-                  const hunterClosings = filtered.filter(c =>
-                    (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
-                  )
-                  const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-                  const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
-                  const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
-                  return (
-                    <div key={hunter.id} className="rounded-xl p-3 relative group"
-                      style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                      <button onClick={() => openTargetEdit(hunter)}
-                        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition text-slate-500 hover:text-white">
-                        <Edit2 size={11} />
-                      </button>
-                      <div className="text-xs text-slate-400 font-medium truncate pr-4">{hunter.name}</div>
-                      <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
-                      <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
-                      <div className="mt-2 h-1 rounded-full" style={{ background: "var(--surface2)" }}>
-                        <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
-                      </div>
-                      <div className={`text-xs font-bold mt-1 ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
-                        {pct}%
-                      </div>
+              <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(59,130,246,0.14)" }}>
+                      <Target size={15} className="text-blue-400" />
                     </div>
-                  )
-                })}
+                    <div>
+                      <div className="text-sm font-black tracking-wide text-blue-400">Target Omset</div>
+                      <div className="text-xs text-slate-500">{getMonthName(now.getMonth() + 1)} {now.getFullYear()} · perhitungan bulan berjalan</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {displayHunters.map(hunter => {
+                    const hunterClosings = filtered.filter(c =>
+                      (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
+                    )
+                    const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+                    const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                    const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
+                    return (
+                      <div key={hunter.id} className="rounded-xl p-3 relative group"
+                        style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                        <button onClick={() => openTargetEdit(hunter)}
+                          className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition text-slate-500 hover:text-white">
+                          <Edit2 size={11} />
+                        </button>
+                        <div className="text-xs text-slate-400 font-medium truncate pr-4">{hunter.name}</div>
+                        <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
+                        <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
+                        <div className="mt-2 h-1 rounded-full" style={{ background: "var(--border)" }}>
+                          <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
+                        </div>
+                        <div className={`text-xs font-bold mt-1 ${pct >= 100 ? "text-green-400" : pct >= 70 ? "text-orange-400" : "text-red-400"}`}>
+                          {pct}%
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
 
