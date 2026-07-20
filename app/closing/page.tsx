@@ -822,7 +822,7 @@ export default function ClosingPage() {
                   <AlertTriangle size={15} className="text-red-400" />
                 </div>
                 <div>
-                  <div className="text-sm font-black tracking-wide text-red-400">WIN-OR-DIE ALERT</div>
+                  <div className="text-sm font-black tracking-wide text-red-400">Minimal OR</div>
                   <div className="text-xs text-slate-500">{getMonthName(now.getMonth() + 1)} {now.getFullYear()} · perhitungan bulan berjalan</div>
                 </div>
               </div>
