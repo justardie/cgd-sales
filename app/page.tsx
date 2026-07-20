@@ -292,11 +292,11 @@ export default function OverviewPage() {
         if (proj) projMap[proj] = (projMap[proj] || 0) + (c.nilai_hjr || 0)
       }
 
-      // SP menjual: count distinct active SPs who had a closing this month
+      // SP menjual: count distinct active SPs who had a closing in the selected period
       const activeSpNames = new Set((activeSpsRes.data || []).map(u => (u.name || "").toLowerCase().trim()))
       const totalActiveSps = (activeSpsRes.data || []).length
       const spMenjual = new Set(
-        (closingsCurrentMonth.data || [])
+        (closingsMtd.data || [])
           .map(c => (c.sales_person || "").toLowerCase().trim())
           .filter(n => n && activeSpNames.has(n))
       ).size
@@ -530,7 +530,7 @@ export default function OverviewPage() {
           <div className="card-enter-4 kpi-card">
             <GaugeCard label="Sales Person Aktif" icon={Users}
               value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
-              sub="menjual bulan ini"
+              sub={dateMode === "today" ? "menjual hari ini" : dateMode === "ytd" ? "menjual tahun ini" : dateMode === "custom" ? "menjual periode ini" : "menjual bulan ini"}
               achievement={totals.totalActiveSps > 0 ? totals.spMenjual / totals.totalActiveSps : 0}
               accentColor="#10b981" />
           </div>
