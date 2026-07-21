@@ -137,6 +137,23 @@ function barColor(pct: number): string {
   return pct >= 100 ? barGreen : pct >= 70 ? barOrange : barRed
 }
 
+/**
+ * Shortens a multi-word name from the end ("Riezkya Adella Hayuningtyas" →
+ * "Riezkya Adella H.") instead of ellipsis-truncating it, so the reader can
+ * still tell people apart. Falls back to fitText if even that doesn't fit.
+ */
+function abbreviateName(pdf: jsPDF, name: string, maxWidth: number): string {
+  if (pdf.getTextWidth(name) <= maxWidth) return name
+  const words = name.trim().split(/\s+/)
+  for (let i = words.length - 1; i > 0; i--) {
+    if (words[i].length <= 2) continue
+    words[i] = `${words[i][0]}.`
+    const candidate = words.join(" ")
+    if (pdf.getTextWidth(candidate) <= maxWidth) return candidate
+  }
+  return fitText(pdf, words.join(" "), maxWidth)
+}
+
 function formatDateDMY(iso: string): string {
   const [yearStr, monthStr, dayStr] = iso.split("-")
   if (!yearStr || !monthStr || !dayStr) return iso
@@ -342,12 +359,31 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   y += projBoxH + 6
 
   // ---- Transactions table (real text, auto-paginates if it overflows) ----
+  // Hunter/Sales packs two lines into one cell with distinct styles (bold
+  // name, muted role), which means autoTable can't measure it for its own
+  // width calculation — so the column's width is computed here from the
+  // actual data instead, capped at nameColMaxWidth. Names past that width
+  // are abbreviated ("Riezkya Adella Hayuningtyas" → "Riezkya Adella H.")
+  // rather than fixed to a hardcoded width.
+  const nameColMaxWidth = 40
+  const nameColCellPad = 2
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(8)
+  const hunterWidths = data.rows.map(row => pdf.getTextWidth(row.hunter || "—"))
+  const headerWidth = pdf.getTextWidth("Hunter / Sales")
+  pdf.setFont("helvetica", "normal")
+  pdf.setFontSize(7)
+  const spDisplays = data.rows.map(row => abbreviateName(pdf, row.salesPerson || "—", nameColMaxWidth - nameColCellPad * 2))
+  const spWidths = spDisplays.map(display => pdf.getTextWidth(display))
+  const nameColContentWidth = Math.max(headerWidth, ...hunterWidths, ...spWidths)
+  const nameColWidth = Math.min(nameColMaxWidth, nameColContentWidth + nameColCellPad * 2 + 1)
+
   autoTable(pdf, {
     startY: y,
     margin: { left: MARGIN, right: MARGIN, bottom: 14 },
     head: [["Hunter / Sales", "Konsumen", "Project / Unit", "Nilai Omset", "Cara Bayar", "Tgl Closing"]],
-    body: data.rows.map(row => [
-      `${row.hunter || "—"}\n${row.salesPerson || "—"}`,
+    body: data.rows.map((row, i) => [
+      `${row.hunter || "—"}\n${spDisplays[i]}`,
       row.konsumen || "—",
       [row.project, row.unit].filter(Boolean).join(" - ") || "—",
       formatRupiahFull(row.nilaiOmset),
@@ -359,20 +395,14 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
       { content: formatRupiahFull(data.totalOmset), styles: { halign: "right", textColor: green, fontStyle: "bold", fontSize: 10 } },
       { content: "", colSpan: 2 },
     ]],
-    styles: { font: "helvetica", fontSize: 8, textColor: ink, lineColor: border, lineWidth: 0.1, cellPadding: 2, valign: "middle" },
+    styles: { font: "helvetica", fontSize: 8, textColor: ink, lineColor: border, lineWidth: 0.1, cellPadding: nameColCellPad, valign: "middle" },
     headStyles: { fillColor: ink, textColor: "#FFFFFF", fontStyle: "bold", fontSize: 7.5 },
     footStyles: { fillColor: surface, lineWidth: { top: 0.5 } },
     alternateRowStyles: { fillColor: surface },
     columnStyles: {
-      0: { minCellWidth: 34 },
+      0: { cellWidth: nameColWidth },
       3: { halign: "right", textColor: green, fontStyle: "bold", minCellWidth: 26 },
     },
-    // The Hunter/Sales column packs two lines into one cell; give them
-    // distinct weights/colors (bold name, muted role) instead of one
-    // uniform style — matches how the app itself renders this pairing.
-    // Clearing cell.text drops it from autoTable's own width calculation,
-    // hence the explicit minCellWidth above to keep this column from
-    // collapsing to the width of just the header text.
     didParseCell: (hookData) => {
       if (hookData.section === "body" && hookData.column.index === 0) {
         hookData.cell.text = []
@@ -394,7 +424,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
       pdf.setFont("helvetica", "normal")
       pdf.setFontSize(7)
       pdf.setTextColor(inkMuted)
-      pdf.text(fitText(pdf, spName || "—", availWidth), cell.x + padLeft, centerY + 2.3)
+      pdf.text(spName || "—", cell.x + padLeft, centerY + 2.3)
     },
     didDrawPage: () => {
       pdf.setFont("helvetica", "normal")
