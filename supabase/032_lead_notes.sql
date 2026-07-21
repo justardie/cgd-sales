@@ -15,6 +15,21 @@ CREATE TABLE IF NOT EXISTS lead_notes (
 -- Grant access (same pattern as task_force_leads)
 GRANT ALL ON lead_notes TO anon, authenticated;
 
+-- RLS (same pattern as pipeline_notes — app uses PIN auth, not Supabase Auth)
+ALTER TABLE lead_notes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "lead_notes_service_all"
+  ON lead_notes FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "lead_notes_anon_all"
+  ON lead_notes FOR ALL
+  TO anon
+  USING (true)
+  WITH CHECK (true);
+
 -- Realtime
 DO $$
 BEGIN

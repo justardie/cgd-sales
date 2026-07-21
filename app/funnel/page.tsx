@@ -281,21 +281,30 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
     textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "8px",
   }
 
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [onClose])
+
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center sm:p-6"
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
-        background: "var(--surface2)", borderRadius: "24px 24px 0 0",
-        padding: "0 20px 36px", maxHeight: "90vh", overflowY: "auto",
+      <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl" style={{
+        background: "var(--surface2)", border: "1px solid var(--border)",
+        padding: "0 20px 28px", maxHeight: "90vh", overflowY: "auto",
         boxShadow: "0 -8px 48px rgba(0,0,0,0.5)",
       }}>
-        {/* Drag handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 20px" }}>
+        {/* Drag handle — mobile only, hints the bottom sheet is swipeable */}
+        <div className="flex sm:hidden justify-center" style={{ padding: "14px 0 20px" }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border-strong)" }} />
         </div>
+        <div className="hidden sm:block" style={{ height: 24 }} />
 
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
