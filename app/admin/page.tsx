@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import { useRouter } from "next/navigation"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah } from "@/lib/utils"
@@ -22,6 +23,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 
 export default function AdminPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
+  const { showToast } = useToast()
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,6 +82,14 @@ export default function AdminPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.name.trim()) {
+      showToast("Nama Lengkap wajib diisi", "error")
+      return
+    }
+    if ((form.role === "sales_person" || form.role === "telemarketing") && !form.hunter_name) {
+      showToast("Tim Hunter wajib dipilih", "error")
+      return
+    }
     setSaving(true)
     const isHunterRole = form.role === "hunter"
     const payload: Record<string, unknown> = {
@@ -97,31 +107,48 @@ export default function AdminPage() {
     if (form.pin.trim()) {
       payload.pin_hash = form.pin.trim()
     }
-    if (editing) {
-      await supabase.from("users").update(payload).eq("id", editing.id)
-    } else {
-      await supabase.from("users").insert({ ...payload, pin_hash: form.pin.trim() || "1234", status: "active" })
-    }
+    const { error } = editing
+      ? await supabase.from("users").update(payload).eq("id", editing.id)
+      : await supabase.from("users").insert({ ...payload, pin_hash: form.pin.trim() || "1234", status: "active" })
     setSaving(false)
+    if (error) {
+      showToast(`Gagal menyimpan user: ${error.message}`, "error")
+      return
+    }
     setShowModal(false)
     fetchData()
+    showToast(editing ? "User berhasil diperbarui" : "User berhasil ditambahkan", "success")
   }
 
   async function handleTransfer(e: React.FormEvent) {
     e.preventDefault()
     if (!transferTarget) return
+    if (!transferHunter) {
+      showToast("Tim Hunter Tujuan wajib dipilih", "error")
+      return
+    }
     setSaving(true)
-    await supabase.from("users").update({ hunter_name: transferHunter }).eq("id", transferTarget.id)
+    const { error } = await supabase.from("users").update({ hunter_name: transferHunter }).eq("id", transferTarget.id)
     setSaving(false)
+    if (error) {
+      showToast(`Gagal memindahkan tim: ${error.message}`, "error")
+      return
+    }
     setShowTransferModal(false)
     setTransferTarget(null)
     fetchData()
+    showToast("Tim berhasil dipindahkan", "success")
   }
 
   async function toggleStatus(u: User) {
     const newStatus = u.status === "active" ? "resigned" : "active"
-    await supabase.from("users").update({ status: newStatus }).eq("id", u.id)
+    const { error } = await supabase.from("users").update({ status: newStatus }).eq("id", u.id)
+    if (error) {
+      showToast(`Gagal mengubah status: ${error.message}`, "error")
+      return
+    }
     fetchData()
+    showToast(newStatus === "active" ? `${u.name} diaktifkan` : `${u.name} dinonaktifkan`, "success")
   }
 
   if (!isAdmin) return (

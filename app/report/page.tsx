@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import * as XLSX from "xlsx"
 import DashboardShell from "@/components/DashboardShell"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import { supabase } from "@/lib/supabase"
 import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, monthsInRange, parsePivotSheet, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
 import { formatRupiah } from "@/lib/utils"
@@ -14,6 +15,7 @@ const emptyActivity = (): ReportActivity => ({ activity: "", target: "" })
 
 export default function ReportPage() {
   const { user, isAdmin } = useAuth()
+  const { showToast } = useToast()
   const [reportDate, setReportDate] = useState(iso(new Date()))
   const { start: periodStart, end: periodEnd } = useMemo(() => getPreviousWeekPeriod(reportDate), [reportDate])
   const [profile, setProfile] = useState({ monthly_target: 0, win_or_die_target: 0, visit_target: 0, project_coverage: [] as string[] })
@@ -67,20 +69,40 @@ export default function ReportPage() {
       const raw = XLSX.utils.sheet_to_json<(string|number)[]>(sheet, { header: 1, defval: 0 })
       const rows = parsePivotSheet(raw, monthsInRange(periodStart, periodEnd))
       const summary = calculateVisitSummary(rows, team)
-      setVisits(summary); setPivotFilename(file.name); setMessage(summary.missingNames.length ? `Pivot dibaca, tetapi nama ini tidak ditemukan: ${summary.missingNames.join(", ")}` : "Pivot berhasil dibaca; semua nama tim cocok.")
-    } catch (error) { setMessage(error instanceof Error ? error.message : "File Pivot tidak dapat dibaca.") }
+      setVisits(summary); setPivotFilename(file.name)
+      const notice = summary.missingNames.length ? `Pivot dibaca, tetapi nama ini tidak ditemukan: ${summary.missingNames.join(", ")}` : "Pivot berhasil dibaca; semua nama tim cocok."
+      setMessage(notice)
+      showToast(notice, summary.missingNames.length ? "error" : "success")
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "File Pivot tidak dapat dibaca."
+      setMessage(errorMessage)
+      showToast(errorMessage, "error")
+    }
   }
 
   async function finalizeReport() {
     if (!user) return
-    if (!pivotFilename) { setMessage("Unggah Pivot Activities sebelum finalisasi."); return }
-    if (snapshot.activities.length === 0) { setMessage("Isi minimal satu rencana aktivitas."); return }
+    if (!pivotFilename) {
+      setMessage("Unggah Pivot Activities sebelum finalisasi.")
+      showToast("Unggah Pivot Activities sebelum finalisasi.", "error")
+      return
+    }
+    if (snapshot.activities.length === 0) {
+      setMessage("Isi minimal satu rencana aktivitas.")
+      showToast("Isi minimal satu rencana aktivitas.", "error")
+      return
+    }
     setBusy(true)
     const payload = { user_id: user.id, hunter_name: user.name, period_start: periodStart, period_end: periodEnd, status: "final", activities: snapshot.activities, visit_data: visits, pivot_filename: pivotFilename, snapshot, finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() }
     const { error } = await supabase.from("weekly_reports").upsert(payload, { onConflict: "user_id,period_start,period_end" })
     setBusy(false)
-    if (error) { setMessage(`Gagal menyimpan: ${error.message}`); return }
+    if (error) {
+      setMessage(`Gagal menyimpan: ${error.message}`)
+      showToast(`Gagal menyimpan: ${error.message}`, "error")
+      return
+    }
     setMessage("Laporan difinalisasi dan diunduh.")
+    showToast("Laporan berhasil difinalisasi dan diunduh", "success")
     download(snapshot)
     await loadReports()
   }
@@ -88,8 +110,13 @@ export default function ReportPage() {
   async function deleteReport(id: string) {
     if (!window.confirm("Hapus report ini? Tindakan ini tidak dapat dibatalkan.")) return
     const { error } = await supabase.from("weekly_reports").delete().eq("id", id)
-    if (error) { setMessage(`Gagal menghapus report: ${error.message}`); return }
+    if (error) {
+      setMessage(`Gagal menghapus report: ${error.message}`)
+      showToast(`Gagal menghapus report: ${error.message}`, "error")
+      return
+    }
     setMessage("Report berhasil dihapus.")
+    showToast("Report berhasil dihapus", "success")
     await loadReports()
   }
 

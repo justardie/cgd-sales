@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import * as XLSX from "xlsx"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
@@ -125,6 +126,7 @@ function LeadCard({ lead, tmName, onTap }: { lead: Lead; tmName?: string; onTap:
 
 // ── Journey Notes ─────────────────────────────────────────────────────────────
 function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: string } | null }) {
+  const { showToast } = useToast()
   const [notes, setNotes]     = useState<LeadNote[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText]       = useState("")
@@ -145,17 +147,25 @@ function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: st
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function handleSend() {
-    if (!text.trim() || !user) return
+    if (!text.trim() || !user) {
+      showToast("Catatan tidak boleh kosong", "error")
+      return
+    }
     setSending(true)
-    await supabase.from("lead_notes").insert({
+    const { error } = await supabase.from("lead_notes").insert({
       lead_id:     lead.id,
       content:     text.trim(),
       author_name: user.name,
       created_by:  user.id,
     })
-    setText("")
     setSending(false)
+    if (error) {
+      showToast(`Gagal menyimpan catatan: ${error.message}`, "error")
+      return
+    }
+    setText("")
     loadNotes()
+    showToast("Catatan journey berhasil disimpan", "success")
   }
 
   function fmtNoteDate(iso: string): string {
@@ -230,6 +240,7 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
   user: { id: string; name: string } | null
   onClose: () => void; onSaved: (updated: Lead) => void; onDeleted: (id: string) => void
 }) {
+  const { showToast } = useToast()
   const [status, setStatus]         = useState<LeadStatus>(lead.status)
   const [notes,  setNotes]          = useState(lead.notes || "")
   const [saving, setSaving]         = useState(false)
@@ -241,18 +252,28 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
     if (!isDirty) return
     setSaving(true)
     const now = new Date().toISOString()
-    await supabase.from("leads").update({ status, notes, updated_at: now }).eq("id", lead.id)
+    const { error } = await supabase.from("leads").update({ status, notes, updated_at: now }).eq("id", lead.id)
     setSaving(false)
+    if (error) {
+      showToast(`Gagal menyimpan perubahan: ${error.message}`, "error")
+      return
+    }
     onSaved({ ...lead, status, notes, updated_at: now })
     onClose()
+    showToast("Perubahan lead berhasil disimpan", "success")
   }
 
   const handleDelete = async () => {
     setDeleting(true)
-    await supabase.from("leads").delete().eq("id", lead.id)
+    const { error } = await supabase.from("leads").delete().eq("id", lead.id)
     setDeleting(false)
+    if (error) {
+      showToast(`Gagal menghapus lead: ${error.message}`, "error")
+      return
+    }
     onDeleted(lead.id)
     onClose()
+    showToast("Lead berhasil dihapus", "success")
   }
 
   const lbl: React.CSSProperties = {
@@ -440,6 +461,7 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
 // ── Upload modal (DGM only) ───────────────────────────────────────────────────
 function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onClose: () => void; onUploaded: () => void }) {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const now = new Date()
   const [assignedTo, setAssignedTo] = useState("")
   const [project, setProject]       = useState("")
@@ -520,7 +542,10 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
   }
 
   const handleSave = async () => {
-    if (!assignedTo || rows.length === 0) return
+    if (!assignedTo || rows.length === 0) {
+      showToast("Pilih Sales Telemarketing dan upload file leads terlebih dahulu", "error")
+      return
+    }
     setSaving(true)
 
     // 1. Fetch existing phone numbers for this TM + period from DB
@@ -556,7 +581,11 @@ function UploadModal({ tmUsers, onClose, onUploaded }: { tmUsers: TmUser[]; onCl
     }
 
     setSaving(false)
-    if (skipped > 0) alert(`✅ ${toInsert.length} leads diimport.\n⚠️ ${skipped} leads dilewati karena nomor telepon sudah ada.`)
+    if (skipped > 0) {
+      showToast(`${toInsert.length} leads diimport, ${skipped} dilewati (nomor sudah ada)`, toInsert.length > 0 ? "success" : "error")
+    } else {
+      showToast(`${toInsert.length} leads berhasil diimport`, "success")
+    }
     onUploaded(); onClose()
   }
 

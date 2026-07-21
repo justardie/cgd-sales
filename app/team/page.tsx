@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { formatRupiah, getMonthName, pct, PROJECT_NAMES } from "@/lib/utils"
@@ -41,6 +42,7 @@ const ALL_HUNTER_DB_NAMES = new Set(HUNTER_GROUPS.map(h => h.dbName))
 
 export default function TeamPage() {
   const { user, isAdmin } = useAuth()
+  const { showToast } = useToast()
   const [members, setMembers] = useState<MemberStatus[]>([])
   const [spOmsetMap, setSpOmsetMap] = useState<SpOmsetMap>({})
   const [spClosingsMap, setSpClosingsMap] = useState<SpClosingsMap>({})
@@ -177,7 +179,12 @@ export default function TeamPage() {
     const next = current.includes(project) ? current.filter(x => x !== project) : [...current, project]
     setCoverageMap(map => ({ ...map, [hunterName]: next }))
     const { error } = await supabase.from("users").update({ project_coverage: next }).eq("name", hunterName).eq("role", "hunter")
-    if (error) setCoverageMap(map => ({ ...map, [hunterName]: current }))
+    if (error) {
+      setCoverageMap(map => ({ ...map, [hunterName]: current }))
+      showToast(`Gagal menyimpan coverage: ${error.message}`, "error")
+      return
+    }
+    showToast("Coverage berhasil diperbarui", "success")
   }
 
   return (

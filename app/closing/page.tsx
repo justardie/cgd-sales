@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import SalesFilterBar from "@/components/SalesFilterBar"
@@ -281,6 +282,7 @@ const now = new Date()
 
 export default function ClosingPage() {
   const { user, isAdmin } = useAuth()
+  const { showToast } = useToast()
   const isTf = user?.role === "task_force"
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
@@ -420,13 +422,23 @@ export default function ClosingPage() {
     e.preventDefault()
     if (form.sales_person === "Agent" && !form.agent_name.trim()) {
       setFormError("Nama Agent wajib diisi")
+      showToast("Nama Agent wajib diisi", "error")
       return
     }
-    if (!form.nilai_hjr || Number(form.nilai_hjr) <= 0) return
+    if (!form.name.trim()) {
+      setFormError("Nama Konsumen wajib diisi")
+      showToast("Nama Konsumen wajib diisi", "error")
+      return
+    }
+    if (!form.nilai_hjr || Number(form.nilai_hjr) <= 0) {
+      setFormError("Nilai HJR wajib diisi dan lebih dari 0")
+      showToast("Nilai HJR wajib diisi dan lebih dari 0", "error")
+      return
+    }
     setFormError("")
     setSaving(true)
     const d = new Date(form.closing_date)
-    await supabase.from("konsumen").insert({
+    const { error } = await supabase.from("konsumen").insert({
       user_id:       user!.id,
       sales_hunter:  isAdmin ? form.sales_hunter : user!.name,
       sales_person:  form.sales_person || null,
@@ -444,9 +456,14 @@ export default function ClosingPage() {
       status:        "closing",
     })
     setSaving(false)
+    if (error) {
+      showToast(`Gagal menyimpan closing: ${error.message}`, "error")
+      return
+    }
     setShowInputModal(false)
     setForm(blankForm)
     fetchData()
+    showToast("Closing berhasil disimpan", "success")
   }
 
   async function handleEditSave(e: React.FormEvent) {
@@ -454,6 +471,17 @@ export default function ClosingPage() {
     if (!editingClosing) return
     if (form.sales_person === "Agent" && !form.agent_name.trim()) {
       setFormError("Nama Agent wajib diisi")
+      showToast("Nama Agent wajib diisi", "error")
+      return
+    }
+    if (!form.name.trim()) {
+      setFormError("Nama Konsumen wajib diisi")
+      showToast("Nama Konsumen wajib diisi", "error")
+      return
+    }
+    if (!form.nilai_hjr || Number(form.nilai_hjr) <= 0) {
+      setFormError("Nilai HJR wajib diisi dan lebih dari 0")
+      showToast("Nilai HJR wajib diisi dan lebih dari 0", "error")
       return
     }
     setFormError("")
@@ -461,7 +489,7 @@ export default function ClosingPage() {
     const d = new Date(form.closing_date)
     const newHunterName = form.sales_hunter || editingClosing.sales_hunter
     const newHunterUser = hunters.find(h => h.name === newHunterName)
-    await supabase.from("konsumen").update({
+    const { error } = await supabase.from("konsumen").update({
       user_id:       newHunterUser?.id ?? editingClosing.user_id,
       sales_hunter:  newHunterName,
       sales_person:  form.sales_person || null,
@@ -478,9 +506,14 @@ export default function ClosingPage() {
       notes:         form.notes || null,
     }).eq("id", editingClosing.id)
     setSaving(false)
+    if (error) {
+      showToast(`Gagal menyimpan perubahan: ${error.message}`, "error")
+      return
+    }
     setShowEditModal(false)
     setEditingClosing(null)
     fetchData()
+    showToast("Perubahan closing berhasil disimpan", "success")
   }
 
   function openEdit(c: KonsumenRow) {
@@ -516,12 +549,14 @@ export default function ClosingPage() {
     if (error) {
       setShowCancelClosingConfirm(false)
       setFormError(`Gagal membatalkan closing: ${error.message}`)
+      showToast(`Gagal membatalkan closing: ${error.message}`, "error")
       return
     }
     setShowCancelClosingConfirm(false)
     setShowEditModal(false)
     setEditingClosing(null)
     fetchData()
+    showToast("Closing berhasil dibatalkan, data kembali ke Pipeline (Hot)", "success")
   }
 
   function openTargetEdit(h: User) {
@@ -533,12 +568,21 @@ export default function ClosingPage() {
   async function handleTargetSave(e: React.FormEvent) {
     e.preventDefault()
     if (!editingHunter) return
+    if (!newTarget || Number(newTarget) < 0) {
+      showToast("Target Omset wajib diisi", "error")
+      return
+    }
     setSaving(true)
-    await supabase.from("users").update({ monthly_target: Number(newTarget) }).eq("id", editingHunter.id)
+    const { error } = await supabase.from("users").update({ monthly_target: Number(newTarget) }).eq("id", editingHunter.id)
     setSaving(false)
+    if (error) {
+      showToast(`Gagal menyimpan target: ${error.message}`, "error")
+      return
+    }
     setShowTargetModal(false)
     setEditingHunter(null)
     fetchData()
+    showToast("Target omset berhasil diperbarui", "success")
   }
 
   const isHunterLogin = !isAdmin && user?.role === "hunter"
@@ -593,7 +637,7 @@ export default function ClosingPage() {
 
   async function handleReportClosing() {
     if (filtered.length === 0) {
-      alert("Tidak ada data closing pada filter saat ini.")
+      showToast("Tidak ada data closing pada filter saat ini.", "error")
       return
     }
     setReportBusy(true)
@@ -706,6 +750,9 @@ export default function ClosingPage() {
 
       root.unmount()
       container.remove()
+      showToast("Report Closing (PDF) berhasil diunduh", "success")
+    } catch (error) {
+      showToast(`Gagal membuat report PDF: ${error instanceof Error ? error.message : "unknown error"}`, "error")
     } finally {
       setReportBusy(false)
     }

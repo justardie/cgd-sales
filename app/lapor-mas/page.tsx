@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { supabaseLapor } from "@/lib/supabase-lapor"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import NextImage from "next/image"
 import { X, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react"
@@ -37,12 +38,18 @@ function DetailModal({ laporan, onClose, onStatusChange }: {
 }) {
   const jenis = JENIS_LABELS[laporan.jenis] || { label: laporan.jenis, color: "bg-slate-500/15 text-slate-300 border-slate-500/30" }
   const [saving, setSaving] = useState(false)
+  const { showToast } = useToast()
 
   async function updateStatus(newStatus: string) {
     setSaving(true)
-    await supabaseLapor.from("laporan").update({ status: newStatus }).eq("id", laporan.id)
-    onStatusChange(laporan.id, newStatus)
+    const { error } = await supabaseLapor.from("laporan").update({ status: newStatus }).eq("id", laporan.id)
     setSaving(false)
+    if (error) {
+      showToast(`Gagal mengubah status: ${error.message}`, "error")
+      return
+    }
+    onStatusChange(laporan.id, newStatus)
+    showToast("Status laporan berhasil diperbarui", "success")
   }
 
   return (

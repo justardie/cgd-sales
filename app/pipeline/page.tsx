@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useRef } from "react"
 import { createPortal } from "react-dom"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
@@ -202,6 +203,7 @@ interface PipelineNote {
 }
 
 function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void }) {
+  const { showToast } = useToast()
   const [notes, setNotes]         = useState<PipelineNote[]>([])
   const [loading, setLoading]     = useState(true)
   const [tableExists, setTableExists] = useState(true)
@@ -230,7 +232,10 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function handleSend() {
-    if (!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || !user) return
+    if (!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || !user) {
+      showToast("Kendala, Next Action, dan Target Closing wajib diisi", "error")
+      return
+    }
     setSending(true)
     const content = `Kendala: ${progress.kendala.trim()}\nNext Action: ${progress.nextAction.trim()}\nTarget Closing: ${progress.targetClosing}`
     const { error } = await supabase.from("pipeline_notes").insert({
@@ -244,12 +249,13 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
     })
     setSending(false)
     if (error) {
-      alert(`Gagal menyimpan catatan: ${error.message}`)
+      showToast(`Gagal menyimpan catatan: ${error.message}`, "error")
       return
     }
     onSaved(progress)
     setProgress({ kendala: "", nextAction: "", targetClosing: "" })
     loadNotes()
+    showToast("Catatan progress berhasil disimpan", "success")
   }
 
   function fmtNoteDate(iso: string): string {
@@ -377,6 +383,7 @@ const emptyForm = {
 
 export default function PipelinePage() {
   const { user, isAdmin } = useAuth()
+  const { showToast } = useToast()
   const isTf = user?.role === "task_force"
   const [rows, setRows] = useState<KonsumenRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -544,10 +551,14 @@ export default function PipelinePage() {
 
   async function handleClosingConfirm(e: React.FormEvent) {
     e.preventDefault()
-    if (!closingTarget || !closingForm.nilai_hjr || Number(closingForm.nilai_hjr) <= 0) return
+    if (!closingTarget) return
+    if (!closingForm.nilai_hjr || Number(closingForm.nilai_hjr) <= 0) {
+      showToast("Nilai HJR wajib diisi dan lebih dari 0", "error")
+      return
+    }
     setSavingClosing(true)
     const d = new Date(closingForm.closing_date)
-    await supabase.from("konsumen").update({
+    const { error } = await supabase.from("konsumen").update({
       status:        "closing",
       unit:          closingForm.unit || null,
       nilai_hjr:     Number(closingForm.nilai_hjr),
@@ -557,9 +568,14 @@ export default function PipelinePage() {
       closing_year:  d.getFullYear(),
     }).eq("id", closingTarget.id)
     setSavingClosing(false)
+    if (error) {
+      showToast(`Gagal menyimpan closing: ${error.message}`, "error")
+      return
+    }
     setShowClosingModal(false)
     setClosingTarget(null)
     fetchData()
+    showToast("Closing berhasil disimpan", "success")
   }
 
   function handleSalesPersonChange(nextSalesPerson: string) {
@@ -570,10 +586,9 @@ export default function PipelinePage() {
     }))
   }
 
-  function validateForm(): boolean {
+  function validateForm(): string {
     if (form.sales_person === "Agent" && !form.agent_name.trim()) {
-      setFormError("Nama Agent wajib diisi")
-      return false
+      return "Nama Agent wajib diisi"
     }
     const checks: [string, string][] = [
       [(isAdmin || isTf) ? form.sales_hunter : "ok", "Hunter"],
@@ -588,16 +603,19 @@ export default function PipelinePage() {
     ]
     const missing = checks.filter(([v]) => !v?.trim()).map(([, label]) => label)
     if (missing.length > 0) {
-      setFormError(`Wajib diisi: ${missing.join(", ")}`)
-      return false
+      return `Wajib diisi: ${missing.join(", ")}`
     }
-    setFormError("")
-    return true
+    return ""
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!validateForm()) return
+    const validationError = validateForm()
+    setFormError(validationError)
+    if (validationError) {
+      showToast(validationError, "error")
+      return
+    }
     setSaving(true)
     const payload = {
       name:              form.name,
@@ -617,14 +635,17 @@ export default function PipelinePage() {
       user_id:           user!.id,
       board:             "pipeline",
     }
-    if (editing) {
-      await supabase.from("konsumen").update(payload).eq("id", editing.id)
-    } else {
-      await supabase.from("konsumen").insert(payload)
-    }
+    const { error } = editing
+      ? await supabase.from("konsumen").update(payload).eq("id", editing.id)
+      : await supabase.from("konsumen").insert(payload)
     setSaving(false)
+    if (error) {
+      showToast(`Gagal menyimpan pipeline: ${error.message}`, "error")
+      return
+    }
     setShowModal(false)
     fetchData()
+    showToast(editing ? "Pipeline berhasil diperbarui" : "Pipeline berhasil ditambahkan", "success")
   }
 
   function canDelete(r: KonsumenRow): boolean {
@@ -635,10 +656,15 @@ export default function PipelinePage() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await supabase.from("konsumen").delete().eq("id", deleteTarget.id)
+    const { error } = await supabase.from("konsumen").delete().eq("id", deleteTarget.id)
     setDeleting(false)
+    if (error) {
+      showToast(`Gagal menghapus data: ${error.message}`, "error")
+      return
+    }
     setDeleteTarget(null)
     fetchData()
+    showToast("Data pipeline berhasil dihapus", "success")
   }
 
   const filtered = rows.filter(r => {
@@ -712,7 +738,7 @@ export default function PipelinePage() {
       nilaiPotensi: Number(row.potensi_closing) || 0,
     })), latestProgress)
     if (!text) {
-      alert("Tidak ada pipeline aktif pada filter saat ini.")
+      showToast("Tidak ada pipeline aktif pada filter saat ini.", "error")
       return
     }
     const url = URL.createObjectURL(new Blob([`\uFEFF${text}`], { type: "text/plain;charset=utf-8" }))
@@ -721,6 +747,7 @@ export default function PipelinePage() {
     link.download = `Pipeline Aktif - ${new Date().toISOString().slice(0, 10)}.txt`
     link.click()
     URL.revokeObjectURL(url)
+    showToast("Export Aktif (.txt) berhasil diunduh", "success")
   }
 
   const hunterKey = (isAdmin || isTf) ? form.sales_hunter : (user?.name || "")

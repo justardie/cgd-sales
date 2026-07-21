@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
@@ -113,6 +114,7 @@ function NotesModal({ lead, user, onClose }: {
   user: { id: string; name: string } | null
   onClose: () => void
 }) {
+  const { showToast } = useToast()
   const [notes, setNotes]       = useState<TFNote[]>([])
   const [loading, setLoading]   = useState(true)
   const [text, setText]         = useState("")
@@ -137,16 +139,24 @@ function NotesModal({ lead, user, onClose }: {
   }, [notes])
 
   async function handleSend() {
-    if (!text.trim() || !user) return
+    if (!text.trim() || !user) {
+      showToast("Catatan tidak boleh kosong", "error")
+      return
+    }
     setSending(true)
-    await supabase.from("task_force_notes").insert({
+    const { error } = await supabase.from("task_force_notes").insert({
       lead_id:     lead.id,
       content:     text.trim(),
       author_name: user.name,
     })
-    setText("")
     setSending(false)
+    if (error) {
+      showToast(`Gagal menyimpan catatan: ${error.message}`, "error")
+      return
+    }
+    setText("")
     loadNotes()
+    showToast("Catatan berhasil disimpan", "success")
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -245,6 +255,7 @@ const emptyForm = {
 
 export default function TaskForcePage() {
   const { user, isAdmin } = useAuth()
+  const { showToast } = useToast()
   const role = user?.role ?? ""
   const canSeeAll = isAdmin || role === "task_force"
 
@@ -331,21 +342,25 @@ export default function TaskForcePage() {
     setShowModal(true)
   }
 
-  function validateForm(): boolean {
+  function validateForm(): string {
     const hunterCheck = canSeeAll ? form.sales_hunter : "ok"
     const checks: [string, string][] = [
       [hunterCheck, "Hunter"], [form.name, "Nama Leads"],
       [form.project, "Proyek"], [form.sumber_leads, "Sumber Leads"],
     ]
     const missing = checks.filter(([v]) => !v?.trim()).map(([, label]) => label)
-    if (missing.length > 0) { setFormError("Wajib diisi: " + missing.join(", ")); return false }
-    setFormError("")
-    return true
+    if (missing.length > 0) return "Wajib diisi: " + missing.join(", ")
+    return ""
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!validateForm()) return
+    const error = validateForm()
+    setFormError(error)
+    if (error) {
+      showToast(error, "error")
+      return
+    }
     setSaving(true)
     const payload = {
       name: form.name,
@@ -359,14 +374,17 @@ export default function TaskForcePage() {
       status: form.status, notes: form.notes || null,
       user_id: user!.id,
     }
-    if (editing) {
-      await supabase.from("task_force_leads").update(payload).eq("id", editing.id)
-    } else {
-      await supabase.from("task_force_leads").insert(payload)
-    }
+    const { error: saveError } = editing
+      ? await supabase.from("task_force_leads").update(payload).eq("id", editing.id)
+      : await supabase.from("task_force_leads").insert(payload)
     setSaving(false)
+    if (saveError) {
+      showToast(`Gagal menyimpan data: ${saveError.message}`, "error")
+      return
+    }
     setShowModal(false)
     fetchData()
+    showToast(editing ? "Data berhasil diperbarui" : "Data berhasil ditambahkan", "success")
   }
 
   const filtered = rows.filter(r => {
@@ -418,10 +436,15 @@ export default function TaskForcePage() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await supabase.from("task_force_leads").delete().eq("id", deleteTarget.id)
+    const { error } = await supabase.from("task_force_leads").delete().eq("id", deleteTarget.id)
     setDeleting(false)
+    if (error) {
+      showToast(`Gagal menghapus data: ${error.message}`, "error")
+      return
+    }
     setDeleteTarget(null)
     fetchData()
+    showToast("Data berhasil dihapus", "success")
   }
 
   async function handleSharePDF() {
@@ -458,7 +481,11 @@ export default function TaskForcePage() {
       return `<tr><td>${esc(r.sales_hunter||"—")}</td><td>${esc(r.sales_person||"—")}</td><td><b>${esc(r.name||"—")}</b></td><td>${esc(r.project||"—")}</td><td>${esc(r.unit||"—")}</td><td>${statusLabel[r.status]||esc(r.status||"—")}</td><td style="text-align:right">${nilai}</td><td>${esc(r.cara_bayar||"—")}</td><td style="text-align:center">${r.sudah_visit?"Y":"N"}</td><td style="text-align:center">${r.sudah_booking_fee?"Y":"N"}</td><td style="min-width:160px;white-space:pre-wrap;line-height:1.5">${catatanCell}</td></tr>`
     }).join("")
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Task Force Report</title><style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px}table{width:100%;border-collapse:collapse}th{background:#eee;padding:6px 8px;font-size:10px;border:1px solid #ccc}td{padding:5px 8px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even){background:#f9f9f9}</style></head><body><h2>Task Force Report — CGD Sales</h2><p style="color:#666;font-size:10px">Dicetak: ${printDate} · ${data.length} data</p><table><thead><tr><th>Hunter</th><th>Sales</th><th>Nama Leads</th><th>Project</th><th>Unit</th><th>Status</th><th>Nilai</th><th>Cara Bayar</th><th>Visit</th><th>BF</th><th>Catatan</th></tr></thead><tbody>${rows2}</tbody></table></body></html>`
-    const w = window.open("","_blank"); if(!w) return
+    const w = window.open("","_blank")
+    if (!w) {
+      showToast("Popup diblokir browser — izinkan popup untuk mencetak PDF", "error")
+      return
+    }
     w.document.write(html); w.document.close(); w.focus(); setTimeout(()=>w.print(),600)
   }
 
