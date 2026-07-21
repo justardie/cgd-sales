@@ -45,7 +45,26 @@ const barGreen  = "#22c55e"
 const barOrange = "#E84500"
 const barRed    = "#ef4444"
 
-const DOT_COLORS = ["#FF6A3D", "#8b5cf6", "#10b981", "#3b82f6", "#f59e0b", "#ec4899"]
+const accentBorder = "#FFD9C7"
+const greenBorder   = "#BBF7D0"
+
+// Fixed per-project color so the same project always gets the same dot across
+// every report, instead of an index that could repeat once there are more
+// than DOT_COLORS.length projects.
+const PROJECT_DOT_COLORS: Record<string, string> = {
+  "CH":               "#FF6A3D",
+  "CT":               "#8b5cf6",
+  "MRD CRBA+CBA":     "#10b981",
+  "CRT":              "#3b82f6",
+  "MRD CRTU":         "#f59e0b",
+  "MRD CLH":          "#ec4899",
+  "SCC - Hillside":   "#14b8a6",
+  "SCC - Valleyside": "#6366f1",
+}
+const DOT_COLORS = Object.values(PROJECT_DOT_COLORS)
+function projectDotColor(name: string, fallbackIndex: number): string {
+  return PROJECT_DOT_COLORS[name] ?? DOT_COLORS[fallbackIndex % DOT_COLORS.length]
+}
 
 const PAGE_WIDTH = 210
 const PAGE_HEIGHT = 297
@@ -90,6 +109,19 @@ function progressBar(pdf: jsPDF, x: number, y: number, w: number, h: number, pct
     pdf.setFillColor(color)
     pdf.roundedRect(x, y, Math.max(h, fillW), h, h / 2, h / 2, "F")
   }
+  // Over-achievers (>100%) fill the whole bar the same as an exact 100% —
+  // add a small marker at the tip so the two aren't visually identical.
+  if (pct > 100) {
+    pdf.setFillColor(ink)
+    pdf.circle(x + w - h / 2, y + h / 2, h * 0.55, "F")
+  }
+}
+
+/** Draws uppercase micro-labels with a touch of letter-spacing, then resets it so it never bleeds into later text. */
+function labelText(pdf: jsPDF, text: string, x: number, y: number, align?: "left" | "right") {
+  pdf.setCharSpace(0.15)
+  pdf.text(text, x, y, align ? { align } : undefined)
+  pdf.setCharSpace(0)
 }
 
 function fitText(pdf: jsPDF, text: string, maxWidth: number): string {
@@ -137,13 +169,16 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   pdf.text(data.periodLabel, PAGE_WIDTH - MARGIN, y + 6, { align: "right" })
   pdf.setFont("helvetica", "normal")
   pdf.setFontSize(8)
-  pdf.setTextColor(inkFaint)
+  pdf.setTextColor(inkMuted)
   pdf.text(`Dibuat ${data.generatedAt}`, PAGE_WIDTH - MARGIN, y + 11, { align: "right" })
 
   y += 18
-  pdf.setDrawColor(ink)
-  pdf.setLineWidth(0.8)
+  pdf.setDrawColor(border)
+  pdf.setLineWidth(0.3)
   pdf.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
+  pdf.setDrawColor(accent)
+  pdf.setLineWidth(1)
+  pdf.line(MARGIN, y, MARGIN + 30, y)
   y += 6
 
   // ---- KPI + Top performers, one row of 3 equal columns ----
@@ -155,7 +190,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   const kpiX = MARGIN
   roundedBox(pdf, kpiX, y, summaryW, summaryH, surface, border)
   const pctColor = mtdPct >= 100 ? green : mtdPct >= 70 ? accent : red
-  pdf.setFont("helvetica", "bold")
+  pdf.setFont("courier", "bold")
   pdf.setFontSize(19)
   pdf.setTextColor(pctColor)
   pdf.text(`${mtdPct}%`, kpiX + 4, y + 11)
@@ -164,27 +199,28 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   pdf.setFont("helvetica", "bold")
   pdf.setFontSize(7.5)
   pdf.setTextColor(inkMuted)
-  pdf.text(omsetLabel.toUpperCase(), kpiLabelX, y + 8)
+  labelText(pdf, omsetLabel.toUpperCase(), kpiLabelX, y + 8)
   pdf.setFont("helvetica", "normal")
   pdf.setFontSize(7)
   pdf.text(fitText(pdf, `Target Tim: ${formatRupiahFull(data.mtdTarget)}`, kpiX + summaryW - kpiLabelX - 4), kpiLabelX, y + 12)
-  pdf.setFont("helvetica", "bold")
+  pdf.setFont("courier", "bold")
   pdf.setFontSize(13)
   pdf.setTextColor(ink)
   pdf.text(fitText(pdf, formatRupiahFull(data.mtdValue), summaryW - 8), kpiX + 4, y + 21)
 
   // Columns 2 & 3: Top Sales Hunter / Top Sales Person
-  function drawPerformer(x: number, label: string, name: string | null, value: number, valueColor: string, caption: string) {
-    roundedBox(pdf, x, y, summaryW, summaryH, surface, border)
+  function drawPerformer(x: number, label: string, name: string | null, value: number, valueColor: string, caption: string, cardBorder: string) {
+    roundedBox(pdf, x, y, summaryW, summaryH, surface, cardBorder)
     pdf.setFont("helvetica", "bold")
     pdf.setFontSize(8)
     pdf.setTextColor(inkMuted)
-    pdf.text(label.toUpperCase(), x + 4, y + 6)
+    labelText(pdf, label.toUpperCase(), x + 4, y + 6)
     if (name) {
       pdf.setFont("helvetica", "bold")
       pdf.setFontSize(11)
       pdf.setTextColor(ink)
       pdf.text(fitText(pdf, name, summaryW - 8), x + 4, y + 12.5)
+      pdf.setFont("courier", "bold")
       pdf.setFontSize(13)
       pdf.setTextColor(valueColor)
       pdf.text(fitText(pdf, formatRupiahFull(value), summaryW - 8), x + 4, y + 18.5)
@@ -195,12 +231,12 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     } else {
       pdf.setFont("helvetica", "normal")
       pdf.setFontSize(9)
-      pdf.setTextColor(inkFaint)
+      pdf.setTextColor(inkMuted)
       pdf.text(`Belum ada closing ${periodWord}`, x + 4, y + 14)
     }
   }
-  drawPerformer(kpiX + summaryW + summaryGap, "Top Sales Hunter", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`)
-  drawPerformer(kpiX + (summaryW + summaryGap) * 2, "Top Sales Person", data.topSales?.name ?? null, data.topSales?.omset ?? 0, green, `Kontribusi ${periodWord}`)
+  drawPerformer(kpiX + summaryW + summaryGap, "Top Sales Hunter", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`, accentBorder)
+  drawPerformer(kpiX + (summaryW + summaryGap) * 2, "Top Sales Person", data.topSales?.name ?? null, data.topSales?.omset ?? 0, green, `Kontribusi ${periodWord}`, greenBorder)
   y += summaryH + 5
 
   // ---- Target Omset Alert — all hunters (5-col grid, matches on-screen Target Omset card) ----
@@ -215,7 +251,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   pdf.setFont("helvetica", "bold")
   pdf.setFontSize(10)
   pdf.setTextColor(amber)
-  pdf.text("TARGET OMSET ALERT — SEMUA HUNTER", MARGIN + 5, y + 7)
+  labelText(pdf, "TARGET OMSET ALERT — SEMUA HUNTER", MARGIN + 5, y + 7)
 
   if (data.allHunters.length > 0) {
     data.allHunters.forEach((hunter, i) => {
@@ -233,7 +269,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
       pdf.setTextColor(inkMuted)
       pdf.text(fitText(pdf, hunter.name, alertCardW - 4), cx + 2.5, cy + 5)
 
-      pdf.setFont("helvetica", "bold")
+      pdf.setFont("courier", "bold")
       pdf.setFontSize(9.5)
       pdf.setTextColor(ink)
       pdf.text(fitText(pdf, formatRupiahFull(hunter.omset), alertCardW - 4), cx + 2.5, cy + 10.5)
@@ -245,7 +281,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
 
       progressBar(pdf, cx + 2.5, cy + 17, alertCardW - 5, 1.6, pct, color)
 
-      pdf.setFont("helvetica", "bold")
+      pdf.setFont("courier", "bold")
       pdf.setFontSize(10)
       pdf.setTextColor(color)
       pdf.text(`${pct}%`, cx + 2.5, cy + 22.5)
@@ -253,7 +289,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   } else {
     pdf.setFont("helvetica", "normal")
     pdf.setFontSize(9)
-    pdf.setTextColor(inkFaint)
+    pdf.setTextColor(inkMuted)
     pdf.text("Belum ada data hunter", MARGIN + 5, y + 14)
   }
   y += alertBoxH + 5
@@ -270,7 +306,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   pdf.setFont("helvetica", "bold")
   pdf.setFontSize(9)
   pdf.setTextColor(inkMuted)
-  pdf.text("OMSET PER PROYEK", MARGIN + 5, y + 6.5)
+  labelText(pdf, "OMSET PER PROYEK", MARGIN + 5, y + 6.5)
 
   data.projectData.forEach((project, i) => {
     const col = i % projCols
@@ -279,14 +315,14 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     const cy = y + 9 + row * (projCardH + projGap)
     roundedBox(pdf, cx, cy, projCardW, projCardH, "#FFFFFF", project.value > 0 ? border : "#F1F5F9", 1.5)
 
-    pdf.setFillColor(DOT_COLORS[i % DOT_COLORS.length])
+    pdf.setFillColor(projectDotColor(project.name, i))
     pdf.circle(cx + 3.5, cy + 5.2, 1, "F")
     pdf.setFont("helvetica", "normal")
     pdf.setFontSize(7.5)
     pdf.setTextColor(inkMuted)
     pdf.text(fitText(pdf, project.name, projCardW - 9), cx + 6, cy + 6)
 
-    pdf.setFont("helvetica", "bold")
+    pdf.setFont("courier", "bold")
     pdf.setFontSize(9.5)
     pdf.setTextColor(project.value > 0 ? ink : inkFaint)
     pdf.text(fitText(pdf, formatRupiahFull(project.value), projCardW - 4), cx + 2.5, cy + 11.5)
@@ -308,7 +344,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     ]),
     foot: [[
       { content: `Total · ${data.totalCount} transaksi`, colSpan: 3, styles: { halign: "left", fontStyle: "bold", fontSize: 9 } },
-      { content: formatRupiahFull(data.totalOmset), styles: { halign: "right", textColor: green, fontStyle: "bold", fontSize: 10 } },
+      { content: formatRupiahFull(data.totalOmset), styles: { halign: "right", textColor: green, fontStyle: "bold", fontSize: 10, font: "courier" } },
       { content: "", colSpan: 2 },
     ]],
     styles: { font: "helvetica", fontSize: 8, textColor: ink, lineColor: border, lineWidth: 0.1, cellPadding: 2, valign: "middle" },
@@ -316,16 +352,51 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     footStyles: { fillColor: surface, lineWidth: { top: 0.5 } },
     alternateRowStyles: { fillColor: surface },
     columnStyles: {
-      3: { halign: "right", textColor: green, fontStyle: "bold" },
+      3: { halign: "right", textColor: green, fontStyle: "bold", font: "courier" },
     },
-    didDrawPage: (hookData) => {
+    // The Hunter/Sales column packs two lines into one cell; give them
+    // distinct weights/colors (bold name, muted role) instead of one
+    // uniform style — matches how the app itself renders this pairing.
+    didParseCell: (hookData) => {
+      if (hookData.section === "body" && hookData.column.index === 0) {
+        hookData.cell.text = []
+      }
+    },
+    didDrawCell: (hookData) => {
+      if (hookData.section !== "body" || hookData.column.index !== 0) return
+      const raw = hookData.row.raw
+      const combined = Array.isArray(raw) ? String(raw[0] ?? "") : ""
+      const [hunterName, spName] = combined.split("\n")
+      const cell = hookData.cell
+      const padLeft = cell.padding("left")
+      const centerY = cell.y + cell.height / 2
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(8)
+      pdf.setTextColor(ink)
+      pdf.text(hunterName || "—", cell.x + padLeft, centerY - 1.1)
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(7)
+      pdf.setTextColor(inkMuted)
+      pdf.text(spName || "—", cell.x + padLeft, centerY + 2.3)
+    },
+    didDrawPage: () => {
       pdf.setFont("helvetica", "normal")
       pdf.setFontSize(7.5)
-      pdf.setTextColor(inkFaint)
+      pdf.setTextColor(inkMuted)
       pdf.text("Report Closing · PT Central Group Development", MARGIN, PAGE_HEIGHT - 8)
-      pdf.text(`Halaman ${hookData.pageNumber}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 8, { align: "right" })
     },
   })
+
+  // Page numbers are stamped after the fact, once the true page count is
+  // known, so the footer can read "Halaman N dari M" instead of just "N".
+  const totalPages = pdf.getNumberOfPages()
+  for (let page = 1; page <= totalPages; page++) {
+    pdf.setPage(page)
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(7.5)
+    pdf.setTextColor(inkMuted)
+    pdf.text(`Halaman ${page} dari ${totalPages}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 8, { align: "right" })
+  }
 
   pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
 }
