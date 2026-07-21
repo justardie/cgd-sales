@@ -364,11 +364,15 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     footStyles: { fillColor: surface, lineWidth: { top: 0.5 } },
     alternateRowStyles: { fillColor: surface },
     columnStyles: {
+      0: { minCellWidth: 34 },
       3: { halign: "right", textColor: green, fontStyle: "bold", minCellWidth: 26 },
     },
     // The Hunter/Sales column packs two lines into one cell; give them
     // distinct weights/colors (bold name, muted role) instead of one
     // uniform style — matches how the app itself renders this pairing.
+    // Clearing cell.text drops it from autoTable's own width calculation,
+    // hence the explicit minCellWidth above to keep this column from
+    // collapsing to the width of just the header text.
     didParseCell: (hookData) => {
       if (hookData.section === "body" && hookData.column.index === 0) {
         hookData.cell.text = []
@@ -381,15 +385,16 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
       const [hunterName, spName] = combined.split("\n")
       const cell = hookData.cell
       const padLeft = cell.padding("left")
+      const availWidth = cell.width - padLeft - cell.padding("right")
       const centerY = cell.y + cell.height / 2
       pdf.setFont("helvetica", "bold")
       pdf.setFontSize(8)
       pdf.setTextColor(ink)
-      pdf.text(hunterName || "—", cell.x + padLeft, centerY - 1.1)
+      pdf.text(fitText(pdf, hunterName || "—", availWidth), cell.x + padLeft, centerY - 1.1)
       pdf.setFont("helvetica", "normal")
       pdf.setFontSize(7)
       pdf.setTextColor(inkMuted)
-      pdf.text(spName || "—", cell.x + padLeft, centerY + 2.3)
+      pdf.text(fitText(pdf, spName || "—", availWidth), cell.x + padLeft, centerY + 2.3)
     },
     didDrawPage: () => {
       pdf.setFont("helvetica", "normal")
