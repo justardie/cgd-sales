@@ -1,4 +1,3 @@
-import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts"
 import { formatRupiahFull } from "@/lib/utils"
 
 export interface ClosingReportRow {
@@ -110,7 +109,7 @@ export default function ClosingReportTemplate({
 
       {/* Target Omset Alert — all hunters */}
       <div style={{ background: amberBg, border: `1px solid ${amberBorder}`, borderRadius: 12, padding: "14px 20px" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: amber, textTransform: "uppercase", marginBottom: 8 }}>⚠ Target Omset Alert — Semua Hunter</div>
+        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 1, color: amber, textTransform: "uppercase", marginBottom: 10 }}>⚠ Target Omset Alert — Semua Hunter</div>
         {allHunters.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
             {allHunters.map(hunter => {
@@ -118,12 +117,12 @@ export default function ClosingReportTemplate({
               const achieved = p >= 100
               return (
                 <div key={hunter.name} style={{
-                  background: "#FFFFFF", borderRadius: 8, padding: "8px 10px",
+                  background: "#FFFFFF", borderRadius: 8, padding: "10px 12px",
                   border: `1.5px solid ${achieved ? "#86EFAC" : amberBorder}`,
                 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: ink }}>{hunter.name}</div>
-                  <div style={{ fontSize: 13, color: inkMuted, marginTop: 2 }}>{formatRupiahFull(hunter.omset)}</div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: achieved ? green : amber, marginTop: 2 }}>{p}%</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: ink }}>{hunter.name}</div>
+                  <div style={{ fontSize: 16, color: inkMuted, marginTop: 3 }}>{formatRupiahFull(hunter.omset)}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: achieved ? green : amber, marginTop: 3 }}>{p}%</div>
                 </div>
               )
             })}
@@ -132,32 +131,24 @@ export default function ClosingReportTemplate({
       </div>
 
       {/* Omset per Proyek */}
-      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "12px 20px", display: "flex", alignItems: "center", gap: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", width: 140, flexShrink: 0 }}>
+      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 20px" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", marginBottom: 10 }}>
           Omset per Proyek
         </div>
-        {projectData.length > 0 ? (
-          <>
-            <div style={{ width: 140, height: 110, flexShrink: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={projectData} dataKey="value" nameKey="name" innerRadius={28} outerRadius={48} paddingAngle={2} isAnimationActive={false}>
-                    {projectData.map((project, index) => <Cell key={project.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+          {projectData.map((project, index) => (
+            <div key={project.name} style={{
+              background: "#FFFFFF", borderRadius: 8, padding: "8px 12px",
+              border: `1.5px solid ${project.value > 0 ? border : "#F1F5F9"}`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 9, height: 9, borderRadius: 3, background: PIE_COLORS[index % PIE_COLORS.length], flexShrink: 0, display: "inline-block" }} />
+                <span style={{ fontSize: 13, color: inkMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{project.name}</span>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: project.value > 0 ? ink : inkFaint, marginTop: 3 }}>{formatRupiahFull(project.value)}</div>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 22px", flex: 1 }}>
-              {projectData.map((project, index) => (
-                <div key={project.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
-                  <span style={{ width: 11, height: 11, borderRadius: 3, background: PIE_COLORS[index % PIE_COLORS.length], display: "inline-block" }} />
-                  <span style={{ color: inkMuted }}>{project.name}</span>
-                  <span style={{ fontWeight: 700 }}>{formatRupiahFull(project.value)}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : <div style={{ fontSize: 14, color: inkFaint }}>Belum ada omset pada periode ini</div>}
+          ))}
+        </div>
       </div>
 
       {/* Table */}

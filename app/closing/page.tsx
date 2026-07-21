@@ -669,7 +669,7 @@ export default function ClosingPage() {
 
       const spOmsetPeriod: Record<string, number> = {}
       for (const c of periodClosings) {
-        if (c.sales_person) spOmsetPeriod[c.sales_person] = (spOmsetPeriod[c.sales_person] || 0) + (c.nilai_hjr || 0)
+        if (c.sales_person && c.sales_person !== "Agent") spOmsetPeriod[c.sales_person] = (spOmsetPeriod[c.sales_person] || 0) + (c.nilai_hjr || 0)
       }
       let topSales: { name: string; omset: number } | null = null
       for (const [name, omset] of Object.entries(spOmsetPeriod)) {
@@ -686,7 +686,7 @@ export default function ClosingPage() {
         const proj = normalizeProject(c.project)
         if (proj) projMap[proj] = (projMap[proj] || 0) + (c.nilai_hjr || 0)
       }
-      const projectData = canonicalProjectTotals(projMap, PROJECT_NAMES).filter(project => project.value > 0)
+      const projectData = canonicalProjectTotals(projMap, PROJECT_NAMES)
 
       const rows: ClosingReportRow[] = filtered.map(c => ({
         hunter: c.sales_hunter,
@@ -733,19 +733,29 @@ export default function ClosingPage() {
       await new Promise(resolve => setTimeout(resolve, 150))
 
       const target = container.firstElementChild as HTMLElement
-      const targetRect = target.getBoundingClientRect()
       const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff" })
 
-      // Size the PDF page to exactly fit the rendered report (fixed width, height
-      // follows content) so nothing gets clipped — this always stays a single page.
-      // orientation must match width vs height, or jsPDF silently swaps the
-      // format array's dimensions to satisfy its default "portrait" assumption,
-      // which then clips whatever addImage draws using the un-swapped width.
-      const pageWidthMm = 280
-      const pageHeightMm = pageWidthMm * (targetRect.height / targetRect.width)
-      const orientation = pageWidthMm >= pageHeightMm ? "landscape" : "portrait"
-      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm], orientation })
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidthMm, pageHeightMm)
+      // Standard A4 landscape page — the report is wide (table + KPI rows), so
+      // the image is scaled to fill the A4 width and sliced across as many A4
+      // pages as needed vertically, instead of stretching everything onto one
+      // custom-sized page.
+      const pageWidthMm = 297
+      const pageHeightMm = 210
+      const mmPerPx = pageWidthMm / canvas.width
+      const pageHeightPx = Math.floor(pageHeightMm / mmPerPx)
+      const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx))
+
+      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm], orientation: "landscape" })
+      for (let page = 0; page < totalPages; page++) {
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - page * pageHeightPx)
+        const sliceCanvas = document.createElement("canvas")
+        sliceCanvas.width = canvas.width
+        sliceCanvas.height = sliceHeightPx
+        const ctx = sliceCanvas.getContext("2d")!
+        ctx.drawImage(canvas, 0, page * pageHeightPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx)
+        if (page > 0) pdf.addPage([pageWidthMm, pageHeightMm], "landscape")
+        pdf.addImage(sliceCanvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidthMm, sliceHeightPx * mmPerPx)
+      }
       pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
 
       root.unmount()
