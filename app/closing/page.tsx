@@ -292,7 +292,6 @@ export default function ClosingPage() {
   const ytdMode = dateMode === "ytd"
 
   const [closings, setClosings] = useState<KonsumenRow[]>([])
-  const [currentMonthClosings, setCurrentMonthClosings] = useState<KonsumenRow[]>([])
   const [periodClosings, setPeriodClosings] = useState<KonsumenRow[]>([])
   const [hunters, setHunters] = useState<User[]>([])
   const [dbProjects, setDbProjects] = useState<string[]>([])
@@ -354,13 +353,8 @@ export default function ClosingPage() {
       closingQuery = closingQuery.eq("closing_month", month).eq("closing_year", year)
     }
 
-    const [closingsRes, currentMonthRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
+    const [closingsRes, usersRes, spsRes, projRes, cbRes] = await Promise.all([
       closingQuery,
-      supabase.from("konsumen")
-        .select("id,user_id,sales_hunter,sales_person,agent_name,name,project,unit,nilai_hjr,cara_bayar,visit_date,closing_date,closing_month,closing_year,notes,status")
-        .eq("status", "closing")
-        .eq("closing_month", now.getMonth() + 1)
-        .eq("closing_year", now.getFullYear()),
       supabase.from("users")
         .select("id,name,monthly_target,win_or_die_target,role,status")
         .eq("role", "hunter")
@@ -387,7 +381,6 @@ export default function ClosingPage() {
     const extraCb = dbCb.filter(v => !(CANONICAL_CARA_BAYAR as readonly string[]).includes(v))
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
     setHunters((usersRes.data || []) as User[])
-    setCurrentMonthClosings((currentMonthRes.data || []) as KonsumenRow[])
     let allClosings = (closingsRes.data || []) as KonsumenRow[]
     if (dateMode === "custom") {
       const minKey = Math.min(fromKey, toKey)
@@ -766,11 +759,17 @@ export default function ClosingPage() {
   const hunterGroup = HUNTER_GROUPS.find(g => g.dbName === hunterKey || g.name === hunterKey)
   const spOptions = buildSpOptions(hunterGroup, spBase)
 
+  const filterPeriodLabel = ytdMode
+    ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
+    : dateMode === "custom"
+    ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
+    : `${getMonthName(month)} ${year}`
+
   const winOrDieHunters = displayHunters
     .filter(hunter => hunter.win_or_die_target > 0)
     .map(hunter => ({
       ...hunter,
-      omset: currentMonthClosings
+      omset: filtered
         .filter(closing => closing.sales_hunter.toLowerCase() === hunter.name.toLowerCase())
         .reduce((sum, closing) => sum + (closing.nilai_hjr || 0), 0),
     }))
@@ -785,11 +784,7 @@ export default function ClosingPage() {
           <div>
             <h1 className="text-xl font-bold text-white">Closing</h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              {ytdMode
-                ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
-                : dateMode === "custom"
-                ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
-                : `${getMonthName(month)} ${year}`} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
+              {filterPeriodLabel} · {filtered.length} transaksi · {formatRupiah(totalOmset)}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -873,7 +868,7 @@ export default function ClosingPage() {
                 </div>
                 <div>
                   <div className="text-sm font-black tracking-wide text-red-400">Minimal OR</div>
-                  <div className="text-xs text-slate-500">{getMonthName(now.getMonth() + 1)} {now.getFullYear()} · perhitungan bulan berjalan</div>
+                  <div className="text-xs text-slate-500">{filterPeriodLabel} · sesuai filter periode</div>
                 </div>
               </div>
               <div className="text-3xl font-black text-red-400/60">{winOrDieHunters.filter(hunter => hunter.omset < hunter.win_or_die_target).length}</div>
@@ -911,7 +906,7 @@ export default function ClosingPage() {
                     </div>
                     <div>
                       <div className="text-sm font-black tracking-wide text-blue-400">Target Omset</div>
-                      <div className="text-xs text-slate-500">{getMonthName(now.getMonth() + 1)} {now.getFullYear()} · perhitungan bulan berjalan</div>
+                      <div className="text-xs text-slate-500">{filterPeriodLabel} · sesuai filter periode</div>
                     </div>
                   </div>
                 </div>
