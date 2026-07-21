@@ -146,59 +146,62 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   pdf.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
   y += 6
 
-  // ---- KPI row ----
-  const kpiH = 18
-  roundedBox(pdf, MARGIN, y, CONTENT_WIDTH, kpiH, surface, border)
-  pdf.setFont("helvetica", "bold")
-  pdf.setFontSize(9)
-  pdf.setTextColor(inkMuted)
-  pdf.text(omsetLabel.toUpperCase(), MARGIN + 5, y + 7)
-  pdf.setFontSize(17)
-  pdf.setTextColor(ink)
-  pdf.text(formatRupiahFull(data.mtdValue), MARGIN + 5, y + 14.5)
+  // ---- KPI + Top performers, one row of 3 equal columns ----
+  const summaryH = 26
+  const summaryGap = 5
+  const summaryW = (CONTENT_WIDTH - summaryGap * 2) / 3
 
+  // Column 1: Omset MTD/YTD — big percentage at left, label/target stacked beside it, value below
+  const kpiX = MARGIN
+  roundedBox(pdf, kpiX, y, summaryW, summaryH, surface, border)
+  const pctColor = mtdPct >= 100 ? green : mtdPct >= 70 ? accent : red
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(19)
+  pdf.setTextColor(pctColor)
+  pdf.text(`${mtdPct}%`, kpiX + 4, y + 11)
+  const pctWidth = pdf.getTextWidth(`${mtdPct}%`)
+  const kpiLabelX = kpiX + 4 + pctWidth + 4
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(7.5)
+  pdf.setTextColor(inkMuted)
+  pdf.text(omsetLabel.toUpperCase(), kpiLabelX, y + 8)
   pdf.setFont("helvetica", "normal")
-  pdf.setFontSize(9)
-  pdf.setTextColor(inkMuted)
-  pdf.text(`Target Tim: ${formatRupiahFull(data.mtdTarget)}`, PAGE_WIDTH - MARGIN - 5, y + 7, { align: "right" })
+  pdf.setFontSize(7)
+  pdf.text(fitText(pdf, `Target Tim: ${formatRupiahFull(data.mtdTarget)}`, kpiX + summaryW - kpiLabelX - 4), kpiLabelX, y + 12)
   pdf.setFont("helvetica", "bold")
-  pdf.setFontSize(14)
-  pdf.setTextColor(mtdPct >= 100 ? green : mtdPct >= 70 ? accent : red)
-  pdf.text(`${mtdPct}%`, PAGE_WIDTH - MARGIN - 5, y + 15.5, { align: "right" })
-  y += kpiH + 5
+  pdf.setFontSize(13)
+  pdf.setTextColor(ink)
+  pdf.text(fitText(pdf, formatRupiahFull(data.mtdValue), summaryW - 8), kpiX + 4, y + 21)
 
-  // ---- Top performers ----
-  const perfH = 24
-  const perfGap = 5
-  const perfW = (CONTENT_WIDTH - perfGap) / 2
+  // Columns 2 & 3: Top Sales Hunter / Top Sales Person
   function drawPerformer(x: number, label: string, name: string | null, value: number, valueColor: string, caption: string) {
-    roundedBox(pdf, x, y, perfW, perfH, surface, border)
+    roundedBox(pdf, x, y, summaryW, summaryH, surface, border)
     pdf.setFont("helvetica", "bold")
     pdf.setFontSize(8)
     pdf.setTextColor(inkMuted)
-    pdf.text(label.toUpperCase(), x + 5, y + 6)
+    pdf.text(label.toUpperCase(), x + 4, y + 6)
     if (name) {
       pdf.setFont("helvetica", "bold")
       pdf.setFontSize(11)
       pdf.setTextColor(ink)
-      pdf.text(fitText(pdf, name, perfW - 10), x + 5, y + 12.5)
+      pdf.text(fitText(pdf, name, summaryW - 8), x + 4, y + 12.5)
       pdf.setFontSize(13)
       pdf.setTextColor(valueColor)
-      pdf.text(formatRupiahFull(value), x + 5, y + 18.5)
+      pdf.text(fitText(pdf, formatRupiahFull(value), summaryW - 8), x + 4, y + 18.5)
       pdf.setFont("helvetica", "normal")
       pdf.setFontSize(8)
       pdf.setTextColor(inkMuted)
-      pdf.text(caption, x + 5, y + 22.5)
+      pdf.text(fitText(pdf, caption, summaryW - 8), x + 4, y + 23)
     } else {
       pdf.setFont("helvetica", "normal")
       pdf.setFontSize(9)
       pdf.setTextColor(inkFaint)
-      pdf.text(`Belum ada closing ${periodWord}`, x + 5, y + 14)
+      pdf.text(`Belum ada closing ${periodWord}`, x + 4, y + 14)
     }
   }
-  drawPerformer(MARGIN, "Top Sales Hunter", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`)
-  drawPerformer(MARGIN + perfW + perfGap, "Top Sales Person", data.topSales?.name ?? null, data.topSales?.omset ?? 0, green, `Kontribusi ${periodWord}`)
-  y += perfH + 5
+  drawPerformer(kpiX + summaryW + summaryGap, "Top Sales Hunter", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`)
+  drawPerformer(kpiX + (summaryW + summaryGap) * 2, "Top Sales Person", data.topSales?.name ?? null, data.topSales?.omset ?? 0, green, `Kontribusi ${periodWord}`)
+  y += summaryH + 5
 
   // ---- Target Omset Alert — all hunters (5-col grid, matches on-screen Target Omset card) ----
   const alertCols = 5
@@ -256,7 +259,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   y += alertBoxH + 5
 
   // ---- Omset per Proyek ----
-  const projCols = 3
+  const projCols = 4
   const projGap = 3
   const projCardW = (CONTENT_WIDTH - projGap * (projCols - 1)) / projCols
   const projCardH = 15
