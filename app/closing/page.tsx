@@ -735,27 +735,20 @@ export default function ClosingPage() {
       const target = container.firstElementChild as HTMLElement
       const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff" })
 
-      // Standard A4 landscape page — the report is wide (table + KPI rows), so
-      // the image is scaled to fill the A4 width and sliced across as many A4
-      // pages as needed vertically, instead of stretching everything onto one
-      // custom-sized page.
-      const pageWidthMm = 297
-      const pageHeightMm = 210
-      const mmPerPx = pageWidthMm / canvas.width
-      const pageHeightPx = Math.floor(pageHeightMm / mmPerPx)
-      const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx))
+      // Standard A4 portrait, always a single page — the image is scaled to
+      // fit entirely within the page (preserving aspect ratio, letterboxed if
+      // needed) so nothing is ever cropped, regardless of content length.
+      const pageWidthMm = 210
+      const pageHeightMm = 297
+      const imgAspect = canvas.width / canvas.height
+      const pageAspect = pageWidthMm / pageHeightMm
+      const renderWidthMm = imgAspect > pageAspect ? pageWidthMm : pageHeightMm * imgAspect
+      const renderHeightMm = imgAspect > pageAspect ? pageWidthMm / imgAspect : pageHeightMm
+      const offsetXMm = (pageWidthMm - renderWidthMm) / 2
+      const offsetYMm = (pageHeightMm - renderHeightMm) / 2
 
-      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm], orientation: "landscape" })
-      for (let page = 0; page < totalPages; page++) {
-        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - page * pageHeightPx)
-        const sliceCanvas = document.createElement("canvas")
-        sliceCanvas.width = canvas.width
-        sliceCanvas.height = sliceHeightPx
-        const ctx = sliceCanvas.getContext("2d")!
-        ctx.drawImage(canvas, 0, page * pageHeightPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx)
-        if (page > 0) pdf.addPage([pageWidthMm, pageHeightMm], "landscape")
-        pdf.addImage(sliceCanvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageWidthMm, sliceHeightPx * mmPerPx)
-      }
+      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm], orientation: "portrait" })
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", offsetXMm, offsetYMm, renderWidthMm, renderHeightMm)
       pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
 
       root.unmount()

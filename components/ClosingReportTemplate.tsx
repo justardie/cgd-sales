@@ -27,9 +27,9 @@ export interface ClosingReportProps {
 }
 
 const PIE_COLORS = ["#FF6A3D", "#8b5cf6", "#10b981", "#3b82f6", "#f59e0b", "#ec4899"]
-const MAX_ROWS = 40
+const MAX_ROWS = 15
 
-export const REPORT_WIDTH = 1500
+export const REPORT_WIDTH = 900
 
 const ink        = "#0F172A"
 const inkMuted   = "#64748B"
@@ -57,109 +57,110 @@ export default function ClosingReportTemplate({
     <div style={{
       width: REPORT_WIDTH, background: "#FFFFFF", color: ink,
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      padding: "34px 42px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16,
+      padding: "26px 30px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 12,
+      lineHeight: 1.4,
     }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `3px solid ${ink}`, paddingBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `3px solid ${ink}`, paddingBottom: 10 }}>
         <div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5 }}>Report Closing</div>
-          <div style={{ fontSize: 15, color: inkMuted, marginTop: 3 }}>PT Central Group Development · MASCOL Division</div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.3 }}>Report Closing</div>
+          <div style={{ fontSize: 12, color: inkMuted, marginTop: 3, lineHeight: 1.4 }}>PT Central Group Development · MASCOL Division</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 19, fontWeight: 700 }}>{periodLabel}</div>
-          <div style={{ fontSize: 13, color: inkFaint, marginTop: 3 }}>Dibuat {generatedAt}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.4 }}>{periodLabel}</div>
+          <div style={{ fontSize: 11, color: inkFaint, marginTop: 3, lineHeight: 1.4 }}>Dibuat {generatedAt}</div>
         </div>
       </div>
 
       {/* KPI row */}
-      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase" }}>{omsetLabel}</div>
-          <div style={{ fontSize: 34, fontWeight: 800, marginTop: 3 }}>{formatRupiahFull(mtdValue)}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", lineHeight: 1.4 }}>{omsetLabel}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, marginTop: 3, lineHeight: 1.3 }}>{formatRupiahFull(mtdValue)}</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 14, color: inkMuted }}>Target Tim: {formatRupiahFull(mtdTarget)}</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: mtdPct >= 100 ? green : mtdPct >= 70 ? accent : red }}>{mtdPct}%</div>
+          <div style={{ fontSize: 11, color: inkMuted, lineHeight: 1.4 }}>Target Tim: {formatRupiahFull(mtdTarget)}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: mtdPct >= 100 ? green : mtdPct >= 70 ? accent : red, lineHeight: 1.3 }}>{mtdPct}%</div>
         </div>
       </div>
 
       {/* Top performers */}
-      <div style={{ display: "flex", gap: 16 }}>
-        <div style={{ flex: 1, background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 20px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase" }}>🏆 Top Sales Hunter</div>
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ flex: 1, background: surface, border: `1px solid ${border}`, borderRadius: 10, padding: "12px 16px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", lineHeight: 1.4 }}>🏆 Top Sales Hunter</div>
           {topHunter ? (
             <>
-              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 5 }}>{topHunter.name}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: accent }}>{formatRupiahFull(topHunter.omset)}</div>
-              <div style={{ fontSize: 14, color: inkMuted }}>Capaian {periodWord}: {topHunter.pct}%</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4, lineHeight: 1.4 }}>{topHunter.name}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: accent, lineHeight: 1.4 }}>{formatRupiahFull(topHunter.omset)}</div>
+              <div style={{ fontSize: 11, color: inkMuted, lineHeight: 1.4 }}>Capaian {periodWord}: {topHunter.pct}%</div>
             </>
-          ) : <div style={{ fontSize: 15, color: inkFaint, marginTop: 8 }}>Belum ada closing {periodWord}</div>}
+          ) : <div style={{ fontSize: 12, color: inkFaint, marginTop: 6, lineHeight: 1.4 }}>Belum ada closing {periodWord}</div>}
         </div>
-        <div style={{ flex: 1, background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 20px" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase" }}>🌟 Top Sales Person</div>
+        <div style={{ flex: 1, background: surface, border: `1px solid ${border}`, borderRadius: 10, padding: "12px 16px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", lineHeight: 1.4 }}>🌟 Top Sales Person</div>
           {topSales ? (
             <>
-              <div style={{ fontSize: 20, fontWeight: 700, marginTop: 5 }}>{topSales.name}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: green }}>{formatRupiahFull(topSales.omset)}</div>
-              <div style={{ fontSize: 14, color: inkMuted }}>Kontribusi {periodWord}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4, lineHeight: 1.4 }}>{topSales.name}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: green, lineHeight: 1.4 }}>{formatRupiahFull(topSales.omset)}</div>
+              <div style={{ fontSize: 11, color: inkMuted, lineHeight: 1.4 }}>Kontribusi {periodWord}</div>
             </>
-          ) : <div style={{ fontSize: 15, color: inkFaint, marginTop: 8 }}>Belum ada closing {periodWord}</div>}
+          ) : <div style={{ fontSize: 12, color: inkFaint, marginTop: 6, lineHeight: 1.4 }}>Belum ada closing {periodWord}</div>}
         </div>
       </div>
 
       {/* Target Omset Alert — all hunters */}
-      <div style={{ background: amberBg, border: `1px solid ${amberBorder}`, borderRadius: 12, padding: "14px 20px" }}>
-        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: 1, color: amber, textTransform: "uppercase", marginBottom: 10 }}>⚠ Target Omset Alert — Semua Hunter</div>
+      <div style={{ background: amberBg, border: `1px solid ${amberBorder}`, borderRadius: 10, padding: "12px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, color: amber, textTransform: "uppercase", marginBottom: 8, lineHeight: 1.4 }}>⚠ Target Omset Alert — Semua Hunter</div>
         {allHunters.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
             {allHunters.map(hunter => {
               const p = hunter.target > 0 ? Math.round((hunter.omset / hunter.target) * 100) : 0
               const achieved = p >= 100
               return (
                 <div key={hunter.name} style={{
-                  background: "#FFFFFF", borderRadius: 8, padding: "10px 12px",
+                  background: "#FFFFFF", borderRadius: 8, padding: "8px 10px",
                   border: `1.5px solid ${achieved ? "#86EFAC" : amberBorder}`,
                 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: ink }}>{hunter.name}</div>
-                  <div style={{ fontSize: 16, color: inkMuted, marginTop: 3 }}>{formatRupiahFull(hunter.omset)}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: achieved ? green : amber, marginTop: 3 }}>{p}%</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: ink, lineHeight: 1.4 }}>{hunter.name}</div>
+                  <div style={{ fontSize: 13, color: inkMuted, marginTop: 2, lineHeight: 1.4 }}>{formatRupiahFull(hunter.omset)}</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: achieved ? green : amber, marginTop: 2, lineHeight: 1.4 }}>{p}%</div>
                 </div>
               )
             })}
           </div>
-        ) : <div style={{ fontSize: 14, color: inkFaint }}>Belum ada data hunter</div>}
+        ) : <div style={{ fontSize: 12, color: inkFaint, lineHeight: 1.4 }}>Belum ada data hunter</div>}
       </div>
 
       {/* Omset per Proyek */}
-      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 20px" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", marginBottom: 10 }}>
+      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 10, padding: "12px 16px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: inkMuted, textTransform: "uppercase", marginBottom: 8, lineHeight: 1.4 }}>
           Omset per Proyek
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           {projectData.map((project, index) => (
             <div key={project.name} style={{
-              background: "#FFFFFF", borderRadius: 8, padding: "8px 12px",
+              background: "#FFFFFF", borderRadius: 8, padding: "8px 10px",
               border: `1.5px solid ${project.value > 0 ? border : "#F1F5F9"}`,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 3, background: PIE_COLORS[index % PIE_COLORS.length], flexShrink: 0, display: "inline-block" }} />
-                <span style={{ fontSize: 13, color: inkMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{project.name}</span>
+                <span style={{ width: 8, height: 8, borderRadius: 3, background: PIE_COLORS[index % PIE_COLORS.length], flexShrink: 0, display: "inline-block" }} />
+                <span style={{ fontSize: 11, color: inkMuted, lineHeight: 1.5 }}>{project.name}</span>
               </div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: project.value > 0 ? ink : inkFaint, marginTop: 3 }}>{formatRupiahFull(project.value)}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: project.value > 0 ? ink : inkFaint, marginTop: 3, lineHeight: 1.4 }}>{formatRupiahFull(project.value)}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Table */}
-      <div style={{ border: `1px solid ${border}`, borderRadius: 12, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+      <div style={{ border: `1px solid ${border}`, borderRadius: 10, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
           <thead>
             <tr style={{ background: ink }}>
               {["Hunter / Sales", "Konsumen", "Project / Unit", "Nilai Omset", "Cara Bayar", "Tgl Closing"].map((label, i) => (
                 <th key={label} style={{
-                  padding: "9px 14px", textAlign: i === 3 ? "right" : "left", color: "#FFFFFF",
-                  fontWeight: 700, fontSize: 13, letterSpacing: 0.5, textTransform: "uppercase",
+                  padding: "7px 10px", textAlign: i === 3 ? "right" : "left", color: "#FFFFFF",
+                  fontWeight: 700, fontSize: 10, letterSpacing: 0.4, textTransform: "uppercase", lineHeight: 1.4,
                 }}>{label}</th>
               ))}
             </tr>
@@ -167,20 +168,20 @@ export default function ClosingReportTemplate({
           <tbody>
             {visibleRows.map((row, i) => (
               <tr key={i} style={{ background: i % 2 === 0 ? "#FFFFFF" : surface, borderBottom: `1px solid ${border}` }}>
-                <td style={{ padding: "8px 14px" }}>
-                  <div style={{ fontWeight: 600 }}>{row.hunter || "—"}</div>
-                  <div style={{ color: inkMuted, fontSize: 12 }}>{row.salesPerson || "—"}</div>
+                <td style={{ padding: "6px 10px", lineHeight: 1.4 }}>
+                  <div style={{ fontWeight: 600, lineHeight: 1.4 }}>{row.hunter || "—"}</div>
+                  <div style={{ color: inkMuted, fontSize: 10, lineHeight: 1.4 }}>{row.salesPerson || "—"}</div>
                 </td>
-                <td style={{ padding: "8px 14px", fontWeight: 600 }}>{row.konsumen}</td>
-                <td style={{ padding: "8px 14px", color: inkMuted }}>{[row.project, row.unit].filter(Boolean).join(" - ") || "—"}</td>
-                <td style={{ padding: "8px 14px", textAlign: "right", fontWeight: 700, color: green, whiteSpace: "nowrap" }}>{formatRupiahFull(row.nilaiOmset)}</td>
-                <td style={{ padding: "8px 14px", color: inkMuted }}>{row.caraBayar || "—"}</td>
-                <td style={{ padding: "8px 14px", color: inkMuted, whiteSpace: "nowrap" }}>{row.closingDate}</td>
+                <td style={{ padding: "6px 10px", fontWeight: 600, lineHeight: 1.4 }}>{row.konsumen}</td>
+                <td style={{ padding: "6px 10px", color: inkMuted, lineHeight: 1.4 }}>{[row.project, row.unit].filter(Boolean).join(" - ") || "—"}</td>
+                <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 700, color: green, whiteSpace: "nowrap", lineHeight: 1.4 }}>{formatRupiahFull(row.nilaiOmset)}</td>
+                <td style={{ padding: "6px 10px", color: inkMuted, lineHeight: 1.4 }}>{row.caraBayar || "—"}</td>
+                <td style={{ padding: "6px 10px", color: inkMuted, whiteSpace: "nowrap", lineHeight: 1.4 }}>{row.closingDate}</td>
               </tr>
             ))}
             {hiddenCount > 0 && (
               <tr>
-                <td colSpan={6} style={{ padding: "8px 14px", textAlign: "center", color: inkFaint, fontStyle: "italic" }}>
+                <td colSpan={6} style={{ padding: "6px 10px", textAlign: "center", color: inkFaint, fontStyle: "italic", lineHeight: 1.4 }}>
                   +{hiddenCount} transaksi lainnya (lihat detail di aplikasi)
                 </td>
               </tr>
@@ -188,8 +189,8 @@ export default function ClosingReportTemplate({
           </tbody>
           <tfoot>
             <tr style={{ background: surface, borderTop: `3px solid ${ink}` }}>
-              <td colSpan={3} style={{ padding: "10px 14px", fontWeight: 700, fontSize: 15 }}>Total · {totalCount} transaksi</td>
-              <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 800, color: green, fontSize: 18 }}>{formatRupiahFull(totalOmset)}</td>
+              <td colSpan={3} style={{ padding: "8px 10px", fontWeight: 700, fontSize: 12, lineHeight: 1.4 }}>Total · {totalCount} transaksi</td>
+              <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 800, color: green, fontSize: 14, lineHeight: 1.4 }}>{formatRupiahFull(totalOmset)}</td>
               <td colSpan={2} />
             </tr>
           </tfoot>
