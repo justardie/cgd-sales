@@ -1,0 +1,328 @@
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
+import { formatRupiahFull } from "@/lib/utils"
+
+export interface ClosingReportRow {
+  hunter: string
+  salesPerson: string
+  konsumen: string
+  project: string
+  unit: string
+  nilaiOmset: number
+  caraBayar: string
+  closingDate: string
+}
+
+export interface ClosingReportData {
+  periodLabel: string
+  generatedAt: string
+  isYtd: boolean
+  mtdValue: number
+  mtdTarget: number
+  topHunter: { name: string; omset: number; pct: number } | null
+  topSales: { name: string; omset: number } | null
+  allHunters: { name: string; omset: number; target: number }[]
+  projectData: { name: string; value: number }[]
+  rows: ClosingReportRow[]
+  totalOmset: number
+  totalCount: number
+}
+
+const ink        = "#0F172A"
+const inkMuted   = "#64748B"
+const inkFaint   = "#94A3B8"
+const border     = "#E2E8F0"
+const surface    = "#F8FAFC"
+const accent     = "#FF6A3D"
+const green      = "#16A34A"
+const red        = "#DC2626"
+const amber      = "#B45309"
+const amberBg    = "#FFFBEB"
+const amberBorder = "#FDE68A"
+
+// Matches the on-screen Target Omset card thresholds exactly (app/closing/page.tsx)
+const barGreen  = "#22c55e"
+const barOrange = "#E84500"
+const barRed    = "#ef4444"
+
+const DOT_COLORS = ["#FF6A3D", "#8b5cf6", "#10b981", "#3b82f6", "#f59e0b", "#ec4899"]
+
+const PAGE_WIDTH = 210
+const PAGE_HEIGHT = 297
+const MARGIN = 12
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
+
+async function fetchLogo(): Promise<{ dataUrl: string; aspect: number } | null> {
+  try {
+    const res = await fetch("/logo-central-group.png")
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error("Failed to read logo blob"))
+      reader.readAsDataURL(blob)
+    })
+    const aspect = await new Promise<number>((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img.naturalWidth / img.naturalHeight)
+      img.onerror = () => reject(new Error("Failed to load logo image"))
+      img.src = dataUrl
+    })
+    return { dataUrl, aspect }
+  } catch {
+    return null
+  }
+}
+
+function roundedBox(pdf: jsPDF, x: number, y: number, w: number, h: number, fill: string, stroke: string, radius = 2) {
+  pdf.setFillColor(fill)
+  pdf.setDrawColor(stroke)
+  pdf.setLineWidth(0.25)
+  pdf.roundedRect(x, y, w, h, radius, radius, "FD")
+}
+
+function progressBar(pdf: jsPDF, x: number, y: number, w: number, h: number, pct: number, color: string) {
+  pdf.setFillColor(border)
+  pdf.roundedRect(x, y, w, h, h / 2, h / 2, "F")
+  const fillW = w * Math.min(Math.max(pct, 0), 100) / 100
+  if (fillW > 0) {
+    pdf.setFillColor(color)
+    pdf.roundedRect(x, y, Math.max(h, fillW), h, h / 2, h / 2, "F")
+  }
+}
+
+function fitText(pdf: jsPDF, text: string, maxWidth: number): string {
+  if (pdf.getTextWidth(text) <= maxWidth) return text
+  let truncated = text
+  while (truncated.length > 1 && pdf.getTextWidth(`${truncated}…`) > maxWidth) {
+    truncated = truncated.slice(0, -1)
+  }
+  return `${truncated}…`
+}
+
+function barColor(pct: number): string {
+  return pct >= 100 ? barGreen : pct >= 70 ? barOrange : barRed
+}
+
+export async function generateClosingReportPdf(data: ClosingReportData): Promise<void> {
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" })
+  const periodWord = data.isYtd ? "tahun ini" : "bulan ini"
+  const omsetLabel = data.isYtd ? "Omset YTD" : "Omset MTD"
+  const mtdPct = data.mtdTarget > 0 ? Math.round((data.mtdValue / data.mtdTarget) * 100) : 0
+
+  let y = MARGIN
+
+  // ---- Header ----
+  const logo = await fetchLogo()
+  let titleX = MARGIN
+  if (logo) {
+    const logoW = 26
+    const logoH = logoW / logo.aspect
+    pdf.addImage(logo.dataUrl, "PNG", MARGIN, y, logoW, logoH)
+    titleX = MARGIN + logoW + 5
+  }
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(17)
+  pdf.setTextColor(ink)
+  pdf.text("Report Closing", titleX, y + 6)
+  pdf.setFont("helvetica", "normal")
+  pdf.setFontSize(9)
+  pdf.setTextColor(inkMuted)
+  pdf.text("PT Central Group Development · MASCOL Division", titleX, y + 12)
+
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(12)
+  pdf.setTextColor(ink)
+  pdf.text(data.periodLabel, PAGE_WIDTH - MARGIN, y + 6, { align: "right" })
+  pdf.setFont("helvetica", "normal")
+  pdf.setFontSize(8)
+  pdf.setTextColor(inkFaint)
+  pdf.text(`Dibuat ${data.generatedAt}`, PAGE_WIDTH - MARGIN, y + 11, { align: "right" })
+
+  y += 18
+  pdf.setDrawColor(ink)
+  pdf.setLineWidth(0.8)
+  pdf.line(MARGIN, y, PAGE_WIDTH - MARGIN, y)
+  y += 6
+
+  // ---- KPI row ----
+  const kpiH = 18
+  roundedBox(pdf, MARGIN, y, CONTENT_WIDTH, kpiH, surface, border)
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(9)
+  pdf.setTextColor(inkMuted)
+  pdf.text(omsetLabel.toUpperCase(), MARGIN + 5, y + 7)
+  pdf.setFontSize(17)
+  pdf.setTextColor(ink)
+  pdf.text(formatRupiahFull(data.mtdValue), MARGIN + 5, y + 14.5)
+
+  pdf.setFont("helvetica", "normal")
+  pdf.setFontSize(9)
+  pdf.setTextColor(inkMuted)
+  pdf.text(`Target Tim: ${formatRupiahFull(data.mtdTarget)}`, PAGE_WIDTH - MARGIN - 5, y + 7, { align: "right" })
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(14)
+  pdf.setTextColor(mtdPct >= 100 ? green : mtdPct >= 70 ? accent : red)
+  pdf.text(`${mtdPct}%`, PAGE_WIDTH - MARGIN - 5, y + 15.5, { align: "right" })
+  y += kpiH + 5
+
+  // ---- Top performers ----
+  const perfH = 24
+  const perfGap = 5
+  const perfW = (CONTENT_WIDTH - perfGap) / 2
+  function drawPerformer(x: number, label: string, name: string | null, value: number, valueColor: string, caption: string) {
+    roundedBox(pdf, x, y, perfW, perfH, surface, border)
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(8)
+    pdf.setTextColor(inkMuted)
+    pdf.text(label.toUpperCase(), x + 5, y + 6)
+    if (name) {
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(11)
+      pdf.setTextColor(ink)
+      pdf.text(fitText(pdf, name, perfW - 10), x + 5, y + 12.5)
+      pdf.setFontSize(13)
+      pdf.setTextColor(valueColor)
+      pdf.text(formatRupiahFull(value), x + 5, y + 18.5)
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(8)
+      pdf.setTextColor(inkMuted)
+      pdf.text(caption, x + 5, y + 22.5)
+    } else {
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(9)
+      pdf.setTextColor(inkFaint)
+      pdf.text(`Belum ada closing ${periodWord}`, x + 5, y + 14)
+    }
+  }
+  drawPerformer(MARGIN, "Top Sales Hunter", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`)
+  drawPerformer(MARGIN + perfW + perfGap, "Top Sales Person", data.topSales?.name ?? null, data.topSales?.omset ?? 0, green, `Kontribusi ${periodWord}`)
+  y += perfH + 5
+
+  // ---- Target Omset Alert — all hunters (5-col grid, matches on-screen Target Omset card) ----
+  const alertCols = 5
+  const alertGap = 3
+  const alertCardW = (CONTENT_WIDTH - alertGap * (alertCols - 1)) / alertCols
+  const alertCardH = 24
+  const alertRows = Math.max(1, Math.ceil(data.allHunters.length / alertCols))
+  const alertBoxH = 10 + alertRows * alertCardH + (alertRows - 1) * alertGap + 5
+
+  roundedBox(pdf, MARGIN, y, CONTENT_WIDTH, alertBoxH, amberBg, amberBorder)
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(10)
+  pdf.setTextColor(amber)
+  pdf.text("TARGET OMSET ALERT — SEMUA HUNTER", MARGIN + 5, y + 7)
+
+  if (data.allHunters.length > 0) {
+    data.allHunters.forEach((hunter, i) => {
+      const col = i % alertCols
+      const row = Math.floor(i / alertCols)
+      const cx = MARGIN + col * (alertCardW + alertGap)
+      const cy = y + 10 + row * (alertCardH + alertGap)
+      const pct = hunter.target > 0 ? Math.round((hunter.omset / hunter.target) * 100) : 0
+      const color = barColor(pct)
+      const achieved = pct >= 100
+      roundedBox(pdf, cx, cy, alertCardW, alertCardH, "#FFFFFF", achieved ? "#86EFAC" : amberBorder, 1.5)
+
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(7.5)
+      pdf.setTextColor(inkMuted)
+      pdf.text(fitText(pdf, hunter.name, alertCardW - 4), cx + 2.5, cy + 5)
+
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(9.5)
+      pdf.setTextColor(ink)
+      pdf.text(fitText(pdf, formatRupiahFull(hunter.omset), alertCardW - 4), cx + 2.5, cy + 10.5)
+
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(7)
+      pdf.setTextColor(inkMuted)
+      pdf.text(fitText(pdf, `Target: ${formatRupiahFull(hunter.target)}`, alertCardW - 4), cx + 2.5, cy + 14.5)
+
+      progressBar(pdf, cx + 2.5, cy + 17, alertCardW - 5, 1.6, pct, color)
+
+      pdf.setFont("helvetica", "bold")
+      pdf.setFontSize(10)
+      pdf.setTextColor(color)
+      pdf.text(`${pct}%`, cx + 2.5, cy + 22.5)
+    })
+  } else {
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(9)
+    pdf.setTextColor(inkFaint)
+    pdf.text("Belum ada data hunter", MARGIN + 5, y + 14)
+  }
+  y += alertBoxH + 5
+
+  // ---- Omset per Proyek ----
+  const projCols = 3
+  const projGap = 3
+  const projCardW = (CONTENT_WIDTH - projGap * (projCols - 1)) / projCols
+  const projCardH = 15
+  const projRows = Math.max(1, Math.ceil(data.projectData.length / projCols))
+  const projBoxH = 9 + projRows * projCardH + (projRows - 1) * projGap + 4
+
+  roundedBox(pdf, MARGIN, y, CONTENT_WIDTH, projBoxH, surface, border)
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(9)
+  pdf.setTextColor(inkMuted)
+  pdf.text("OMSET PER PROYEK", MARGIN + 5, y + 6.5)
+
+  data.projectData.forEach((project, i) => {
+    const col = i % projCols
+    const row = Math.floor(i / projCols)
+    const cx = MARGIN + col * (projCardW + projGap)
+    const cy = y + 9 + row * (projCardH + projGap)
+    roundedBox(pdf, cx, cy, projCardW, projCardH, "#FFFFFF", project.value > 0 ? border : "#F1F5F9", 1.5)
+
+    pdf.setFillColor(DOT_COLORS[i % DOT_COLORS.length])
+    pdf.circle(cx + 3.5, cy + 5.2, 1, "F")
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(7.5)
+    pdf.setTextColor(inkMuted)
+    pdf.text(fitText(pdf, project.name, projCardW - 9), cx + 6, cy + 6)
+
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(9.5)
+    pdf.setTextColor(project.value > 0 ? ink : inkFaint)
+    pdf.text(fitText(pdf, formatRupiahFull(project.value), projCardW - 4), cx + 2.5, cy + 11.5)
+  })
+  y += projBoxH + 6
+
+  // ---- Transactions table (real text, auto-paginates if it overflows) ----
+  autoTable(pdf, {
+    startY: y,
+    margin: { left: MARGIN, right: MARGIN, bottom: 14 },
+    head: [["Hunter / Sales", "Konsumen", "Project / Unit", "Nilai Omset", "Cara Bayar", "Tgl Closing"]],
+    body: data.rows.map(row => [
+      `${row.hunter || "—"}\n${row.salesPerson || "—"}`,
+      row.konsumen || "—",
+      [row.project, row.unit].filter(Boolean).join(" - ") || "—",
+      formatRupiahFull(row.nilaiOmset),
+      row.caraBayar || "—",
+      row.closingDate,
+    ]),
+    foot: [[
+      { content: `Total · ${data.totalCount} transaksi`, colSpan: 3, styles: { halign: "left", fontStyle: "bold", fontSize: 9 } },
+      { content: formatRupiahFull(data.totalOmset), styles: { halign: "right", textColor: green, fontStyle: "bold", fontSize: 10 } },
+      { content: "", colSpan: 2 },
+    ]],
+    styles: { font: "helvetica", fontSize: 8, textColor: ink, lineColor: border, lineWidth: 0.1, cellPadding: 2, valign: "middle" },
+    headStyles: { fillColor: ink, textColor: "#FFFFFF", fontStyle: "bold", fontSize: 7.5 },
+    footStyles: { fillColor: surface, lineWidth: { top: 0.5 } },
+    alternateRowStyles: { fillColor: surface },
+    columnStyles: {
+      3: { halign: "right", textColor: green, fontStyle: "bold" },
+    },
+    didDrawPage: (hookData) => {
+      pdf.setFont("helvetica", "normal")
+      pdf.setFontSize(7.5)
+      pdf.setTextColor(inkFaint)
+      pdf.text("Report Closing · PT Central Group Development", MARGIN, PAGE_HEIGHT - 8)
+      pdf.text(`Halaman ${hookData.pageNumber}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 8, { align: "right" })
+    },
+  })
+
+  pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
+}

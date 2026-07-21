@@ -1,13 +1,11 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
-import { createRoot } from "react-dom/client"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
 import SalesFilterBar from "@/components/SalesFilterBar"
-import ClosingReportTemplate, { type ClosingReportRow } from "@/components/ClosingReportTemplate"
 import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEAM_MONTHLY_TARGET, PROJECT_NAMES } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { canonicalProjectTotals, periodTarget } from "@/lib/dashboard-rules"
@@ -635,10 +633,7 @@ export default function ClosingPage() {
     }
     setReportBusy(true)
     try {
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import("jspdf"),
-        import("html2canvas"),
-      ])
+      const { generateClosingReportPdf } = await import("@/lib/closing-report-pdf")
 
       // Reflects whatever period is selected on the page (Bulan / YTD / Custom),
       // across all hunters — same source the table's transactions come from,
@@ -681,7 +676,7 @@ export default function ClosingPage() {
       }
       const projectData = canonicalProjectTotals(projMap, PROJECT_NAMES)
 
-      const rows: ClosingReportRow[] = filtered.map(c => ({
+      const rows = filtered.map(c => ({
         hunter: c.sales_hunter,
         salesPerson: formatSalesPerson(c.sales_person, c.agent_name),
         konsumen: c.name,
@@ -700,52 +695,21 @@ export default function ClosingPage() {
 
       const generatedAt = new Date().toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
 
-      const container = document.createElement("div")
-      container.style.position = "fixed"
-      container.style.left = "-99999px"
-      container.style.top = "0"
-      document.body.appendChild(container)
-      const root = createRoot(container)
-      root.render(
-        <ClosingReportTemplate
-          periodLabel={periodLabel}
-          generatedAt={generatedAt}
-          isYtd={ytdMode}
-          mtdValue={periodValue}
-          mtdTarget={periodTargetTeam}
-          topHunter={topHunter}
-          topSales={topSales}
-          allHunters={allHunters}
-          projectData={projectData}
-          rows={rows}
-          totalOmset={totalOmset}
-          totalCount={filtered.length}
-        />
-      )
+      await generateClosingReportPdf({
+        periodLabel,
+        generatedAt,
+        isYtd: ytdMode,
+        mtdValue: periodValue,
+        mtdTarget: periodTargetTeam,
+        topHunter,
+        topSales,
+        allHunters,
+        projectData,
+        rows,
+        totalOmset,
+        totalCount: filtered.length,
+      })
 
-      await new Promise(resolve => setTimeout(resolve, 150))
-
-      const target = container.firstElementChild as HTMLElement
-      const canvas = await html2canvas(target, { scale: 2, backgroundColor: "#ffffff" })
-
-      // Standard A4 portrait, always a single page — the image is scaled to
-      // fit entirely within the page (preserving aspect ratio, letterboxed if
-      // needed) so nothing is ever cropped, regardless of content length.
-      const pageWidthMm = 210
-      const pageHeightMm = 297
-      const imgAspect = canvas.width / canvas.height
-      const pageAspect = pageWidthMm / pageHeightMm
-      const renderWidthMm = imgAspect > pageAspect ? pageWidthMm : pageHeightMm * imgAspect
-      const renderHeightMm = imgAspect > pageAspect ? pageWidthMm / imgAspect : pageHeightMm
-      const offsetXMm = (pageWidthMm - renderWidthMm) / 2
-      const offsetYMm = (pageHeightMm - renderHeightMm) / 2
-
-      const pdf = new jsPDF({ unit: "mm", format: [pageWidthMm, pageHeightMm], orientation: "portrait" })
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", offsetXMm, offsetYMm, renderWidthMm, renderHeightMm)
-      pdf.save(`Report Closing - ${new Date().toISOString().slice(0, 10)}.pdf`)
-
-      root.unmount()
-      container.remove()
       showToast("Report Closing (PDF) berhasil diunduh", "success")
     } catch (error) {
       showToast(`Gagal membuat report PDF: ${error instanceof Error ? error.message : "unknown error"}`, "error")
