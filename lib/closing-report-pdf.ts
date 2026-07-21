@@ -333,9 +333,10 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
   autoTable(pdf, {
     startY: y,
     margin: { left: MARGIN, right: MARGIN, bottom: 14 },
-    head: [["Hunter / Sales", "Konsumen", "Project / Unit", "Nilai Omset", "Cara Bayar", "Tgl Closing"]],
+    head: [["Hunter", "Sales Person", "Konsumen", "Project / Unit", "Nilai Omset", "Cara Bayar", "Tgl Closing"]],
     body: data.rows.map(row => [
-      `${row.hunter || "—"}\n${row.salesPerson || "—"}`,
+      row.hunter || "—",
+      row.salesPerson || "—",
       row.konsumen || "—",
       [row.project, row.unit].filter(Boolean).join(" - ") || "—",
       formatRupiahFull(row.nilaiOmset),
@@ -343,7 +344,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
       row.closingDate,
     ]),
     foot: [[
-      { content: `Total · ${data.totalCount} transaksi`, colSpan: 3, styles: { halign: "left", fontStyle: "bold", fontSize: 9 } },
+      { content: `Total · ${data.totalCount} transaksi`, colSpan: 4, styles: { halign: "left", fontStyle: "bold", fontSize: 9 } },
       { content: formatRupiahFull(data.totalOmset), styles: { halign: "right", textColor: green, fontStyle: "bold", fontSize: 10, font: "courier" } },
       { content: "", colSpan: 2 },
     ]],
@@ -352,32 +353,9 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     footStyles: { fillColor: surface, lineWidth: { top: 0.5 } },
     alternateRowStyles: { fillColor: surface },
     columnStyles: {
-      3: { halign: "right", textColor: green, fontStyle: "bold", font: "courier" },
-    },
-    // The Hunter/Sales column packs two lines into one cell; give them
-    // distinct weights/colors (bold name, muted role) instead of one
-    // uniform style — matches how the app itself renders this pairing.
-    didParseCell: (hookData) => {
-      if (hookData.section === "body" && hookData.column.index === 0) {
-        hookData.cell.text = []
-      }
-    },
-    didDrawCell: (hookData) => {
-      if (hookData.section !== "body" || hookData.column.index !== 0) return
-      const raw = hookData.row.raw
-      const combined = Array.isArray(raw) ? String(raw[0] ?? "") : ""
-      const [hunterName, spName] = combined.split("\n")
-      const cell = hookData.cell
-      const padLeft = cell.padding("left")
-      const centerY = cell.y + cell.height / 2
-      pdf.setFont("helvetica", "bold")
-      pdf.setFontSize(8)
-      pdf.setTextColor(ink)
-      pdf.text(hunterName || "—", cell.x + padLeft, centerY - 1.1)
-      pdf.setFont("helvetica", "normal")
-      pdf.setFontSize(7)
-      pdf.setTextColor(inkMuted)
-      pdf.text(spName || "—", cell.x + padLeft, centerY + 2.3)
+      0: { fontStyle: "bold", textColor: ink },
+      1: { textColor: inkMuted, fontSize: 7.5 },
+      4: { halign: "right", textColor: green, fontStyle: "bold", font: "courier", cellWidth: 22 },
     },
     didDrawPage: () => {
       pdf.setFont("helvetica", "normal")
