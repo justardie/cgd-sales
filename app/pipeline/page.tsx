@@ -10,7 +10,8 @@ import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
-import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical } from "lucide-react"
+import { daysSince, isStaleLead } from "@/lib/stale-leads"
+import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical, AlertTriangle } from "lucide-react"
 
 interface KonsumenRow {
   id: string
@@ -403,6 +404,7 @@ export default function PipelinePage() {
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
   const [dbProjects, setDbProjects] = useState<string[]>([])
   const [latestNotes, setLatestNotes] = useState<Record<string, string>>({})
+  const [latestNoteDates, setLatestNoteDates] = useState<Record<string, string>>({})
   const [latestProgress, setLatestProgress] = useState<Record<string, PipelineProgressExport>>({})
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
   const [closingForm, setClosingForm] = useState({
@@ -492,12 +494,14 @@ export default function PipelinePage() {
           .order("created_at", { ascending: false })
       ))
       const noteMap: Record<string, string> = {}
+      const noteDateMap: Record<string, string> = {}
       const progressMap: Record<string, PipelineProgressExport> = {}
       for (const { data: pnData, error } of results) {
         if (error) continue
-        for (const pn of (pnData || []) as { konsumen_id: string; content: string; kendala: string | null; next_action: string | null; target_closing: string | null }[]) {
+        for (const pn of (pnData || []) as { konsumen_id: string; content: string; kendala: string | null; next_action: string | null; target_closing: string | null; created_at: string }[]) {
           if (!noteMap[pn.konsumen_id]) {
             noteMap[pn.konsumen_id] = pn.content
+            noteDateMap[pn.konsumen_id] = pn.created_at
             if (pn.kendala || pn.next_action || pn.target_closing) {
               progressMap[pn.konsumen_id] = {
                 kendala: pn.kendala || "",
@@ -509,6 +513,7 @@ export default function PipelinePage() {
         }
       }
       setLatestNotes(noteMap)
+      setLatestNoteDates(noteDateMap)
       setLatestProgress(progressMap)
     }
 
@@ -851,15 +856,27 @@ export default function PipelinePage() {
                 ) : visibleRows.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
                   const badge = statusBadge(r.status)
+                  const lastActivity = latestNoteDates[r.id] || r.created_at
+                  const isStale = isStaleLead(r.status, lastActivity)
                   return (
-                  <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}
+                  <tr key={r.id}
+                    style={{ borderBottom: "1px solid var(--border)", borderLeft: isStale ? "3px solid var(--orange, #f59e0b)" : "3px solid transparent" }}
                     className={`hover:bg-white/[0.02] ${isTidakPotensial ? "opacity-50" : ""}`}>
                     <td className="px-3 py-3 text-xs whitespace-nowrap">
                       <div className="text-slate-300">{r.sales_hunter || "—"}</div>
                       <div className="text-slate-500 mt-0.5">{formatSalesPerson(r.sales_person, r.agent_name)}</div>
                     </td>
                     <td className="px-3 py-3 text-xs">
-                      <div className="font-medium text-white">{r.name || "—"}</div>
+                      <div className="font-medium text-white flex items-center gap-1.5">
+                        {r.name || "—"}
+                        {isStale && lastActivity && (
+                          <span title={`${daysSince(lastActivity)} hari tanpa update`}
+                            className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>
+                            <AlertTriangle size={9} /> {daysSince(lastActivity)}h
+                          </span>
+                        )}
+                      </div>
                       {(latestNotes[r.id] || r.notes) && (
                         <div className="text-slate-500 mt-1 whitespace-pre-wrap md:hidden" style={{ fontSize: "10px", lineHeight: "1.4" }}>
                           {latestNotes[r.id] || r.notes}

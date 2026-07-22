@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { LogOut, Shield, MessageSquare, ClipboardList, Sun, Moon } from "lucide-react"
+import NotificationBell from "@/components/NotificationBell"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview"                           },
@@ -45,6 +46,7 @@ export default function Header() {
   const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
   const isTf = role === "task_force"
   const hasTmAccess = user?.has_tm_access ?? false
+  const hasPipelineAccess = isAdmin || isTf || role === "hunter" || role === "sales_person"
 
   const navItems = isTm
     ? TM_NAV
@@ -120,6 +122,7 @@ export default function Header() {
       </nav>
 
       <div className="header-right">
+        {hasPipelineAccess && <NotificationBell />}
         <div className="user-profile-wrap" ref={profileRef}>
           <button
             className="user-profile-btn"
