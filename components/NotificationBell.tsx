@@ -18,9 +18,9 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [open])
 
-  function goToPipeline() {
+  function goToLead(id: string) {
     setOpen(false)
-    router.push("/pipeline")
+    router.push(`/pipeline?highlight=${id}`)
   }
 
   return (
@@ -49,7 +49,7 @@ export default function NotificationBell() {
           ) : (
             <>
               {staleLeads.slice(0, 8).map(lead => (
-                <button key={lead.id} className="profile-dropdown-item" onClick={goToPipeline} style={{ display: "block" }}>
+                <button key={lead.id} className="profile-dropdown-item" onClick={() => goToLead(lead.id)} style={{ display: "block" }}>
                   <span style={{ display: "block", fontWeight: 600 }}>{lead.name || "—"}</span>
                   <span style={{ display: "block", fontSize: "11px", color: "var(--text-muted)", fontWeight: 400 }}>
                     {lead.project || "—"} · {lead.days} hari tanpa update

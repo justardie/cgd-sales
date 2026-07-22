@@ -418,6 +418,8 @@ export default function PipelinePage() {
   const [formError, setFormError] = useState("")
   const [deleteTarget, setDeleteTarget] = useState<KonsumenRow | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({})
 
   const openNew = useCallback(() => {
     setEditing(null)
@@ -438,6 +440,22 @@ export default function PipelinePage() {
       }
     }
   }, [user, loading, openNew])
+
+  // Scroll to and flash a lead row when navigated with ?highlight=<id> (from the notification bell)
+  useEffect(() => {
+    if (typeof window === "undefined" || loading) return
+    const params = new URLSearchParams(window.location.search)
+    const target = params.get("highlight")
+    if (!target) return
+    window.history.replaceState({}, "", "/pipeline")
+    const row = rowRefs.current[target]
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" })
+      setHighlightId(target)
+      const timer = setTimeout(() => setHighlightId(null), 2500)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, rows])
 
   useEffect(() => {
     const handler = () => openNew()
@@ -858,9 +876,16 @@ export default function PipelinePage() {
                   const badge = statusBadge(r.status)
                   const lastActivity = latestNoteDates[r.id] || r.created_at
                   const isStale = isStaleLead(r.status, lastActivity)
+                  const isFlashed = highlightId === r.id
                   return (
                   <tr key={r.id}
-                    style={{ borderBottom: "1px solid var(--border)", borderLeft: isStale ? "3px solid var(--orange, #f59e0b)" : "3px solid transparent" }}
+                    ref={node => { rowRefs.current[r.id] = node }}
+                    style={{
+                      borderBottom: "1px solid var(--border)",
+                      borderLeft: isStale ? "3px solid var(--orange, #f59e0b)" : "3px solid transparent",
+                      background: isFlashed ? "rgba(245,158,11,0.12)" : undefined,
+                      transition: "background 0.4s ease",
+                    }}
                     className={`hover:bg-white/[0.02] ${isTidakPotensial ? "opacity-50" : ""}`}>
                     <td className="px-3 py-3 text-xs whitespace-nowrap">
                       <div className="text-slate-300">{r.sales_hunter || "—"}</div>
