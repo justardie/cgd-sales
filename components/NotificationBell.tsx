@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Bell } from "lucide-react"
 import { useStaleLeads } from "@/lib/useStaleLeads"
 import { useAuth } from "@/contexts/AuthContext"
@@ -19,6 +19,7 @@ export default function NotificationBell() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const bellBtnRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => setMounted(true), [])
 
@@ -59,7 +60,13 @@ export default function NotificationBell() {
 
   function goToLead(id: string) {
     setOpen(false)
-    router.push(`/pipeline?highlight=${id}`)
+    if (pathname === "/pipeline") {
+      // Already there — a route change to the same path wouldn't remount the page,
+      // so tell it directly instead of relying on a (no-op) query string change.
+      window.dispatchEvent(new CustomEvent("pipeline:highlightLead", { detail: { id } }))
+    } else {
+      router.push(`/pipeline?highlight=${id}`)
+    }
   }
 
   const captionLeft = rect ? Math.min(Math.max(12, rect.left - 100), window.innerWidth - 272) : 0

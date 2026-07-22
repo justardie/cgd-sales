@@ -441,21 +441,52 @@ export default function PipelinePage() {
     }
   }, [user, loading, openNew])
 
-  // Scroll to and flash a lead row when navigated with ?highlight=<id> (from the notification bell)
+  // Scroll to and flash a lead row after navigating with ?highlight=<id> (from the notification bell).
+  // Rows render synchronously with this effect's dependencies, but the DOM ref may lag a
+  // frame behind — retry briefly instead of giving up immediately.
+  const scrollToLead = useCallback((target: string) => {
+    // Clear any active filters that could be hiding the row (warm/hot leads are always
+    // visible with defaults, but a stale search/status/hunter filter could mask it).
+    setSearch("")
+    setFilterHunter("")
+    setFilterProject("")
+    setFilterCaraBayar("")
+    setFilterStatus("all")
+
+    let attempts = 0
+    const tryScroll = () => {
+      const row = rowRefs.current[target]
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" })
+        setHighlightId(target)
+        setTimeout(() => setHighlightId(null), 2500)
+      } else if (attempts < 15) {
+        attempts += 1
+        requestAnimationFrame(tryScroll)
+      }
+    }
+    tryScroll()
+  }, [])
+
   useEffect(() => {
     if (typeof window === "undefined" || loading) return
     const params = new URLSearchParams(window.location.search)
     const target = params.get("highlight")
     if (!target) return
     window.history.replaceState({}, "", "/pipeline")
-    const row = rowRefs.current[target]
-    if (row) {
-      row.scrollIntoView({ behavior: "smooth", block: "center" })
-      setHighlightId(target)
-      const timer = setTimeout(() => setHighlightId(null), 2500)
-      return () => clearTimeout(timer)
+    scrollToLead(target)
+  }, [loading, rows, scrollToLead])
+
+  // Same-page case: notification bell dispatches this when already on /pipeline, since a
+  // route change to the same path doesn't remount the page or re-run the effect above.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id
+      if (id) scrollToLead(id)
     }
-  }, [loading, rows])
+    window.addEventListener("pipeline:highlightLead", handler)
+    return () => window.removeEventListener("pipeline:highlightLead", handler)
+  }, [scrollToLead])
 
   useEffect(() => {
     const handler = () => openNew()
