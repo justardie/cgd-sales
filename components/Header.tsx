@@ -5,14 +5,13 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
-import { LogOut, Shield, MessageSquare, ClipboardList, Sun, Moon, Building2 } from "lucide-react"
+import { LogOut, Shield, MessageSquare, Sun, Moon, Users } from "lucide-react"
 import NotificationBell from "@/components/NotificationBell"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview"                           },
   { href: "/pipeline",       label: "Pipeline"                           },
   { href: "/closing",        label: "Closing"                            },
-  { href: "/team",           label: "Team Status"                        },
   { href: "/unit-special",   label: "Unit Special"                       },
   { href: "/report",         label: "REPORT",        reportAccess: true  },
   { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
@@ -157,9 +156,9 @@ export default function Header() {
                 </button>
               </div>
               <div className="profile-dropdown-divider" />
-              {(role === "hunter" || isAdmin) && (
-                <Link href="/report" className="profile-dropdown-item" onClick={() => setProfileOpen(false)}>
-                  <ClipboardList size={14} /><span>REPORT</span>
+              {!isTm && (
+                <Link href="/team" className="profile-dropdown-item" onClick={() => setProfileOpen(false)}>
+                  <Users size={14} /><span>Team Status</span>
                 </Link>
               )}
               {isAdmin && (
@@ -179,14 +178,6 @@ export default function Header() {
                   >
                     <Shield size={14} />
                     <span>Admin</span>
-                  </Link>
-                  <Link
-                    href="/unit-special"
-                    className="profile-dropdown-item"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <Building2 size={14} />
-                    <span>Unit Special</span>
                   </Link>
                   <div className="profile-dropdown-divider" />
                 </>
