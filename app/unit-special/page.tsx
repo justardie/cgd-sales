@@ -15,8 +15,10 @@ import {
   type UnitSpecialForm,
   type UnitSpecialStatus,
 } from "@/lib/unit-special"
-import { Edit3, Plus, Trash2, X } from "lucide-react"
+import { ArrowUpDown, Edit3, FileDown, Plus, Trash2, X } from "lucide-react"
 import { useToast } from "@/contexts/ToastContext"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 
 interface UnitSpecialRow {
   id: string
@@ -31,6 +33,8 @@ interface UnitSpecialRow {
   status: UnitSpecialStatus
   created_at: string
 }
+
+type SortKey = "project" | "cluster" | "unit_no" | "lt_lb" | "payment_method" | "sale_price" | "notes" | "status"
 
 function parseNumber(value: string) {
   return Number(value.replace(/[^\d]/g, "")) || 0
@@ -69,11 +73,19 @@ export default function UnitSpecialPage() {
   const [editing, setEditing] = useState<UnitSpecialRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<UnitSpecialRow | null>(null)
   const [form, setForm] = useState<UnitSpecialForm>(buildEmptyUnitSpecialForm("unit_buyback"))
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "project", dir: "asc" })
 
-  const filteredRows = useMemo(
-    () => rows.filter((row) => row.category === activeCategory),
-    [activeCategory, rows]
-  )
+  const activeLabel = UNIT_SPECIAL_CATEGORIES.find((category) => category.value === activeCategory)?.label || "Unit Special"
+
+  const filteredRows = useMemo(() => {
+    const list = rows.filter((row) => row.category === activeCategory)
+    return [...list].sort((a, b) => {
+      const av = sort.key === "sale_price" ? a.sale_price : (a[sort.key] || "").toString().toLowerCase()
+      const bv = sort.key === "sale_price" ? b.sale_price : (b[sort.key] || "").toString().toLowerCase()
+      const result = av > bv ? 1 : av < bv ? -1 : 0
+      return sort.dir === "asc" ? result : -result
+    })
+  }, [activeCategory, rows, sort])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -136,6 +148,67 @@ export default function UnitSpecialPage() {
     setForm((current) => ({ ...current, payment_method: formatUnitSpecialPayments([...UNIT_SPECIAL_PAYMENT_OPTIONS]) }))
   }
 
+  function toggleSort(key: SortKey) {
+    setSort((current) => current.key === key ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" })
+  }
+
+  function exportPdf() {
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+    const generated = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date())
+    pdf.setFont("helvetica", "bold")
+    pdf.setFontSize(12)
+    pdf.text(activeLabel, 8, 10)
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(7)
+    pdf.text(`CGD Sales · ${generated}`, 8, 15)
+    autoTable(pdf, {
+      startY: 18,
+      margin: { left: 5, right: 5 },
+      head: [["No.", "Project", "Cluster", "No. Unit", "LT/LB", "Cara Bayar", "Harga", "Ket.", "Status"]],
+      body: filteredRows.map((row, index) => [
+        index + 1,
+        row.project,
+        row.cluster,
+        row.unit_no,
+        row.lt_lb,
+        row.payment_method,
+        row.sale_price ? row.sale_price.toLocaleString("id-ID") : "",
+        row.notes,
+        row.status,
+      ]),
+      styles: { fontSize: filteredRows.length > 45 ? 3.6 : 5.2, cellPadding: filteredRows.length > 45 ? 0.45 : 0.9, overflow: "linebreak", lineWidth: 0.08 },
+      headStyles: { fillColor: [11, 34, 73], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 7, halign: "center" },
+        1: { cellWidth: 21 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 14 },
+        5: { cellWidth: 28 },
+        6: { cellWidth: 19, halign: "right" },
+        7: { cellWidth: 42 },
+        8: { cellWidth: 14, halign: "center" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.row.raw && Array.isArray(data.row.raw) && data.row.raw[8] === "Sold") {
+          data.cell.styles.fillColor = [254, 242, 242]
+          data.cell.styles.textColor = [153, 27, 27]
+        }
+      },
+      pageBreak: "avoid",
+      rowPageBreak: "avoid",
+      theme: "grid",
+    })
+    if (pdf.getNumberOfPages() > 1) {
+      for (let page = pdf.getNumberOfPages(); page > 1; page -= 1) pdf.deletePage(page)
+      pdf.setFontSize(7)
+      pdf.setTextColor(185, 28, 28)
+      pdf.text("Catatan: data dirapatkan agar tetap satu halaman A4 portrait.", 8, 291)
+    }
+    pdf.save(`${activeLabel}.pdf`)
+  }
+
   async function handleSave(event: React.FormEvent) {
     event.preventDefault()
     if (!form.project || !form.unit_no) {
@@ -193,9 +266,14 @@ export default function UnitSpecialPage() {
             <h1 className="text-xl font-bold text-white">Unit Special</h1>
             <p className="text-sm text-slate-500 mt-0.5">Unit Buyback, Unit Investor, dan Stock Sudah SPK</p>
           </div>
-          <button onClick={() => openNew()} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
-            <Plus size={16} /> Tambah Unit
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={exportPdf} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition">
+              <FileDown size={16} /> Export PDF
+            </button>
+            <button onClick={() => openNew()} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
+              <Plus size={16} /> Tambah Unit
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -216,9 +294,24 @@ export default function UnitSpecialPage() {
             <table className="w-full text-sm">
               <thead style={{ background: "var(--surface2)" }}>
                 <tr className="text-slate-400 text-left">
-                  {["No.", "Project", "Cluster", "No. Unit", "LT/LB", "Cara Bayar", "Harga Jual", "Keterangan", "Status", "Aksi"].map((head) => (
-                    <th key={head} className="px-4 py-3 font-semibold whitespace-nowrap">{head}</th>
+                  <th className="px-3 py-2 font-semibold whitespace-nowrap">No.</th>
+                  {[
+                    ["project", "Project"],
+                    ["cluster", "Cluster"],
+                    ["unit_no", "No. Unit"],
+                    ["lt_lb", "LT/LB"],
+                    ["payment_method", "Cara Bayar"],
+                    ["sale_price", "Harga Jual"],
+                    ["notes", "Keterangan"],
+                    ["status", "Status"],
+                  ].map(([key, label]) => (
+                    <th key={key} className="px-3 py-2 font-semibold whitespace-nowrap">
+                      <button type="button" onClick={() => toggleSort(key as SortKey)} className="inline-flex items-center gap-1 hover:text-white">
+                        {label}<ArrowUpDown size={12} />
+                      </button>
+                    </th>
                   ))}
+                  <th className="px-3 py-2 font-semibold whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -227,21 +320,21 @@ export default function UnitSpecialPage() {
                 ) : filteredRows.length === 0 ? (
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-500">Belum ada data.</td></tr>
                 ) : filteredRows.map((row, index) => (
-                  <tr key={row.id} className="border-t border-slate-800/70">
-                    <td className="px-4 py-3 text-slate-500">{index + 1}</td>
-                    <td className="px-4 py-3 text-white font-medium">{row.project}</td>
-                    <td className="px-4 py-3 text-slate-300">{row.cluster || "—"}</td>
-                    <td className="px-4 py-3 text-slate-300">{row.unit_no}</td>
-                    <td className="px-4 py-3 text-slate-300">{row.lt_lb || "—"}</td>
-                    <td className="px-4 py-3 text-slate-300">{row.payment_method || "—"}</td>
-                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{formatRupiah(row.sale_price || 0)}</td>
-                    <td className="px-4 py-3 text-slate-400 min-w-[180px]">{row.notes || "—"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${row.status === "Open" ? "bg-green-500/15 text-green-400" : "bg-slate-500/15 text-slate-300"}`}>
+                  <tr key={row.id} className="border-t border-slate-800/70" style={{ background: row.status === "Sold" ? "rgba(239,68,68,0.10)" : undefined }}>
+                    <td className="px-3 py-2 text-slate-500">{index + 1}</td>
+                    <td className="px-3 py-2 text-white font-medium">{row.project}</td>
+                    <td className="px-3 py-2 text-slate-300">{row.cluster || "—"}</td>
+                    <td className="px-3 py-2 text-slate-300">{row.unit_no}</td>
+                    <td className="px-3 py-2 text-slate-300">{row.lt_lb || "—"}</td>
+                    <td className="px-3 py-2 text-slate-300">{row.payment_method || "—"}</td>
+                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{formatRupiah(row.sale_price || 0)}</td>
+                    <td className="px-3 py-2 text-slate-400 min-w-[180px]">{row.notes || "—"}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${row.status === "Open" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
                         {row.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button onClick={() => openEdit(row)} className="p-2 rounded-lg text-slate-400 hover:text-white transition" style={{ background: "var(--surface2)" }} title="Edit">
                           <Edit3 size={14} />
