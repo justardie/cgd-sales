@@ -257,6 +257,8 @@ export default function UnitSpecialPage() {
             </table>
           </div>
         </div>
+
+        {activeCategory === "unit_investor" && <UnitInvestorTerms />}
       </div>
 
       {showModal && (
@@ -353,5 +355,53 @@ function Field({ label, required, children }: { label: string; required?: boolea
       <span className="text-xs text-slate-500 block mb-1">{label}{required && <span className="text-red-400"> *</span>}</span>
       {children}
     </label>
+  )
+}
+
+function UnitInvestorTerms() {
+  const accounts = [
+    ["PM", "BCA 061-6391288", "Princip Muljadi"],
+    ["MM", "BCA 061-8598899", "Merry Muljadi"],
+    ["RBX", "BCA 061-5175353", "PT Robalex Indonesia"],
+    ["MPJR", "BCA 061-3921122", "Mahkota Properti Jayaraya"],
+    ["MBAM", "BCA 855-0050138", "Mitra Bahana Asia Makmur"],
+    ["MPM", "BCA 061-5156677", "Mahkota Permata Mitra"],
+    ["MPT", "BCA 061-5582323", "Mahkota Properti Tangguh"],
+    ["MPTD", "BCA 061-6631688", "Mahkota Properti Tangguh Dahsyat"],
+  ]
+  return (
+    <section className="rounded-2xl p-4 space-y-3 text-sm text-slate-300" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <h2 className="text-base font-bold text-white">Syarat &amp; Ketentuan</h2>
+      <ol className="list-decimal pl-5 space-y-1">
+        <li>Unit Investor hanya dapat dijual dengan cara bayar Cash Bertahap mulai dari 36x &amp; SOB.</li>
+        <li>Unit Internal hanya dapat dijual dengan cara bayar Cash keras dan KPR indent.</li>
+        <li>Setiap hold unit mohon dapat menginformasikan ke Dept. SA untuk pencatatan.</li>
+        <li>Transfer titipan / Booking Fee wajib ke rekening sesuai dengan kode:</li>
+      </ol>
+      <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--border)" }}>
+        <table className="w-full text-sm">
+          <thead style={{ background: "var(--surface2)" }}>
+            <tr className="text-slate-300">
+              <th className="px-4 py-2 text-left">Kode</th>
+              <th className="px-4 py-2 text-left">Nomor Rekening</th>
+              <th className="px-4 py-2 text-left">Nama Rekening</th>
+            </tr>
+          </thead>
+          <tbody>
+            {accounts.map(([code, number, name]) => (
+              <tr key={code} className="border-t border-slate-800/70">
+                <td className="px-4 py-2 font-semibold text-white">{code}</td>
+                <td className="px-4 py-2">{number}</td>
+                <td className="px-4 py-2">{name}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ol className="list-decimal pl-5 space-y-1" start={5}>
+        <li>SKUP menggunakan SKUP Chomes.</li>
+        <li>BASTPP uang masuk 40%.</li>
+      </ol>
+    </section>
   )
 }
