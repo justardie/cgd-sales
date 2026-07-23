@@ -40,7 +40,7 @@ test("builds an empty unit special form for new rows", () => {
 })
 
 test("formats multiple payment methods for storage and display", () => {
-  assert.deepEqual(UNIT_SPECIAL_PAYMENT_OPTIONS, ["Cash", "KPR", "Inhouse"])
-  assert.equal(formatUnitSpecialPayments(["Cash", "KPR"]), "Cash, KPR")
-  assert.equal(formatUnitSpecialPayments(["Cash", "Cash", ""]), "Cash")
+  assert.deepEqual(UNIT_SPECIAL_PAYMENT_OPTIONS, ["Cash Keras", "CB 36X", "KPR", "SOB", "Semua Bisa"])
+  assert.equal(formatUnitSpecialPayments(["Cash Keras", "KPR"]), "Cash Keras, KPR")
+  assert.equal(formatUnitSpecialPayments(["SOB", "SOB", ""]), "SOB")
 })

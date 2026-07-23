@@ -5,7 +5,7 @@ export const UNIT_SPECIAL_CATEGORIES = [
 ] as const
 
 export const UNIT_SPECIAL_STATUS_OPTIONS = ["Open", "Sold"] as const
-export const UNIT_SPECIAL_PAYMENT_OPTIONS = ["Cash", "KPR", "Inhouse"] as const
+export const UNIT_SPECIAL_PAYMENT_OPTIONS = ["Cash Keras", "CB 36X", "KPR", "SOB", "Semua Bisa"] as const
 
 export type UnitSpecialCategory = typeof UNIT_SPECIAL_CATEGORIES[number]["value"]
 export type UnitSpecialStatus = typeof UNIT_SPECIAL_STATUS_OPTIONS[number]
