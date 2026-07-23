@@ -15,7 +15,7 @@ import {
   type UnitSpecialForm,
   type UnitSpecialStatus,
 } from "@/lib/unit-special"
-import { ArrowUpDown, Edit3, FileDown, Plus, Trash2, X } from "lucide-react"
+import { ArrowUpDown, Edit3, FileDown, Plus, Save, Trash2, X } from "lucide-react"
 import { useToast } from "@/contexts/ToastContext"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -74,6 +74,8 @@ export default function UnitSpecialPage() {
   const [deleteTarget, setDeleteTarget] = useState<UnitSpecialRow | null>(null)
   const [form, setForm] = useState<UnitSpecialForm>(buildEmptyUnitSpecialForm("unit_buyback"))
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "project", dir: "asc" })
+  const [bulkEditing, setBulkEditing] = useState(false)
+  const [bulkRows, setBulkRows] = useState<Record<string, UnitSpecialForm>>({})
 
   const activeLabel = UNIT_SPECIAL_CATEGORIES.find((category) => category.value === activeCategory)?.label || "Unit Special"
 
@@ -111,6 +113,13 @@ export default function UnitSpecialPage() {
   }, [showToast])
 
   useEffect(() => { queueMicrotask(() => void fetchData()) }, [fetchData])
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setBulkEditing(false)
+      setBulkRows({})
+    })
+  }, [activeCategory])
 
   function openNew(category = activeCategory) {
     setEditing(null)
@@ -150,6 +159,53 @@ export default function UnitSpecialPage() {
 
   function toggleSort(key: SortKey) {
     setSort((current) => current.key === key ? { key, dir: current.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" })
+  }
+
+  function startBulkEdit() {
+    setBulkRows(Object.fromEntries(filteredRows.map((row) => [row.id, {
+      category: row.category,
+      project: row.project,
+      cluster: row.cluster,
+      unit_no: row.unit_no,
+      lt_lb: row.lt_lb,
+      payment_method: row.payment_method,
+      sale_price: row.sale_price ? row.sale_price.toLocaleString("id-ID") : "",
+      notes: row.notes,
+      status: row.status,
+    }])))
+    setBulkEditing(true)
+  }
+
+  function setBulkField(id: string, field: keyof UnitSpecialForm, value: string) {
+    setBulkRows((current) => ({ ...current, [id]: { ...current[id], [field]: value } }))
+  }
+
+  async function handleBulkSave() {
+    setSaving(true)
+    const updates = filteredRows.map((row) => {
+      const next = bulkRows[row.id]
+      return supabase.from("unit_special").update({
+        project: next.project.trim(),
+        cluster: next.cluster.trim(),
+        unit_no: next.unit_no.trim(),
+        lt_lb: next.lt_lb.trim(),
+        payment_method: next.payment_method.trim(),
+        sale_price: parseNumber(next.sale_price),
+        notes: next.notes.trim(),
+        status: next.status,
+      }).eq("id", row.id)
+    })
+    const results = await Promise.all(updates)
+    setSaving(false)
+    const error = results.find((result) => result.error)?.error
+    if (error) {
+      showToast(`Gagal simpan bulk: ${error.message}`, "error")
+      return
+    }
+    showToast("Bulk edit berhasil disimpan", "success")
+    setBulkEditing(false)
+    setBulkRows({})
+    await fetchData()
   }
 
   function exportPdf() {
@@ -301,10 +357,24 @@ export default function UnitSpecialPage() {
             <p className="text-sm text-slate-500 mt-0.5">Unit Buyback, Unit Investor, dan Stock Sudah SPK</p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            {bulkEditing ? (
+              <>
+                <button onClick={handleBulkSave} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
+                  <Save size={16} /> {saving ? "Menyimpan..." : "Simpan Semua"}
+                </button>
+                <button onClick={() => { setBulkEditing(false); setBulkRows({}) }} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  Batal
+                </button>
+              </>
+            ) : (
+              <button onClick={startBulkEdit} disabled={loading || filteredRows.length === 0} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition">
+                <Edit3 size={16} /> Edit Bulk
+              </button>
+            )}
             <button onClick={exportPdf} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition">
               <FileDown size={16} /> Export PDF
             </button>
-            <button onClick={() => openNew()} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
+            <button onClick={() => openNew()} disabled={bulkEditing} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
               <Plus size={16} /> Tambah Unit
             </button>
           </div>
@@ -356,20 +426,26 @@ export default function UnitSpecialPage() {
                 ) : filteredRows.map((row, index) => (
                   <tr key={row.id} className="border-t border-slate-800/70" style={{ background: row.status === "Sold" ? "rgba(239,68,68,0.10)" : undefined }}>
                     <td className="px-3 py-2 text-slate-500">{index + 1}</td>
-                    <td className="px-3 py-2 text-white font-medium">{row.project}</td>
-                    <td className="px-3 py-2 text-slate-300">{row.cluster || "—"}</td>
-                    <td className="px-3 py-2 text-slate-300">{row.unit_no}</td>
-                    <td className="px-3 py-2 text-slate-300">{row.lt_lb || "—"}</td>
-                    <td className="px-3 py-2 text-slate-300">{row.payment_method || "—"}</td>
-                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{formatRupiah(row.sale_price || 0)}</td>
-                    <td className="px-3 py-2 text-slate-400 min-w-[180px]">{row.notes || "—"}</td>
+                    <td className="px-3 py-2 text-white font-medium">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.project || ""} onChange={(value) => setBulkField(row.id, "project", value)} /> : row.project}</td>
+                    <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.cluster || ""} onChange={(value) => setBulkField(row.id, "cluster", value)} /> : row.cluster || "—"}</td>
+                    <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.unit_no || ""} onChange={(value) => setBulkField(row.id, "unit_no", value)} /> : row.unit_no}</td>
+                    <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.lt_lb || ""} onChange={(value) => setBulkField(row.id, "lt_lb", value)} /> : row.lt_lb || "—"}</td>
+                    <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.payment_method || ""} onChange={(value) => setBulkField(row.id, "payment_method", value)} /> : row.payment_method || "—"}</td>
+                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.sale_price || ""} onChange={(value) => setBulkField(row.id, "sale_price", priceInput(value))} /> : formatRupiah(row.sale_price || 0)}</td>
+                    <td className="px-3 py-2 text-slate-400 min-w-[180px]">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.notes || ""} onChange={(value) => setBulkField(row.id, "notes", value)} /> : row.notes || "—"}</td>
                     <td className="px-3 py-2">
-                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${row.status === "Open" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
-                        {row.status}
-                      </span>
+                      {bulkEditing ? (
+                        <select value={bulkRows[row.id]?.status || row.status} onChange={(event) => setBulkField(row.id, "status", event.target.value as UnitSpecialStatus)} className="field-input min-w-[86px] !py-1 !px-2 !text-xs">
+                          {UNIT_SPECIAL_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${row.status === "Open" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
+                          {row.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex gap-2">
+                      <div className={`flex gap-2 ${bulkEditing ? "opacity-40 pointer-events-none" : ""}`}>
                         <button onClick={() => openEdit(row)} className="p-2 rounded-lg text-slate-400 hover:text-white transition" style={{ background: "var(--surface2)" }} title="Edit">
                           <Edit3 size={14} />
                         </button>
@@ -482,6 +558,16 @@ function Field({ label, required, children }: { label: string; required?: boolea
       <span className="text-xs text-slate-500 block mb-1">{label}{required && <span className="text-red-400"> *</span>}</span>
       {children}
     </label>
+  )
+}
+
+function BulkInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <input
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="field-input min-w-[110px] !py-1 !px-2 !text-xs"
+    />
   )
 }
 
