@@ -132,6 +132,10 @@ export default function UnitSpecialPage() {
     })
   }
 
+  function selectAllPayments() {
+    setForm((current) => ({ ...current, payment_method: formatUnitSpecialPayments([...UNIT_SPECIAL_PAYMENT_OPTIONS]) }))
+  }
+
   async function handleSave(event: React.FormEvent) {
     event.preventDefault()
     if (!form.project || !form.unit_no) {
@@ -291,6 +295,14 @@ export default function UnitSpecialPage() {
                         </button>
                       )
                     })}
+                    <button
+                      type="button"
+                      onClick={selectAllPayments}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:text-amber-200 transition"
+                      style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.35)" }}
+                    >
+                      Semua Bisa
+                    </button>
                   </div>
                 </Field>
                 <Field label="Harga Jual"><input value={form.sale_price} onChange={(e) => setForm((current) => ({ ...current, sale_price: priceInput(e.target.value) }))} className="field-input" placeholder="0" /></Field>
