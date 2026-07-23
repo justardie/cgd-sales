@@ -155,43 +155,77 @@ export default function UnitSpecialPage() {
   function exportPdf() {
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
     const generated = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date())
+    const hasPayment = filteredRows.some((row) => row.payment_method.trim())
+    const head = hasPayment
+      ? ["No.", "Project", "Cluster", "No. Unit", "LT/LB", "Cara Bayar", "Harga", "Ket.", "Status"]
+      : ["No.", "Project", "Cluster", "No. Unit", "LT/LB", "Harga", "Ket.", "Status"]
+    const body = filteredRows.map((row, index) => hasPayment ? [
+      index + 1,
+      row.project,
+      row.cluster,
+      row.unit_no,
+      row.lt_lb,
+      row.payment_method,
+      row.sale_price ? row.sale_price.toLocaleString("id-ID") : "",
+      row.notes,
+      row.status,
+    ] : [
+      index + 1,
+      row.project,
+      row.cluster,
+      row.unit_no,
+      row.lt_lb,
+      row.sale_price ? row.sale_price.toLocaleString("id-ID") : "",
+      row.notes,
+      row.status,
+    ])
+    const dense = filteredRows.length > 45
     pdf.setFont("helvetica", "bold")
-    pdf.setFontSize(12)
-    pdf.text(activeLabel, 8, 10)
+    pdf.setFontSize(14)
+    pdf.text(activeLabel, 12, 14)
     pdf.setFont("helvetica", "normal")
-    pdf.setFontSize(7)
-    pdf.text(`CGD Sales · ${generated}`, 8, 15)
+    pdf.setFontSize(8)
+    pdf.setTextColor(90, 104, 124)
+    pdf.text(`CGD Sales · ${generated}`, 12, 19)
+    pdf.setTextColor(15, 23, 42)
     autoTable(pdf, {
-      startY: 18,
-      margin: { left: 5, right: 5 },
-      head: [["No.", "Project", "Cluster", "No. Unit", "LT/LB", "Cara Bayar", "Harga", "Ket.", "Status"]],
-      body: filteredRows.map((row, index) => [
-        index + 1,
-        row.project,
-        row.cluster,
-        row.unit_no,
-        row.lt_lb,
-        row.payment_method,
-        row.sale_price ? row.sale_price.toLocaleString("id-ID") : "",
-        row.notes,
-        row.status,
-      ]),
-      styles: { fontSize: filteredRows.length > 45 ? 3.6 : 5.2, cellPadding: filteredRows.length > 45 ? 0.45 : 0.9, overflow: "linebreak", lineWidth: 0.08 },
-      headStyles: { fillColor: [11, 34, 73], textColor: 255, fontStyle: "bold" },
+      startY: 24,
+      margin: { top: 12, left: 10, right: 10, bottom: 10 },
+      head: [head],
+      body,
+      styles: {
+        fontSize: dense ? 5.1 : 7,
+        cellPadding: dense ? { top: 0.6, right: 0.8, bottom: 0.6, left: 0.8 } : 1.3,
+        overflow: "linebreak",
+        lineWidth: 0.08,
+        valign: "middle",
+        minCellHeight: dense ? 3.2 : 5,
+      },
+      headStyles: { fillColor: [11, 34, 73], textColor: 255, fontStyle: "bold", fontSize: dense ? 5.8 : 7.4 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: {
+      columnStyles: hasPayment ? {
         0: { cellWidth: 7, halign: "center" },
-        1: { cellWidth: 21 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 18 },
+        1: { cellWidth: 23 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 19 },
         4: { cellWidth: 14 },
-        5: { cellWidth: 28 },
-        6: { cellWidth: 19, halign: "right" },
-        7: { cellWidth: 42 },
-        8: { cellWidth: 14, halign: "center" },
+        5: { cellWidth: 27 },
+        6: { cellWidth: 21, halign: "right" },
+        7: { cellWidth: 38 },
+        8: { cellWidth: 13, halign: "center" },
+      } : {
+        0: { cellWidth: 8, halign: "center" },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 34 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 25, halign: "right" },
+        6: { cellWidth: 39 },
+        7: { cellWidth: 14, halign: "center" },
       },
       didParseCell: (data) => {
-        if (data.section === "body" && data.row.raw && Array.isArray(data.row.raw) && data.row.raw[8] === "Sold") {
+        const statusIndex = hasPayment ? 8 : 7
+        if (data.section === "body" && data.row.raw && Array.isArray(data.row.raw) && data.row.raw[statusIndex] === "Sold") {
           data.cell.styles.fillColor = [254, 242, 242]
           data.cell.styles.textColor = [153, 27, 27]
         }
