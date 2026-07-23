@@ -6,9 +6,11 @@ import { supabase } from "@/lib/supabase"
 import { formatRupiah, PROJECT_NAMES } from "@/lib/utils"
 import {
   buildEmptyUnitSpecialForm,
+  formatUnitSpecialPayments,
   isUnitSpecialCategory,
   type UnitSpecialCategory,
   UNIT_SPECIAL_CATEGORIES,
+  UNIT_SPECIAL_PAYMENT_OPTIONS,
   UNIT_SPECIAL_STATUS_OPTIONS,
   type UnitSpecialForm,
   type UnitSpecialStatus,
@@ -37,6 +39,10 @@ function parseNumber(value: string) {
 function priceInput(value: string) {
   const numeric = value.replace(/[^\d]/g, "")
   return numeric ? Number(numeric).toLocaleString("id-ID") : ""
+}
+
+function parsePayments(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean)
 }
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
@@ -114,6 +120,16 @@ export default function UnitSpecialPage() {
       status: row.status,
     })
     setShowModal(true)
+  }
+
+  function togglePayment(payment: string) {
+    setForm((current) => {
+      const selected = parsePayments(current.payment_method)
+      const next = selected.includes(payment)
+        ? selected.filter((item) => item !== payment)
+        : [...selected, payment]
+      return { ...current, payment_method: formatUnitSpecialPayments(next) }
+    })
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -259,7 +275,24 @@ export default function UnitSpecialPage() {
                 <Field label="Cluster"><input value={form.cluster} onChange={(e) => setForm((current) => ({ ...current, cluster: e.target.value }))} className="field-input" /></Field>
                 <Field label="No. Unit" required><input value={form.unit_no} required onChange={(e) => setForm((current) => ({ ...current, unit_no: e.target.value }))} className="field-input" /></Field>
                 <Field label="LT/LB"><input value={form.lt_lb} onChange={(e) => setForm((current) => ({ ...current, lt_lb: e.target.value }))} className="field-input" placeholder="Contoh: 90/45" /></Field>
-                <Field label="Cara Bayar"><input value={form.payment_method} onChange={(e) => setForm((current) => ({ ...current, payment_method: e.target.value }))} className="field-input" placeholder="Cash / KPR / Inhouse" /></Field>
+                <Field label="Cara Bayar">
+                  <div className="flex flex-wrap gap-2 rounded-lg border p-2" style={{ background: "var(--surface2)", borderColor: "var(--border)" }}>
+                    {UNIT_SPECIAL_PAYMENT_OPTIONS.map((payment) => {
+                      const selected = parsePayments(form.payment_method).includes(payment)
+                      return (
+                        <button
+                          key={payment}
+                          type="button"
+                          onClick={() => togglePayment(payment)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${selected ? "text-white" : "text-slate-400 hover:text-white"}`}
+                          style={{ background: selected ? "rgba(59,130,246,0.28)" : "rgba(255,255,255,0.04)", border: "1px solid var(--border)" }}
+                        >
+                          {payment}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
                 <Field label="Harga Jual"><input value={form.sale_price} onChange={(e) => setForm((current) => ({ ...current, sale_price: priceInput(e.target.value) }))} className="field-input" placeholder="0" /></Field>
                 <Field label="Status">
                   <select value={form.status} onChange={(e) => setForm((current) => ({ ...current, status: e.target.value as UnitSpecialStatus }))} className="field-input">

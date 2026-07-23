@@ -2,7 +2,9 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import {
   UNIT_SPECIAL_CATEGORIES,
+  UNIT_SPECIAL_PAYMENT_OPTIONS,
   buildEmptyUnitSpecialForm,
+  formatUnitSpecialPayments,
   isUnitSpecialCategory,
   isUnitSpecialStatus,
 } from "./unit-special.ts"
@@ -35,4 +37,10 @@ test("builds an empty unit special form for new rows", () => {
   })
   assert.equal(isUnitSpecialCategory("stock_sudah_spk"), true)
   assert.equal(isUnitSpecialCategory("unknown"), false)
+})
+
+test("formats multiple payment methods for storage and display", () => {
+  assert.deepEqual(UNIT_SPECIAL_PAYMENT_OPTIONS, ["Cash", "KPR", "Inhouse"])
+  assert.equal(formatUnitSpecialPayments(["Cash", "KPR"]), "Cash, KPR")
+  assert.equal(formatUnitSpecialPayments(["Cash", "Cash", ""]), "Cash")
 })

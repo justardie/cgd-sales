@@ -5,6 +5,7 @@ export const UNIT_SPECIAL_CATEGORIES = [
 ] as const
 
 export const UNIT_SPECIAL_STATUS_OPTIONS = ["Open", "Sold"] as const
+export const UNIT_SPECIAL_PAYMENT_OPTIONS = ["Cash", "KPR", "Inhouse"] as const
 
 export type UnitSpecialCategory = typeof UNIT_SPECIAL_CATEGORIES[number]["value"]
 export type UnitSpecialStatus = typeof UNIT_SPECIAL_STATUS_OPTIONS[number]
@@ -27,6 +28,10 @@ export function isUnitSpecialCategory(value: string): value is UnitSpecialCatego
 
 export function isUnitSpecialStatus(value: string): value is UnitSpecialStatus {
   return UNIT_SPECIAL_STATUS_OPTIONS.includes(value as UnitSpecialStatus)
+}
+
+export function formatUnitSpecialPayments(values: string[]): string {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).join(", ")
 }
 
 export function buildEmptyUnitSpecialForm(category: UnitSpecialCategory): UnitSpecialForm {
