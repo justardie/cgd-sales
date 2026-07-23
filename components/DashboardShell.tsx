@@ -22,7 +22,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     if (isTmOnly && !TM_ALLOWED.some((p) => pathname.startsWith(p))) {
       router.replace("/funnel")
     }
-    // Task Force: access overview, pipeline, closing, team only
+    // Non Sales: access overview, pipeline, closing, team only
     const isTaskForceOnly = user.role === "task_force"
     if (isTaskForceOnly && !TF_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
       router.replace("/")

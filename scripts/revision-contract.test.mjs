@@ -133,6 +133,20 @@ test("Unit Special page exposes three editable stock tables", async () => {
   assert.match(header, /\/unit-special/)
 })
 
+test("Non Sales user-facing labels do not use the old role name", async () => {
+  const login = await read("app/login/page.tsx")
+  const admin = await read("app/admin/page.tsx")
+  const taskForce = await read("app/task-force/page.tsx")
+  const shell = await read("components/DashboardShell.tsx")
+  assert.match(login, /Non Sales/)
+  assert.match(admin, /Non Sales/)
+  assert.match(taskForce, /Non Sales/)
+  assert.doesNotMatch(login, /Task Force/)
+  assert.doesNotMatch(admin, /Task Force/)
+  assert.doesNotMatch(taskForce, /Task Force/)
+  assert.doesNotMatch(shell, /Task Force/)
+})
+
 test("Funnel pages expose approved cards without Pipeline", async () => {
   const funnel = await read("app/funnel/page.tsx")
   const summary = await read("app/funnel-summary/page.tsx")

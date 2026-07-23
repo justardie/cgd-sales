@@ -264,7 +264,7 @@ export default function AdminPage() {
                   <option value="hunter">Sales Hunter</option>
                   <option value="sales_person">Sales Person</option>
                   <option value="telemarketing">Telemarketing</option>
-                  <option value="task_force">Task Force</option>
+                    <option value="task_force">Non Sales</option>
                   <option value="admin">Admin</option>
                 </select>
                 {form.role === "telemarketing" && (
@@ -274,7 +274,7 @@ export default function AdminPage() {
                 )}
                 {form.role === "task_force" && (
                   <p className="text-xs text-blue-400/80 mt-1">
-                    Dapat akses Task Force, Visit, Activities, Team Status
+                    Dapat akses Non Sales, Visit, Activities, Team Status
                   </p>
                 )}
               </div>

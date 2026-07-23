@@ -135,7 +135,7 @@ export default function LoginPage() {
             {([
               { key: "sales",        label: "Sales" },
               { key: "telemarketing",label: "Telemarketing" },
-              { key: "task_force",   label: "Task Force" },
+              { key: "task_force",   label: "Non Sales" },
             ] as { key: LoginMode; label: string }[]).map(({ key, label }) => (
               <button key={key} type="button" onClick={() => switchMode(key)} style={{
                 flex: 1, padding: "7px 6px", borderRadius: "10px",
@@ -157,7 +157,7 @@ export default function LoginPage() {
           </h2>
           <p className="text-sm mb-6" style={{ color: "#94a3b8" }}>
             {mode === "sales"      ? "Pilih nama kamu untuk masuk ke dashboard"
-             : mode === "task_force" ? "Login Task Force"
+             : mode === "task_force" ? "Login Non Sales"
              : "Login Telemarketing & DGM"}
           </p>
 

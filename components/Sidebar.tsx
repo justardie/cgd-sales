@@ -58,7 +58,7 @@ export default function Sidebar() {
     rightItems = [TM_NAV[1]]
     showFab    = false
   } else if (isTf) {
-    // Task Force: 4 items + FAB in middle
+    // Non Sales: 4 items + FAB in middle
     leftItems  = [TF_NAV[0], TF_NAV[1]]
     rightItems = [TF_NAV[2], TF_NAV[3]]
     showFab    = true
