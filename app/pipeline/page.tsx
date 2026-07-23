@@ -474,7 +474,7 @@ export default function PipelinePage() {
     const target = params.get("highlight")
     if (!target) return
     window.history.replaceState({}, "", "/pipeline")
-    scrollToLead(target)
+    queueMicrotask(() => scrollToLead(target))
   }, [loading, rows, scrollToLead])
 
   // Same-page case: notification bell dispatches this when already on /pipeline, since a
@@ -788,6 +788,7 @@ export default function PipelinePage() {
       konsumen: row.name,
       project: row.project,
       unit: row.unit,
+      visited: row.sudah_visit,
       status: row.status,
       nilaiPotensi: Number(row.potensi_closing) || 0,
     })), latestProgress)

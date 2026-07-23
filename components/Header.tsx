@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
-import { LogOut, Shield, MessageSquare, ClipboardList, Sun, Moon } from "lucide-react"
+import { LogOut, Shield, MessageSquare, ClipboardList, Sun, Moon, Building2 } from "lucide-react"
 import NotificationBell from "@/components/NotificationBell"
 
 const SALES_NAV = [
@@ -13,6 +13,7 @@ const SALES_NAV = [
   { href: "/pipeline",       label: "Pipeline"                           },
   { href: "/closing",        label: "Closing"                            },
   { href: "/team",           label: "Team Status"                        },
+  { href: "/unit-special",   label: "Unit Special"                       },
   { href: "/report",         label: "REPORT",        reportAccess: true  },
   { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
   { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
@@ -178,6 +179,14 @@ export default function Header() {
                   >
                     <Shield size={14} />
                     <span>Admin</span>
+                  </Link>
+                  <Link
+                    href="/unit-special"
+                    className="profile-dropdown-item"
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    <Building2 size={14} />
+                    <span>Unit Special</span>
                   </Link>
                   <div className="profile-dropdown-divider" />
                 </>

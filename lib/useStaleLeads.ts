@@ -57,7 +57,7 @@ export function useStaleLeads() {
     setStaleLeads(stale)
   }, [user, isAdmin, isTf])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
   useEffect(() => {
     const interval = setInterval(() => void load(), POLL_INTERVAL_MS)
     return () => clearInterval(interval)

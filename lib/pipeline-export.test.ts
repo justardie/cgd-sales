@@ -12,6 +12,6 @@ test("exports only active pipeline rows with latest structured progress", () => 
   assert.match(text, /Minat: CT - A-1/)
   assert.match(text, /Kendala: Menunggu dokumen/)
   assert.match(text, /Next Action: Follow up bank/)
-  assert.match(text, /Target Closing: 20 Juli 2026/)
+  assert.match(text, /Target closing: 20 Juli 2026/)
   assert.doesNotMatch(text, /Dewi|Sari/)
 })

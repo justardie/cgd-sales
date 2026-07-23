@@ -99,6 +99,22 @@ body {
 
 input, select, textarea { color: var(--text-primary); }
 
+.field-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-primary);
+  outline: none;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.field-input:focus {
+  border-color: rgba(59,130,246,0.65);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.14);
+}
+
 /* Native <select> dropdown options — OS-safe colors */
 select option {
   color: #F0EDE8;

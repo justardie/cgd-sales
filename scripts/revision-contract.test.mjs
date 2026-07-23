@@ -15,7 +15,7 @@ test("auth persists in localStorage and clears legacy sessionStorage", async () 
 
 test("header logo is rendered white", async () => {
   const source = await read("components/Header.tsx")
-  assert.match(source, /filter:\s*["']brightness\(0\) invert\(1\)["']/)
+  assert.match(source, /filter:\s*theme === "dark" \? "brightness\(0\) invert\(1\)" : "none"/)
 })
 
 test("Admin no longer exposes Target Visit", async () => {
@@ -114,6 +114,25 @@ test("Pipeline exports active filtered rows and stores structured progress", asy
   assert.match(migration, /target_closing DATE/)
 })
 
+test("Unit Special page exposes three editable stock tables", async () => {
+  const page = await read("app/unit-special/page.tsx")
+  const helper = await read("lib/unit-special.ts")
+  const migration = await read("supabase/041_unit_special.sql")
+  const header = await read("components/Header.tsx")
+  assert.match(page, /Unit Special/)
+  assert.match(page, /UNIT_SPECIAL_CATEGORIES\.map/)
+  assert.match(page, /unit_special/)
+  assert.match(page, /openEdit/)
+  assert.match(page, /handleDelete/)
+  assert.match(page, /PROJECT_NAMES/)
+  assert.match(helper, /Unit Buyback/)
+  assert.match(helper, /Unit Investor/)
+  assert.match(helper, /Stock Sudah SPK/)
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS unit_special/)
+  assert.match(migration, /CHECK \(status IN \('Open', 'Sold'\)\)/)
+  assert.match(header, /\/unit-special/)
+})
+
 test("Funnel pages expose approved cards without Pipeline", async () => {
   const funnel = await read("app/funnel/page.tsx")
   const summary = await read("app/funnel-summary/page.tsx")
@@ -128,7 +147,7 @@ test("Weekly Report supports Pivot, final snapshots, deletion, and HTML download
   const page = await read("app/report/page.tsx")
   const domain = await read("lib/weekly-report.ts")
   const migration = await read("supabase/038_weekly_reports.sql")
-  assert.match(page, /Activities Analysis/)
+  assert.match(page, /activities analysis/)
   assert.match(page, /Tanggal Laporan/)
   assert.match(page, /Periode Otomatis \(Senin–Minggu\)/)
   assert.match(page, /getPreviousWeekPeriod/)

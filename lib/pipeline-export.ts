@@ -1,12 +1,14 @@
 export interface PipelineExportRow {
   id: string
-  salesHunter: string
+  salesHunter?: string
   salesPerson: string
-  konsumen: string
+  konsumen?: string
+  prospect?: string
   project?: string | null
   unit?: string | null
+  visited?: boolean
   status: string
-  nilaiPotensi: number
+  nilaiPotensi?: number
 }
 
 export interface PipelineProgressExport {
@@ -20,8 +22,6 @@ const displayDate = (value: string) => value
       .format(new Date(`${value}T00:00:00Z`))
   : "—"
 
-const displayRupiah = (value: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value || 0)
-
 export function formatPipelineExport(
   rows: PipelineExportRow[],
   progressById: Record<string, PipelineProgressExport>,
@@ -31,15 +31,13 @@ export function formatPipelineExport(
     .map(row => {
       const progress = progressById[row.id]
       return [
-        `Sales Hunter: ${row.salesHunter || "—"}`,
-        `Sales Person: ${row.salesPerson || "—"}`,
-        `Nama Konsumen: ${row.konsumen || "—"}`,
-        `Status: ${row.status.toUpperCase()}`,
+        `Sales: ${row.salesPerson || "—"}`,
+        `Prospek: ${row.prospect || row.konsumen || "—"}`,
+        `Status: ${row.visited ? "Sudah" : "Belum"}`,
         `Minat: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,
-        `Nilai Potensi: ${displayRupiah(row.nilaiPotensi)}`,
         `Kendala: ${progress?.kendala || "—"}`,
         `Next Action: ${progress?.nextAction || "—"}`,
-        `Target Closing: ${displayDate(progress?.targetClosing || "")}`,
+        `Target closing: ${displayDate(progress?.targetClosing || "")}`,
       ].join("\n")
     })
     .join("\n\n")

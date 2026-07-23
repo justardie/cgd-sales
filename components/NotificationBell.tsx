@@ -21,7 +21,9 @@ export default function NotificationBell() {
   const router = useRouter()
   const pathname = usePathname()
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true))
+  }, [])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

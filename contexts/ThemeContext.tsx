@@ -28,8 +28,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     const initial: Theme = stored === "light" || stored === "dark" ? stored : "dark"
-    setThemeState(initial)
     applyTheme(initial)
+    queueMicrotask(() => setThemeState(initial))
   }, [])
 
   const setTheme = useCallback((next: Theme) => {
