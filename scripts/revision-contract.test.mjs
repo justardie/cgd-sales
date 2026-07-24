@@ -164,7 +164,7 @@ test("Admin documents role access and stores Telemarketing as Sales Person with 
   const header = await read("components/Header.tsx")
   const types = await read("types/index.ts")
   assert.match(roleAccessPage, /Setting Role &amp; Akses Data/)
-  assert.match(roleAccessPage, /ROLE_ACCESS\.map/)
+  assert.match(roleAccessPage, /ACCESS_ROLES\.map/)
   assert.match(roleAccessData, /Telemarketing/)
   assert.match(header, /href="\/role-access"/)
   assert.match(header, /Role &amp; Akses Data/)
@@ -173,6 +173,21 @@ test("Admin documents role access and stores Telemarketing as Sales Person with 
   assert.match(admin, /has_tm_access/)
   assert.match(admin, /u\.role === "task_force"\s+\?\s+"Non Sales"/)
   assert.match(types, /has_tm_access\?: boolean/)
+})
+
+test("Role Access is editable per role, device, and user data scope", async () => {
+  const page = await read("app/role-access/page.tsx")
+  const settings = await read("lib/access-settings.ts")
+  const migration = await read("supabase/042_access_settings.sql")
+  assert.match(page, /Simpan Setting/)
+  assert.match(page, /desktop_menus/)
+  assert.match(page, /tablet_menus/)
+  assert.match(page, /mobile_menus/)
+  assert.match(page, /user_access_overrides/)
+  assert.match(settings, /MENU_ITEMS/)
+  assert.match(settings, /team_only/)
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS role_access_settings/)
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS user_access_overrides/)
 })
 
 test("Funnel pages expose approved cards without Pipeline", async () => {
