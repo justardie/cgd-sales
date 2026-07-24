@@ -62,6 +62,7 @@ export interface User {
   win_or_die_target: number
   visit_target: number
   hunter_name?: string | null
+  has_tm_access?: boolean
   project_coverage?: string[]
   created_at: string
 }

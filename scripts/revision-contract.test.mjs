@@ -157,6 +157,17 @@ test("Non Sales user-facing labels do not use the old role name", async () => {
   assert.doesNotMatch(shell, /Task Force/)
 })
 
+test("Admin documents role access and supports Sales Person TM access", async () => {
+  const admin = await read("app/admin/page.tsx")
+  const types = await read("types/index.ts")
+  assert.match(admin, /Setting Role &amp; Akses Data/)
+  assert.match(admin, /Sales Person \+ TM Access/)
+  assert.match(admin, /Aktifkan Akses Telemarketing/)
+  assert.match(admin, /has_tm_access/)
+  assert.match(admin, /u\.role === "task_force"\s+\?\s+"Non Sales"/)
+  assert.match(types, /has_tm_access\?: boolean/)
+})
+
 test("Funnel pages expose approved cards without Pipeline", async () => {
   const funnel = await read("app/funnel/page.tsx")
   const summary = await read("app/funnel-summary/page.tsx")

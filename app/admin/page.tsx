@@ -10,6 +10,15 @@ import { Shield, Plus, X, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide
 import type { User, Role } from "@/types"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 
+const ROLE_ACCESS = [
+  { role: "Admin", menu: "Semua menu sales + REPORT + Leads Funnel + Admin", data: "Semua data user, pipeline, closing, team, report, funnel, unit special", note: "Bisa kelola user dan status aktif/nonaktif." },
+  { role: "Sales Hunter", menu: "Overview, Pipeline, Closing, Unit Special, REPORT, Leads Funnel, Funnel Summary", data: "Data milik tim hunter sendiri; REPORT untuk hunter aktif; Team Status sesuai struktur hunter", note: "Coverage project report diatur dari Team Status." },
+  { role: "Sales Person", menu: "Overview, Pipeline, Closing, Unit Special", data: "Data pipeline/closing milik user atau yang terkait hunter/teamnya", note: "Tidak otomatis dapat akses funnel telemarketing." },
+  { role: "Sales Person + TM Access", menu: "Overview, Pipeline, Closing, Unit Special, Leads Funnel, Funnel Summary", data: "Data sales seperti Sales Person + data funnel yang ditugaskan untuk akses TM", note: "Di database tetap role Sales Person dengan Akses Telemarketing aktif." },
+  { role: "Telemarketing", menu: "Leads Funnel, Funnel Summary", data: "Data leads funnel/summary telemarketing", note: "Wajib masuk Tim Hunter, tidak akses menu sales utama." },
+  { role: "Non Sales", menu: "Overview, Pipeline, Closing, Team Status", data: "Data pipeline/closing lintas hunter yang dibutuhkan untuk follow-up non-sales", note: "Value teknis disimpan otomatis; pengguna melihat Non Sales." },
+]
+
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
@@ -41,6 +50,7 @@ export default function AdminPage() {
     monthly_target: "",
     win_or_die_target: "",
     pin: "",
+    has_tm_access: false,
   })
 
   useEffect(() => {
@@ -57,7 +67,7 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", pin: "" })
+    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", pin: "", has_tm_access: false })
     setShowModal(true)
   }
 
@@ -70,6 +80,7 @@ export default function AdminPage() {
       monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
       pin: "",
+      has_tm_access: Boolean(u.has_tm_access),
     })
     setShowModal(true)
   }
@@ -97,9 +108,9 @@ export default function AdminPage() {
       role: form.role as Role,
       monthly_target: isHunterRole ? (Number(form.monthly_target) || 0) : (editing ? editing.monthly_target : 0),
       win_or_die_target: isHunterRole ? (Number(form.win_or_die_target) || 0) : 0,
-      // Sync has_tm_access with role: telemarketing always gets TM access,
-      // all other roles lose it (so changing away from TM also clears it)
-      has_tm_access: form.role === "telemarketing",
+      // Sales Person + TM Access is represented by role=sales_person and has_tm_access=true.
+      // Pure telemarketing always has TM access; other roles do not.
+      has_tm_access: form.role === "telemarketing" || (form.role === "sales_person" && form.has_tm_access),
     }
     if (form.role === "sales_person" || form.role === "telemarketing") {
       payload.hunter_name = form.hunter_name
@@ -192,7 +203,7 @@ export default function AdminPage() {
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
                     <div className="font-medium text-white">{u.name}</div>
-                    {u.role === "sales_person" && u.hunter_name && (
+                    {(u.role === "sales_person" || u.role === "telemarketing") && u.hunter_name && (
                       <div className="text-xs text-slate-500 mt-0.5">Tim: {u.hunter_name}</div>
                     )}
                   </td>
@@ -205,8 +216,10 @@ export default function AdminPage() {
                                                     "bg-slate-500/20 text-slate-400"
                     }`}>
                       {u.role === "hunter"        ? "Sales Hunter"   :
+                       u.role === "sales_person" && u.has_tm_access ? "Sales Person + TM Access" :
                        u.role === "sales_person"  ? "Sales Person"   :
-                       u.role === "telemarketing" ? "Telemarketing"  : u.role}
+                       u.role === "telemarketing" ? "Telemarketing"  :
+                       u.role === "task_force"    ? "Non Sales"      : u.role}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-400">
@@ -242,6 +255,35 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+            <h2 className="text-sm font-semibold text-white">Setting Role &amp; Akses Data</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Detail menu dan cakupan data untuk setiap tipe user.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead style={{ background: "var(--surface2)" }}>
+                <tr className="text-slate-500 text-left">
+                  <th className="px-4 py-3 font-semibold">Role</th>
+                  <th className="px-4 py-3 font-semibold">Menu yang Diakses</th>
+                  <th className="px-4 py-3 font-semibold">Data yang Diakses</th>
+                  <th className="px-4 py-3 font-semibold">Catatan Setting</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ROLE_ACCESS.map((item) => (
+                  <tr key={item.role} style={{ borderTop: "1px solid var(--border)" }}>
+                    <td className="px-4 py-3 font-semibold text-white whitespace-nowrap">{item.role}</td>
+                    <td className="px-4 py-3 text-slate-300 min-w-[240px]">{item.menu}</td>
+                    <td className="px-4 py-3 text-slate-300 min-w-[260px]">{item.data}</td>
+                    <td className="px-4 py-3 text-slate-400 min-w-[220px]">{item.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Add/Edit User Modal */}
@@ -264,7 +306,7 @@ export default function AdminPage() {
                   <option value="hunter">Sales Hunter</option>
                   <option value="sales_person">Sales Person</option>
                   <option value="telemarketing">Telemarketing</option>
-                    <option value="task_force">Non Sales</option>
+                  <option value="task_force">Non Sales</option>
                   <option value="admin">Admin</option>
                 </select>
                 {form.role === "telemarketing" && (
@@ -272,9 +314,19 @@ export default function AdminPage() {
                     Hanya dapat akses Leads Funnel &amp; Funnel Summary
                   </p>
                 )}
+                {form.role === "sales_person" && (
+                  <label className="mt-2 flex items-center gap-2 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.has_tm_access}
+                      onChange={e => setForm(f => ({ ...f, has_tm_access: e.target.checked }))}
+                    />
+                    Aktifkan Akses Telemarketing (Sales Person + TM Access)
+                  </label>
+                )}
                 {form.role === "task_force" && (
                   <p className="text-xs text-blue-400/80 mt-1">
-                    Dapat akses Non Sales, Visit, Activities, Team Status
+                    Dapat akses Overview, Pipeline, Closing, dan Team Status
                   </p>
                 )}
               </div>
