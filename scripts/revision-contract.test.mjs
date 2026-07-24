@@ -159,8 +159,15 @@ test("Non Sales user-facing labels do not use the old role name", async () => {
 
 test("Admin documents role access and stores Telemarketing as Sales Person with TM access", async () => {
   const admin = await read("app/admin/page.tsx")
+  const roleAccessPage = await read("app/role-access/page.tsx")
+  const roleAccessData = await read("lib/role-access.ts")
+  const header = await read("components/Header.tsx")
   const types = await read("types/index.ts")
-  assert.match(admin, /Setting Role &amp; Akses Data/)
+  assert.match(roleAccessPage, /Setting Role &amp; Akses Data/)
+  assert.match(roleAccessPage, /ROLE_ACCESS\.map/)
+  assert.match(roleAccessData, /Telemarketing/)
+  assert.match(header, /href="\/role-access"/)
+  assert.match(header, /Role &amp; Akses Data/)
   assert.match(admin, /Telemarketing is stored as Sales Person/)
   assert.match(admin, /normalizedRole = form\.role === "telemarketing" \? "sales_person" : form\.role/)
   assert.match(admin, /has_tm_access/)

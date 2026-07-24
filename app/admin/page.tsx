@@ -10,14 +10,6 @@ import { Shield, Plus, X, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide
 import type { User, Role } from "@/types"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 
-const ROLE_ACCESS = [
-  { role: "Admin", menu: "Semua menu sales + REPORT + Leads Funnel + Admin", data: "Semua data user, pipeline, closing, team, report, funnel, unit special", note: "Bisa kelola user dan status aktif/nonaktif." },
-  { role: "Sales Hunter", menu: "Overview, Pipeline, Closing, Unit Special, REPORT, Leads Funnel, Funnel Summary", data: "Data milik tim hunter sendiri; REPORT untuk hunter aktif; Team Status sesuai struktur hunter", note: "Coverage project report diatur dari Team Status." },
-  { role: "Sales Person", menu: "Overview, Pipeline, Closing, Unit Special", data: "Data pipeline/closing milik user atau yang terkait hunter/teamnya", note: "Tidak otomatis dapat akses funnel telemarketing." },
-  { role: "Telemarketing", menu: "Leads Funnel, Funnel Summary", data: "Data leads funnel/summary telemarketing", note: "Saat dipilih di Admin, user tetap disimpan sebagai Sales Person dengan akses telemarketing aktif." },
-  { role: "Non Sales", menu: "Overview, Pipeline, Closing, Team Status", data: "Data pipeline/closing lintas hunter yang dibutuhkan untuk follow-up non-sales", note: "Value teknis disimpan otomatis; pengguna melihat Non Sales." },
-]
-
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
@@ -255,34 +247,6 @@ export default function AdminPage() {
           </table>
         </div>
 
-        <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
-          <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-            <h2 className="text-sm font-semibold text-white">Setting Role &amp; Akses Data</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Detail menu dan cakupan data untuk setiap tipe user.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead style={{ background: "var(--surface2)" }}>
-                <tr className="text-slate-500 text-left">
-                  <th className="px-4 py-3 font-semibold">Role</th>
-                  <th className="px-4 py-3 font-semibold">Menu yang Diakses</th>
-                  <th className="px-4 py-3 font-semibold">Data yang Diakses</th>
-                  <th className="px-4 py-3 font-semibold">Catatan Setting</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ROLE_ACCESS.map((item) => (
-                  <tr key={item.role} style={{ borderTop: "1px solid var(--border)" }}>
-                    <td className="px-4 py-3 font-semibold text-white whitespace-nowrap">{item.role}</td>
-                    <td className="px-4 py-3 text-slate-300 min-w-[240px]">{item.menu}</td>
-                    <td className="px-4 py-3 text-slate-300 min-w-[260px]">{item.data}</td>
-                    <td className="px-4 py-3 text-slate-400 min-w-[220px]">{item.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
 
       {/* Add/Edit User Modal */}

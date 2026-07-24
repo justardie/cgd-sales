@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
-import { LogOut, Shield, MessageSquare, Sun, Moon, Users } from "lucide-react"
+import { LogOut, Shield, MessageSquare, Sun, Moon, Users, ShieldCheck } from "lucide-react"
 import NotificationBell from "@/components/NotificationBell"
 
 const SALES_NAV = [
@@ -178,6 +178,14 @@ export default function Header() {
                   >
                     <Shield size={14} />
                     <span>Admin</span>
+                  </Link>
+                  <Link
+                    href="/role-access"
+                    className="profile-dropdown-item"
+                    onClick={() => setProfileOpen(false)}
+                  >
+                    <ShieldCheck size={14} />
+                    <span>Role &amp; Akses Data</span>
                   </Link>
                   <div className="profile-dropdown-divider" />
                 </>
