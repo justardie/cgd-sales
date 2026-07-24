@@ -14,8 +14,7 @@ const ROLE_ACCESS = [
   { role: "Admin", menu: "Semua menu sales + REPORT + Leads Funnel + Admin", data: "Semua data user, pipeline, closing, team, report, funnel, unit special", note: "Bisa kelola user dan status aktif/nonaktif." },
   { role: "Sales Hunter", menu: "Overview, Pipeline, Closing, Unit Special, REPORT, Leads Funnel, Funnel Summary", data: "Data milik tim hunter sendiri; REPORT untuk hunter aktif; Team Status sesuai struktur hunter", note: "Coverage project report diatur dari Team Status." },
   { role: "Sales Person", menu: "Overview, Pipeline, Closing, Unit Special", data: "Data pipeline/closing milik user atau yang terkait hunter/teamnya", note: "Tidak otomatis dapat akses funnel telemarketing." },
-  { role: "Sales Person + TM Access", menu: "Overview, Pipeline, Closing, Unit Special, Leads Funnel, Funnel Summary", data: "Data sales seperti Sales Person + data funnel yang ditugaskan untuk akses TM", note: "Di database tetap role Sales Person dengan Akses Telemarketing aktif." },
-  { role: "Telemarketing", menu: "Leads Funnel, Funnel Summary", data: "Data leads funnel/summary telemarketing", note: "Wajib masuk Tim Hunter, tidak akses menu sales utama." },
+  { role: "Telemarketing", menu: "Leads Funnel, Funnel Summary", data: "Data leads funnel/summary telemarketing", note: "Saat dipilih di Admin, user tetap disimpan sebagai Sales Person dengan akses telemarketing aktif." },
   { role: "Non Sales", menu: "Overview, Pipeline, Closing, Team Status", data: "Data pipeline/closing lintas hunter yang dibutuhkan untuk follow-up non-sales", note: "Value teknis disimpan otomatis; pengguna melihat Non Sales." },
 ]
 
@@ -75,7 +74,7 @@ export default function AdminPage() {
     setEditing(u)
     setForm({
       name: u.name,
-      role: u.role,
+      role: u.role === "sales_person" && u.has_tm_access ? "telemarketing" : u.role,
       hunter_name: u.hunter_name || "",
       monthly_target: u.monthly_target.toString(),
       win_or_die_target: u.win_or_die_target.toString(),
@@ -97,22 +96,22 @@ export default function AdminPage() {
       showToast("Nama Lengkap wajib diisi", "error")
       return
     }
-    if ((form.role === "sales_person" || form.role === "telemarketing") && !form.hunter_name) {
+    const normalizedRole = form.role === "telemarketing" ? "sales_person" : form.role
+    if ((normalizedRole === "sales_person") && !form.hunter_name) {
       showToast("Tim Hunter wajib dipilih", "error")
       return
     }
     setSaving(true)
-    const isHunterRole = form.role === "hunter"
+    const isHunterRole = normalizedRole === "hunter"
     const payload: Record<string, unknown> = {
       name: form.name,
-      role: form.role as Role,
+      role: normalizedRole as Role,
       monthly_target: isHunterRole ? (Number(form.monthly_target) || 0) : (editing ? editing.monthly_target : 0),
       win_or_die_target: isHunterRole ? (Number(form.win_or_die_target) || 0) : 0,
-      // Sales Person + TM Access is represented by role=sales_person and has_tm_access=true.
-      // Pure telemarketing always has TM access; other roles do not.
-      has_tm_access: form.role === "telemarketing" || (form.role === "sales_person" && form.has_tm_access),
+      // Telemarketing is stored as Sales Person with telemarketing access enabled.
+      has_tm_access: form.role === "telemarketing",
     }
-    if (form.role === "sales_person" || form.role === "telemarketing") {
+    if (normalizedRole === "sales_person") {
       payload.hunter_name = form.hunter_name
     }
     if (form.pin.trim()) {
@@ -216,7 +215,7 @@ export default function AdminPage() {
                                                     "bg-slate-500/20 text-slate-400"
                     }`}>
                       {u.role === "hunter"        ? "Sales Hunter"   :
-                       u.role === "sales_person" && u.has_tm_access ? "Sales Person + TM Access" :
+                       u.role === "sales_person" && u.has_tm_access ? "Telemarketing" :
                        u.role === "sales_person"  ? "Sales Person"   :
                        u.role === "telemarketing" ? "Telemarketing"  :
                        u.role === "task_force"    ? "Non Sales"      : u.role}
@@ -313,16 +312,6 @@ export default function AdminPage() {
                   <p className="text-xs text-amber-400/80 mt-1">
                     Hanya dapat akses Leads Funnel &amp; Funnel Summary
                   </p>
-                )}
-                {form.role === "sales_person" && (
-                  <label className="mt-2 flex items-center gap-2 text-xs text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={form.has_tm_access}
-                      onChange={e => setForm(f => ({ ...f, has_tm_access: e.target.checked }))}
-                    />
-                    Aktifkan Akses Telemarketing (Sales Person + TM Access)
-                  </label>
                 )}
                 {form.role === "task_force" && (
                   <p className="text-xs text-blue-400/80 mt-1">
