@@ -4,7 +4,9 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY } from "@/lib/utils"
+import Modal from "@/components/Modal"
+import ConfirmModal from "@/components/ConfirmModal"
+import { formatRupiah, CANONICAL_CARA_BAYAR, fmtDDMMYYYY, isFormDirty } from "@/lib/utils"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { Plus, X, Search, FileText, Pencil, MessageSquare, Send, Trash2 } from "lucide-react"
 
@@ -87,21 +89,6 @@ function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sor
   return <span className="ml-0.5" style={{ fontSize: 9, color: "var(--accent)" }}>{sortDir === "asc" ? "↑" : "↓"}</span>
 }
 
-function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-lg rounded-xl relative max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
-          <X size={16} />
-        </button>
-        {children}
-      </div>
-    </div>
-  )
-}
-
 /** Format note timestamp as DD-MM-YYYY */
 function fmtNoteTime(iso: string): string {
   const d = new Date(iso)
@@ -119,7 +106,13 @@ function NotesModal({ lead, user, onClose }: {
   const [loading, setLoading]   = useState(true)
   const [text, setText]         = useState("")
   const [sending, setSending]   = useState(false)
+  const [confirmingClose, setConfirmingClose] = useState(false)
   const bottomRef = React.useRef<HTMLDivElement>(null)
+
+  function requestClose() {
+    if (text.trim()) setConfirmingClose(true)
+    else onClose()
+  }
 
   const loadNotes = useCallback(async () => {
     const { data } = await supabase
@@ -174,9 +167,11 @@ function NotesModal({ lead, user, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.75)" }}>
+      style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={requestClose}>
       <div className="w-full sm:max-w-lg flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)", maxHeight: "92dvh" }}>
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", maxHeight: "92dvh" }}
+        onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex items-start justify-between px-4 pt-4 pb-3 shrink-0"
@@ -190,7 +185,7 @@ function NotesModal({ lead, user, onClose }: {
               {[lead.project, lead.sales_hunter].filter(Boolean).join(" · ")}
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0 mt-0.5">
+          <button onClick={requestClose} className="text-slate-500 hover:text-white shrink-0 mt-0.5">
             <X size={18} />
           </button>
         </div>
@@ -243,6 +238,16 @@ function NotesModal({ lead, user, onClose }: {
           <p className="text-xs text-slate-700 mt-1.5 text-right">Ctrl+Enter untuk kirim</p>
         </div>
       </div>
+
+      {confirmingClose && (
+        <ConfirmModal
+          title="Ada catatan belum dikirim"
+          message="Tutup tanpa mengirim catatan ini?"
+          confirmLabel="Tutup Tanpa Kirim"
+          onConfirm={() => { setConfirmingClose(false); onClose() }}
+          onCancel={() => setConfirmingClose(false)}
+        />
+      )}
     </div>
   )
 }
@@ -267,6 +272,7 @@ export default function TaskForcePage() {
   const [filterStatus, setFilterStatus] = useState("all")
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [initialForm, setInitialForm] = useState<typeof emptyForm | null>(null)
   const [activeSps, setActiveSps] = useState<Record<string, string[]>>({})
   const [dbProjects, setDbProjects] = useState<string[]>([])
   const [dbCaraBayar, setDbCaraBayar] = useState<string[]>([])
@@ -322,14 +328,16 @@ export default function TaskForcePage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ ...emptyForm, sales_hunter: canSeeAll ? "" : (user?.name || "") })
+    const next = { ...emptyForm, sales_hunter: canSeeAll ? "" : (user?.name || "") }
+    setForm(next)
+    setInitialForm(next)
     setFormError("")
     setShowModal(true)
   }
 
   function openEdit(r: KonsumenRow) {
     setEditing(r)
-    setForm({
+    const next = {
       sales_hunter: r.sales_hunter || "", sales_person: r.sales_person || "",
       name: r.name || "", project: r.project || "", unit: r.unit || "",
       potensi_closing: r.potensi_closing?.toString() || "",
@@ -337,7 +345,9 @@ export default function TaskForcePage() {
       visit_date: r.visit_date || "",
       sudah_booking_fee: String(r.sudah_booking_fee ?? false),
       status: r.status || "warm", notes: r.notes || "",
-    })
+    }
+    setForm(next)
+    setInitialForm(next)
     setFormError("")
     setShowModal(true)
   }
@@ -651,7 +661,7 @@ export default function TaskForcePage() {
       </div>
 
       {showModal && (
-        <Modal onClose={() => setShowModal(false)}>
+        <Modal onClose={() => setShowModal(false)} isDirty={isFormDirty(initialForm, form)}>
           <div className="p-5">
             <h3 className="text-sm font-semibold text-white mb-4">
               {editing ? "Edit Non Sales" : "Tambah Non Sales"}

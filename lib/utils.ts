@@ -16,6 +16,11 @@ export function formatRupiahFull(value: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
 }
 
+/** Compares a form's current value against the snapshot taken when its modal opened. */
+export function isFormDirty<T>(initial: T | null, current: T): boolean {
+  return initial !== null && JSON.stringify(initial) !== JSON.stringify(current)
+}
+
 export function getCurrentMonth(): number { return new Date().getMonth() + 1 }
 export function getCurrentYear(): number { return new Date().getFullYear() }
 

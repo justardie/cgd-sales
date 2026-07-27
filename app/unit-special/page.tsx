@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import DashboardShell from "@/components/DashboardShell"
+import Modal from "@/components/Modal"
 import { supabase } from "@/lib/supabase"
-import { formatRupiahFull, PROJECT_NAMES } from "@/lib/utils"
+import { formatRupiahFull, isFormDirty, PROJECT_NAMES } from "@/lib/utils"
 import {
   buildEmptyUnitSpecialForm,
   formatUnitSpecialPayments,
@@ -15,7 +16,7 @@ import {
   type UnitSpecialForm,
   type UnitSpecialStatus,
 } from "@/lib/unit-special"
-import { ArrowUpDown, Edit3, FileDown, Plus, Save, Trash2, X } from "lucide-react"
+import { ArrowUpDown, Edit3, FileDown, Plus, Save, Trash2 } from "lucide-react"
 import { useToast } from "@/contexts/ToastContext"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -49,19 +50,6 @@ function parsePayments(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean)
 }
 
-function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.72)" }}>
-      <div className="w-full max-w-2xl rounded-xl relative max-h-[90vh] overflow-y-auto" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
-          <X size={16} />
-        </button>
-        {children}
-      </div>
-    </div>
-  )
-}
-
 export default function UnitSpecialPage() {
   const { showToast } = useToast()
   const [activeCategory, setActiveCategory] = useState<UnitSpecialCategory>("unit_buyback")
@@ -73,6 +61,7 @@ export default function UnitSpecialPage() {
   const [editing, setEditing] = useState<UnitSpecialRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<UnitSpecialRow | null>(null)
   const [form, setForm] = useState<UnitSpecialForm>(buildEmptyUnitSpecialForm("unit_buyback"))
+  const [initialForm, setInitialForm] = useState<UnitSpecialForm | null>(null)
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "project", dir: "asc" })
   const [bulkEditing, setBulkEditing] = useState(false)
   const [bulkRows, setBulkRows] = useState<Record<string, UnitSpecialForm>>({})
@@ -145,13 +134,15 @@ export default function UnitSpecialPage() {
 
   function openNew(category = activeCategory) {
     setEditing(null)
-    setForm(buildEmptyUnitSpecialForm(category))
+    const next = buildEmptyUnitSpecialForm(category)
+    setForm(next)
+    setInitialForm(next)
     setShowModal(true)
   }
 
   function openEdit(row: UnitSpecialRow) {
     setEditing(row)
-    setForm({
+    const next = {
       category: row.category,
       project: row.project,
       cluster: row.cluster,
@@ -161,7 +152,9 @@ export default function UnitSpecialPage() {
       sale_price: row.sale_price ? row.sale_price.toLocaleString("id-ID") : "",
       notes: row.notes,
       status: row.status,
-    })
+    }
+    setForm(next)
+    setInitialForm(next)
     setShowModal(true)
   }
 
@@ -531,7 +524,7 @@ export default function UnitSpecialPage() {
       </div>
 
       {showModal && (
-        <Modal onClose={() => { setShowModal(false); setEditing(null); setForm(buildEmptyUnitSpecialForm(activeCategory)) }}>
+        <Modal onClose={() => { setShowModal(false); setEditing(null); setForm(buildEmptyUnitSpecialForm(activeCategory)) }} maxWidth="max-w-2xl" isDirty={isFormDirty(initialForm, form)}>
           <div className="p-5">
             <h3 className="text-sm font-semibold text-white mb-4">{editing ? "Edit Unit Special" : "Tambah Unit Special"}</h3>
             <form onSubmit={handleSave} className="space-y-3">
@@ -598,7 +591,7 @@ export default function UnitSpecialPage() {
       )}
 
       {deleteTarget && (
-        <Modal onClose={() => setDeleteTarget(null)}>
+        <Modal onClose={() => setDeleteTarget(null)} maxWidth="max-w-2xl">
           <div className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Trash2 size={18} className="text-red-400" />

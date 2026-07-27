@@ -5,12 +5,13 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import ConfirmModal from "@/components/ConfirmModal"
+import Modal from "@/components/Modal"
 import SalesFilterBar from "@/components/SalesFilterBar"
-import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEAM_MONTHLY_TARGET, PROJECT_NAMES } from "@/lib/utils"
+import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEAM_MONTHLY_TARGET, PROJECT_NAMES, isFormDirty } from "@/lib/utils"
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { canonicalProjectTotals, periodTarget } from "@/lib/dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
-import { Plus, X, Edit2, Calendar, AlertTriangle, FileDown, Target } from "lucide-react"
+import { Plus, Edit2, Calendar, AlertTriangle, FileDown, Target } from "lucide-react"
 import type { User } from "@/types"
 
 interface KonsumenRow {
@@ -261,21 +262,6 @@ function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sor
   return <span className="ml-0.5" style={{ fontSize: 9, color: "var(--accent)" }}>{sortDir === "asc" ? "↑" : "↓"}</span>
 }
 
-function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-md rounded-xl relative max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
-          <X size={16} />
-        </button>
-        {children}
-      </div>
-    </div>
-  )
-}
-
 const now = new Date()
 
 export default function ClosingPage() {
@@ -331,6 +317,8 @@ export default function ClosingPage() {
     notes: "",
   }
   const [form, setForm] = useState(blankForm)
+  const [initialForm, setInitialForm] = useState<typeof blankForm | null>(null)
+  const [initialTarget, setInitialTarget] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     let closingQuery = supabase.from("konsumen")
@@ -510,7 +498,7 @@ export default function ClosingPage() {
   function openEdit(c: KonsumenRow) {
     setEditingClosing(c)
     setFormError("")
-    setForm({
+    const next = {
       sales_hunter: c.sales_hunter || "",
       sales_person: c.sales_person || "",
       agent_name:   c.agent_name || "",
@@ -522,7 +510,9 @@ export default function ClosingPage() {
       visit_date:   c.visit_date || "",
       closing_date: c.closing_date,
       notes:        c.notes || "",
-    })
+    }
+    setForm(next)
+    setInitialForm(next)
     setShowEditModal(true)
   }
 
@@ -552,7 +542,9 @@ export default function ClosingPage() {
 
   function openTargetEdit(h: User) {
     setEditingHunter(h)
-    setNewTarget(h.monthly_target.toString())
+    const next = h.monthly_target.toString()
+    setNewTarget(next)
+    setInitialTarget(next)
     setShowTargetModal(true)
   }
 
@@ -815,7 +807,7 @@ export default function ClosingPage() {
             )}
 
             {!isTf && (
-              <button onClick={() => { setFormError(""); setForm({ ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }); setShowInputModal(true) }}
+              <button onClick={() => { setFormError(""); const next = { ...blankForm, sales_hunter: isAdmin ? "" : (user?.name || "") }; setForm(next); setInitialForm(next); setShowInputModal(true) }}
                 className="flex items-center gap-2 text-xs px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-500 transition">
                 <Plus size={14} /> Input Closing
               </button>
@@ -1112,7 +1104,7 @@ export default function ClosingPage() {
       </div>
 
       {showInputModal && (
-        <Modal onClose={() => setShowInputModal(false)}>
+        <Modal onClose={() => setShowInputModal(false)} maxWidth="max-w-md" isDirty={isFormDirty(initialForm, form)}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm}
             spOptions={spOptions} hunterOptions={hunters} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
@@ -1124,7 +1116,7 @@ export default function ClosingPage() {
       )}
 
       {showEditModal && editingClosing && (
-        <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }}>
+        <Modal onClose={() => { setShowEditModal(false); setEditingClosing(null) }} maxWidth="max-w-md" isDirty={isFormDirty(initialForm, form)}>
           <ClosingFormFields
             isAdmin={isAdmin} form={form} setForm={setForm}
             spOptions={spOptions} hunterOptions={hunters} projects={dbProjects} caraBayarOptions={dbCaraBayar} saving={saving}
@@ -1139,7 +1131,7 @@ export default function ClosingPage() {
       )}
 
       {showTargetModal && editingHunter && (
-        <Modal onClose={() => { setShowTargetModal(false); setEditingHunter(null) }}>
+        <Modal onClose={() => { setShowTargetModal(false); setEditingHunter(null) }} maxWidth="max-w-md" isDirty={isFormDirty(initialTarget, newTarget)}>
           <div className="p-5">
             <h3 className="text-sm font-semibold text-white mb-1">Edit Target</h3>
             <p className="text-xs text-slate-500 mb-4">{editingHunter.name}</p>

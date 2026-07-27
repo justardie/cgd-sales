@@ -6,12 +6,13 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
 import SalesFilterBar from "@/components/SalesFilterBar"
-import { formatRupiah, CANONICAL_CARA_BAYAR } from "@/lib/utils"
+import { formatRupiah, CANONICAL_CARA_BAYAR, isFormDirty } from "@/lib/utils"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
 import { daysSince, isStaleLead } from "@/lib/stale-leads"
-import { Plus, X, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical, AlertTriangle } from "lucide-react"
+import { Plus, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical, AlertTriangle } from "lucide-react"
+import Modal from "@/components/Modal"
 
 interface KonsumenRow {
   id: string
@@ -98,20 +99,6 @@ function SortIcon({ col, sortCol, sortDir }: { col: string; sortCol: string; sor
   return <span className="ml-0.5" style={{ fontSize: 9, color: "var(--accent)" }}>{sortDir === "asc" ? "↑" : "↓"}</span>
 }
 
-function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-lg rounded-xl relative max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white z-10">
-          <X size={16} />
-        </button>
-        {children}
-      </div>
-    </div>
-  )
-}
 
 interface RowAction {
   label: string
@@ -203,7 +190,7 @@ interface PipelineNote {
   created_at: string
 }
 
-function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void }) {
+function PipelineNotes({ konsumenId, user, legacyNote, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const { showToast } = useToast()
   const [notes, setNotes]         = useState<PipelineNote[]>([])
   const [loading, setLoading]     = useState(true)
@@ -211,6 +198,10 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
   const [progress, setProgress]   = useState({ kendala: "", nextAction: "", targetClosing: "" })
   const [sending, setSending]     = useState(false)
   const bottomRef                 = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    onDirtyChange?.(!!(progress.kendala.trim() || progress.nextAction.trim() || progress.targetClosing))
+  }, [progress, onDirtyChange])
 
   const loadNotes = useCallback(async () => {
     const { data, error } = await supabase
@@ -420,12 +411,18 @@ export default function PipelinePage() {
   const [deleteTarget, setDeleteTarget] = useState<KonsumenRow | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  const [notesDirty, setNotesDirty] = useState(false)
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({})
+  const [initialForm, setInitialForm] = useState<typeof emptyForm | null>(null)
+  const [initialClosingForm, setInitialClosingForm] = useState<typeof closingForm | null>(null)
 
   const openNew = useCallback(() => {
     setEditing(null)
-    setForm({ ...emptyForm, sales_hunter: (isAdmin || isTf) ? "" : (user?.name || "") })
+    const next = { ...emptyForm, sales_hunter: (isAdmin || isTf) ? "" : (user?.name || "") }
+    setForm(next)
+    setInitialForm(next)
     setFormError("")
+    setNotesDirty(false)
     setShowModal(true)
   }, [isAdmin, isTf, user?.name])
 
@@ -574,7 +571,7 @@ export default function PipelinePage() {
 
   function openEdit(r: KonsumenRow) {
     setEditing(r)
-    setForm({
+    const next = {
       sales_hunter:      r.sales_hunter || "",
       sales_person:      r.sales_person || "",
       agent_name:        r.agent_name || "",
@@ -588,19 +585,24 @@ export default function PipelinePage() {
       sudah_booking_fee: String(r.sudah_booking_fee ?? false),
       status:            r.status || "warm",
       notes:             r.notes || "",
-    })
+    }
+    setForm(next)
+    setInitialForm(next)
     setFormError("")
+    setNotesDirty(false)
     setShowModal(true)
   }
 
   function openClosingConfirm(r: KonsumenRow) {
     setClosingTarget(r)
-    setClosingForm({
+    const next = {
       unit:         r.unit || "",
       nilai_hjr:    r.potensi_closing?.toString() || "",
       cara_bayar:   r.cara_bayar || "",
       closing_date: new Date().toISOString().slice(0, 10),
-    })
+    }
+    setClosingForm(next)
+    setInitialClosingForm(next)
     setShowClosingModal(true)
   }
 
@@ -1012,7 +1014,7 @@ export default function PipelinePage() {
 
       {/* Closing Confirmation Modal */}
       {showClosingModal && closingTarget && (
-        <Modal onClose={() => setShowClosingModal(false)}>
+        <Modal onClose={() => setShowClosingModal(false)} isDirty={isFormDirty(initialClosingForm, closingForm)}>
           <div className="p-5">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-semibold">Closing!</span>
@@ -1075,7 +1077,7 @@ export default function PipelinePage() {
 
       {/* Add / Edit Modal */}
       {showModal && (
-        <Modal onClose={() => setShowModal(false)}>
+        <Modal onClose={() => setShowModal(false)} isDirty={isFormDirty(initialForm, form) || notesDirty}>
           <div className="p-5">
             <h3 className="text-sm font-semibold text-white mb-4">
               {editing ? "Edit Pipeline" : "Tambah Pipeline"}
@@ -1243,6 +1245,7 @@ export default function PipelinePage() {
                       }))
                       setShowModal(false)
                     }}
+                    onDirtyChange={setNotesDirty}
                   />
                 </div>
               )}

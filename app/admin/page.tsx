@@ -5,21 +5,11 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/contexts/ToastContext"
 import { useRouter } from "next/navigation"
 import DashboardShell from "@/components/DashboardShell"
-import { formatRupiah } from "@/lib/utils"
-import { Shield, Plus, X, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide-react"
+import Modal from "@/components/Modal"
+import { formatRupiah, isFormDirty } from "@/lib/utils"
+import { Shield, Plus, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide-react"
 import type { User, Role } from "@/types"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-
-function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-      <div className="w-full max-w-md rounded-xl relative max-h-[90vh] overflow-y-auto" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={16} /></button>
-        {children}
-      </div>
-    </div>
-  )
-}
 
 export default function AdminPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
@@ -43,6 +33,8 @@ export default function AdminPage() {
     pin: "",
     has_tm_access: false,
   })
+  const [initialForm, setInitialForm] = useState<typeof form | null>(null)
+  const [initialTransferHunter, setInitialTransferHunter] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAdmin && !authLoading) { router.replace("/"); return }
@@ -58,13 +50,15 @@ export default function AdminPage() {
 
   function openNew() {
     setEditing(null)
-    setForm({ name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", pin: "", has_tm_access: false })
+    const next = { name: "", role: "hunter", hunter_name: "", monthly_target: "", win_or_die_target: "", pin: "", has_tm_access: false }
+    setForm(next)
+    setInitialForm(next)
     setShowModal(true)
   }
 
   function openEdit(u: User) {
     setEditing(u)
-    setForm({
+    const next = {
       name: u.name,
       role: u.role === "sales_person" && u.has_tm_access ? "telemarketing" : u.role,
       hunter_name: u.hunter_name || "",
@@ -72,13 +66,17 @@ export default function AdminPage() {
       win_or_die_target: u.win_or_die_target.toString(),
       pin: "",
       has_tm_access: Boolean(u.has_tm_access),
-    })
+    }
+    setForm(next)
+    setInitialForm(next)
     setShowModal(true)
   }
 
   function openTransfer(u: User) {
     setTransferTarget(u)
-    setTransferHunter(u.hunter_name || "")
+    const next = u.hunter_name || ""
+    setTransferHunter(next)
+    setInitialTransferHunter(next)
     setShowTransferModal(true)
   }
 
@@ -251,7 +249,7 @@ export default function AdminPage() {
 
       {/* Add/Edit User Modal */}
       {showModal && (
-        <Modal onClose={() => setShowModal(false)}>
+        <Modal onClose={() => setShowModal(false)} maxWidth="max-w-md" isDirty={isFormDirty(initialForm, form)}>
           <div className="p-5">
             <h3 className="text-sm font-semibold text-white mb-4">{editing ? `Edit: ${editing.name}` : "Tambah User Baru"}</h3>
             <form onSubmit={handleSave} className="space-y-3">
@@ -344,7 +342,7 @@ export default function AdminPage() {
 
       {/* Transfer SP Modal */}
       {showTransferModal && transferTarget && (
-        <Modal onClose={() => { setShowTransferModal(false); setTransferTarget(null) }}>
+        <Modal onClose={() => { setShowTransferModal(false); setTransferTarget(null) }} maxWidth="max-w-md" isDirty={isFormDirty(initialTransferHunter, transferHunter)}>
           <div className="p-5">
             <h3 className="text-sm font-semibold text-white mb-1">Pindah Tim</h3>
             <p className="text-xs text-slate-500 mb-4">
