@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import DashboardShell from "@/components/DashboardShell"
 import { supabase } from "@/lib/supabase"
-import { formatRupiah, PROJECT_NAMES } from "@/lib/utils"
+import { formatRupiahFull, PROJECT_NAMES } from "@/lib/utils"
 import {
   buildEmptyUnitSpecialForm,
   formatUnitSpecialPayments,
@@ -76,18 +76,36 @@ export default function UnitSpecialPage() {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "project", dir: "asc" })
   const [bulkEditing, setBulkEditing] = useState(false)
   const [bulkRows, setBulkRows] = useState<Record<string, UnitSpecialForm>>({})
+  const [search, setSearch] = useState("")
+  const [filterProject, setFilterProject] = useState("")
+  const [filterPayment, setFilterPayment] = useState("")
+  const [filterStatus, setFilterStatus] = useState("")
 
   const activeLabel = UNIT_SPECIAL_CATEGORIES.find((category) => category.value === activeCategory)?.label || "Unit Special"
 
+  const categoryRows = useMemo(() => rows.filter((row) => row.category === activeCategory), [activeCategory, rows])
+
+  const projectFilterOptions = useMemo(
+    () => Array.from(new Set(categoryRows.map((row) => row.project).filter(Boolean))).sort(),
+    [categoryRows]
+  )
+
   const filteredRows = useMemo(() => {
-    const list = rows.filter((row) => row.category === activeCategory)
+    const q = search.trim().toLowerCase()
+    const list = categoryRows.filter((row) => {
+      if (filterProject && row.project !== filterProject) return false
+      if (filterPayment && !row.payment_method.includes(filterPayment)) return false
+      if (filterStatus && row.status !== filterStatus) return false
+      if (q && !`${row.project} ${row.cluster} ${row.unit_no} ${row.notes}`.toLowerCase().includes(q)) return false
+      return true
+    })
     return [...list].sort((a, b) => {
       const av = sort.key === "sale_price" ? a.sale_price : (a[sort.key] || "").toString().toLowerCase()
       const bv = sort.key === "sale_price" ? b.sale_price : (b[sort.key] || "").toString().toLowerCase()
       const result = av > bv ? 1 : av < bv ? -1 : 0
       return sort.dir === "asc" ? result : -result
     })
-  }, [activeCategory, rows, sort])
+  }, [categoryRows, sort, search, filterProject, filterPayment, filterStatus])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -118,6 +136,10 @@ export default function UnitSpecialPage() {
     queueMicrotask(() => {
       setBulkEditing(false)
       setBulkRows({})
+      setSearch("")
+      setFilterProject("")
+      setFilterPayment("")
+      setFilterStatus("")
     })
   }, [activeCategory])
 
@@ -393,6 +415,50 @@ export default function UnitSpecialPage() {
           ))}
         </div>
 
+        <div className="flex gap-2 flex-wrap items-end">
+          <label className="flex flex-col gap-1 min-w-60 flex-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Cari</span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari project, cluster, no. unit, keterangan..."
+              className="field-input !py-2 !text-xs"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Project</span>
+            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)} className="field-input !py-2 !text-xs min-w-[140px]">
+              <option value="">Semua Project</option>
+              {projectFilterOptions.map((project) => <option key={project} value={project}>{project}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Cara Bayar</span>
+            <select value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)} className="field-input !py-2 !text-xs min-w-[130px]">
+              <option value="">Semua Cara Bayar</option>
+              {UNIT_SPECIAL_PAYMENT_OPTIONS.map((payment) => <option key={payment} value={payment}>{payment}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Status</span>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="field-input !py-2 !text-xs min-w-[110px]">
+              <option value="">Semua Status</option>
+              {UNIT_SPECIAL_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </label>
+          {(search || filterProject || filterPayment || filterStatus) && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setFilterProject(""); setFilterPayment(""); setFilterStatus("") }}
+              className="text-xs font-semibold text-slate-400 hover:text-white transition px-3 py-2 rounded-lg"
+              style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+            >
+              Reset Filter
+            </button>
+          )}
+          <span className="text-xs text-slate-500 pb-2">{filteredRows.length} dari {categoryRows.length} unit</span>
+        </div>
+
         <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -431,7 +497,7 @@ export default function UnitSpecialPage() {
                     <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.unit_no || ""} onChange={(value) => setBulkField(row.id, "unit_no", value)} /> : row.unit_no}</td>
                     <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.lt_lb || ""} onChange={(value) => setBulkField(row.id, "lt_lb", value)} /> : row.lt_lb || "—"}</td>
                     <td className="px-3 py-2 text-slate-300">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.payment_method || ""} onChange={(value) => setBulkField(row.id, "payment_method", value)} /> : row.payment_method || "—"}</td>
-                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.sale_price || ""} onChange={(value) => setBulkField(row.id, "sale_price", priceInput(value))} /> : formatRupiah(row.sale_price || 0)}</td>
+                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.sale_price || ""} onChange={(value) => setBulkField(row.id, "sale_price", priceInput(value))} /> : formatRupiahFull(row.sale_price || 0)}</td>
                     <td className="px-3 py-2 text-slate-400 min-w-[180px]">{bulkEditing ? <BulkInput value={bulkRows[row.id]?.notes || ""} onChange={(value) => setBulkField(row.id, "notes", value)} /> : row.notes || "—"}</td>
                     <td className="px-3 py-2">
                       {bulkEditing ? (
