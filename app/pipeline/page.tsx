@@ -346,6 +346,7 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved }: { konsumenId: 
                 style={{ background: "var(--surface2)", border: "1px solid var(--border)", colorScheme: "dark" }} />
             </label>
           <button
+            type="button"
             onClick={handleSend}
             disabled={!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || sending}
             title="Simpan Progress"
@@ -1240,6 +1241,7 @@ export default function PipelinePage() {
                         ...current,
                         [editing.id]: `Kendala: ${progress.kendala}\nNext Action: ${progress.nextAction}\nTarget Closing: ${progress.targetClosing}`,
                       }))
+                      setShowModal(false)
                     }}
                   />
                 </div>
