@@ -721,10 +721,13 @@ export default function ClosingPage() {
     ? `${getMonthName(customFrom.month)} ${customFrom.year} – ${getMonthName(customTo.month)} ${customTo.year}`
     : `${getMonthName(month)} ${year}`
 
+  const monthsElapsed = now.getMonth() + 1
+
   const winOrDieHunters = displayHunters
     .filter(hunter => hunter.win_or_die_target > 0)
     .map(hunter => ({
       ...hunter,
+      win_or_die_target: periodTarget(hunter.win_or_die_target, monthsElapsed, ytdMode),
       omset: filtered
         .filter(closing => closing.sales_hunter.toLowerCase() === hunter.name.toLowerCase())
         .reduce((sum, closing) => sum + (closing.nilai_hjr || 0), 0),
@@ -872,7 +875,8 @@ export default function ClosingPage() {
                       (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
                     )
                     const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-                    const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                    const target = periodTarget(hunter.monthly_target, monthsElapsed, ytdMode)
+                    const pct   = target > 0 ? Math.round((total / target) * 100) : 0
                     const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
                     return (
                       <div key={hunter.id} className="rounded-xl p-3 relative group"
@@ -883,7 +887,7 @@ export default function ClosingPage() {
                         </button>
                         <div className="text-xs text-slate-400 font-medium truncate pr-4">{hunter.name}</div>
                         <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
-                        <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
+                        <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(target)}</div>
                         <div className="mt-2 h-1 rounded-full" style={{ background: "var(--border)" }}>
                           <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
                         </div>
@@ -904,7 +908,8 @@ export default function ClosingPage() {
                   const total = closings
                     .filter(c => c.sales_hunter === hunter.name)
                     .reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-                  const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                  const target = periodTarget(hunter.monthly_target, monthsElapsed, ytdMode)
+                  const pct   = target > 0 ? Math.round((total / target) * 100) : 0
                   const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
                   return (
                     <div key={hunter.id} className="rounded-xl p-4"
@@ -918,7 +923,7 @@ export default function ClosingPage() {
                           {pct}%
                         </div>
                       </div>
-                      <div className="text-xs text-slate-600 mb-2">Target: {formatRupiah(hunter.monthly_target)}</div>
+                      <div className="text-xs text-slate-600 mb-2">Target: {formatRupiah(target)}</div>
                       <div className="h-1.5 rounded-full" style={{ background: "var(--surface2)" }}>
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
                       </div>
@@ -952,14 +957,15 @@ export default function ClosingPage() {
                     (c.sales_hunter || "").toLowerCase() === (hunter.name || "").toLowerCase()
                   )
                   const total = hunterClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
-                  const pct   = hunter.monthly_target > 0 ? Math.round((total / hunter.monthly_target) * 100) : 0
+                  const target = periodTarget(hunter.monthly_target, monthsElapsed, ytdMode)
+                  const pct   = target > 0 ? Math.round((total / target) * 100) : 0
                   const bar   = pct >= 100 ? "#22c55e" : pct >= 70 ? "#E84500" : "#ef4444"
                   return (
                     <div key={hunter.id} className="rounded-xl p-3"
                       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                       <div className="text-xs text-slate-400 font-medium truncate">{hunter.name}</div>
                       <div className="text-base font-black text-white mt-1">{formatRupiah(total)}</div>
-                      <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(hunter.monthly_target)}</div>
+                      <div className="text-xs text-slate-600 mt-0.5">Target: {formatRupiah(target)}</div>
                       <div className="mt-2 h-1 rounded-full" style={{ background: "var(--surface2)" }}>
                         <div className="h-1 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: bar }} />
                       </div>
