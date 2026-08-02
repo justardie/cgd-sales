@@ -245,7 +245,9 @@ test("Monthly Report uses a full-month final snapshot with required review field
 
 test("Monthly Report clears period-bound Pivot data and ignores stale loads", async () => {
   const page = await read("app/monthly-report/page.tsx")
-  assert.match(page, /setVisits\(\{ hunterVisits: 0, sales: \[\] \}\); setPivotFilename\(""\); setClosings\(\[\]\); setPipelines\(\[\]\); setMonthlyReview\(\{ good: "", bad: "", next: "" \}\); \+\+pivotRequest\.current/)
+  assert.match(page, /function changeReportMonth\(value: string\) \{ \+\+operationalRequest\.current; \+\+pivotRequest\.current; setOperationalPeriod\(""\); setVisits\(\{ hunterVisits: 0, sales: \[\] \}\); setPivotFilename\(""\); setClosings\(\[\]\); setPipelines\(\[\]\); setMonthlyReview\(\{ good: "", bad: "", next: "" \}\); setReportMonth\(value\) \}/)
+  assert.match(page, /onChange=\{changeReportMonth\}/)
+  assert.doesNotMatch(page, /useEffect\(\(\) => \{ setOperationalPeriod/)
   assert.match(page, /const requestId = \+\+operationalRequest\.current/)
   assert.match(page, /if \(requestId !== operationalRequest\.current\) return/)
   assert.match(page, /const requestId = pivotRequest\.current/)
