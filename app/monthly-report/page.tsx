@@ -10,14 +10,14 @@ import { formatRupiah } from "@/lib/utils"
 import { Download, FileSpreadsheet, Trash2 } from "lucide-react"
 
 interface StoredReport { id: string; hunter_name: string; period_start: string; period_end: string; status: "final"; snapshot: ReportSnapshot | null; updated_at: string }
-const iso = (date: Date) => date.toISOString().slice(0, 10)
+const localMonth = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 const reviewMessage = "Isi What's Good, What's Bad, dan What's Next sebelum finalisasi."
 const loadMessage = "Tunggu data laporan selesai dimuat."
 
 export default function MonthlyReportPage() {
   const { user, isAdmin } = useAuth()
   const { showToast } = useToast()
-  const [reportMonth, setReportMonth] = useState(iso(new Date()).slice(0, 7))
+  const [reportMonth, setReportMonth] = useState(localMonth(new Date()))
   const { start: periodStart, end: periodEnd } = useMemo(() => getMonthRange(reportMonth), [reportMonth])
   const [profile, setProfile] = useState({ monthly_target: 0, win_or_die_target: 0, visit_target: 0, project_coverage: [] as string[] })
   const [team, setTeam] = useState<string[]>([])
@@ -38,9 +38,14 @@ export default function MonthlyReportPage() {
     if (!user) return
     let query = supabase.from("weekly_reports").select("id,hunter_name,period_start,period_end,status,snapshot,updated_at").eq("status", "final").eq("report_type", "monthly").order("updated_at", { ascending: false })
     if (!isAdmin) query = query.eq("user_id", user.id)
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      const errorMessage = "Data laporan gagal dimuat. Coba lagi."
+      setMessage(errorMessage); showToast(errorMessage, "error")
+      return
+    }
     setReports((data || []) as StoredReport[])
-  }, [user, isAdmin])
+  }, [user, isAdmin, showToast])
 
   const loadOperationalData = useCallback(async () => {
     const requestId = ++operationalRequest.current
@@ -67,7 +72,7 @@ export default function MonthlyReportPage() {
   useEffect(() => { queueMicrotask(() => { void loadReports(); void loadOperationalData() }) }, [loadReports, loadOperationalData])
   const snapshot = useMemo<ReportSnapshot>(() => ({ hunterName: user?.name || "", reportDate: periodEnd, periodStart, periodEnd, coverage: profile.project_coverage, monthlyTarget: profile.monthly_target, winOrDieTarget: profile.win_or_die_target, visitTarget: profile.visit_target, closings, pipelines, hunterVisits: visits.hunterVisits, salesVisits: visits.sales, activities: [], monthlyReview }), [user, periodStart, periodEnd, profile, closings, pipelines, visits, monthlyReview])
 
-  function changeReportMonth(value: string) { ++operationalRequest.current; ++pivotRequest.current; setOperationalPeriod(""); setVisits({ hunterVisits: 0, sales: [] }); setPivotFilename(""); setClosings([]); setPipelines([]); setMonthlyReview({ good: "", bad: "", next: "" }); setReportMonth(value) }
+  function changeReportMonth(value: string) { if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return; ++operationalRequest.current; ++pivotRequest.current; setOperationalPeriod(""); setVisits({ hunterVisits: 0, sales: [] }); setPivotFilename(""); setClosings([]); setPipelines([]); setMonthlyReview({ good: "", bad: "", next: "" }); setReportMonth(value) }
 
   function download(data: ReportSnapshot) {
     const blob = new Blob([buildReportHtml(data, "monthly")], { type: "text/html;charset=utf-8" })
@@ -80,12 +85,12 @@ export default function MonthlyReportPage() {
       setMessage(loadMessage); showToast(loadMessage, "error")
       return
     }
-    const requestId = pivotRequest.current
+    const requestId = ++pivotRequest.current
     try {
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" })
       const sheetName = workbook.SheetNames.find(name => name.trim().toLowerCase() === "activities analysis") || workbook.SheetNames[0]
       const raw = XLSX.utils.sheet_to_json<(string | number)[]>(workbook.Sheets[sheetName], { header: 1, defval: 0 })
-      const summary = calculateVisitSummary(parsePivotSheet(raw, monthsInRange(periodStart, periodEnd)), team)
+      const summary = calculateVisitSummary(parsePivotSheet(raw, monthsInRange(periodStart, periodEnd), true), team)
       if (requestId !== pivotRequest.current) return
       setVisits(summary); setPivotFilename(file.name)
       const notice = summary.missingNames.length ? `Pivot dibaca, tetapi nama ini tidak ditemukan: ${summary.missingNames.join(", ")}` : "Pivot berhasil dibaca; semua nama tim cocok."

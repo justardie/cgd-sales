@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { buildReportHtml, calculateVisitSummary, getMonthRange, getMtdRange, getPreviousWeekPeriod, normalizePersonName } from "./weekly-report.ts"
+import { buildReportHtml, calculateVisitSummary, getMonthRange, getMtdRange, getPreviousWeekPeriod, normalizePersonName, parsePivotSheet } from "./weekly-report.ts"
 
 test("report date automatically selects the previous Monday through Sunday", () => {
   assert.deepEqual(getPreviousWeekPeriod("2026-06-29"), { start: "2026-06-22", end: "2026-06-28" })
@@ -24,13 +24,27 @@ test("MTD starts on first day of end date month", () => {
   assert.deepEqual(getMtdRange("2026-06-30"), { start: "2026-06-01", end: "2026-06-30" })
 })
 
+test("strict Pivot parsing rejects a missing target month while weekly parsing falls back", () => {
+  const raw = [
+    ["", "Visit Konsumen", "Accompanied Visit", "Visit Lokasi"],
+    [" July 2026", 0, 0, 0],
+    ["  Alvin", 1, 2, 3],
+    [" August 2026", 0, 0, 0],
+    ["  Alvin", 4, 5, 6],
+  ]
+  const targets = [{ year: 2026, month: 8 }]
+
+  assert.deepEqual(parsePivotSheet(raw, targets), [{ name: "Alvin", visitKonsumen: 4, accompanied: 5, visitLokasi: 6 }])
+  assert.throws(() => parsePivotSheet(raw, targets, true), /bulan laporan tidak ditemukan/i)
+})
+
 test("month input expands to the complete calendar month", () => {
   assert.deepEqual(getMonthRange("2026-02"), { start: "2026-02-01", end: "2026-02-28" })
   assert.deepEqual(getMonthRange("2028-02"), { start: "2028-02-01", end: "2028-02-29" })
 })
 
 test("monthly report uses monthly copy while weekly remains unchanged", () => {
-  const data = { hunterName: "Andre", periodStart: "2026-07-01", periodEnd: "2026-07-31", coverage: [], monthlyTarget: 100, winOrDieTarget: 50, closings: [], pipelines: [], hunterVisits: 0, salesVisits: [], activities: [], monthlyReview: { good: "Target tercapai", bad: "Visit kurang", next: "Tambah kunjungan" } }
+  const data = { hunterName: "Andre", periodStart: "2026-07-01", periodEnd: "2026-07-31", coverage: [], monthlyTarget: 100, winOrDieTarget: 50, visitTarget: 12, closings: [], pipelines: [], hunterVisits: 0, salesVisits: [], activities: [], monthlyReview: { good: "Target tercapai", bad: "Visit kurang", next: "Tambah kunjungan" } }
   const monthly = buildReportHtml(data, "monthly")
   assert.match(monthly, /SALES MONTHLY REPORT/)
   assert.match(monthly, /Closing Bulanan/)
@@ -41,12 +55,14 @@ test("monthly report uses monthly copy while weekly remains unchanged", () => {
   assert.match(monthly, /What's Good/)
   assert.match(monthly, /What's Bad/)
   assert.match(monthly, /What's Next/)
+  assert.match(monthly, /Target 12 visit per orang/)
   const weekly = buildReportHtml(data)
   assert.match(weekly, /SALES WEEKLY REPORT/)
   assert.match(weekly, /Omset MTD/)
   assert.match(weekly, /Closing MTD sampai/)
   assert.match(weekly, /TOTAL OMSET MTD/)
   assert.match(weekly, /Rencana Aktivitas Minggu Depan/)
+  assert.match(weekly, /Target 40 visit per orang/)
   assert.doesNotMatch(weekly, /What's Good/)
 })
 

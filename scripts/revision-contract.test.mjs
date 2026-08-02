@@ -245,13 +245,23 @@ test("Monthly Report uses a full-month final snapshot with required review field
 
 test("Monthly Report clears period-bound Pivot data and ignores stale loads", async () => {
   const page = await read("app/monthly-report/page.tsx")
-  assert.match(page, /function changeReportMonth\(value: string\) \{ \+\+operationalRequest\.current; \+\+pivotRequest\.current; setOperationalPeriod\(""\); setVisits\(\{ hunterVisits: 0, sales: \[\] \}\); setPivotFilename\(""\); setClosings\(\[\]\); setPipelines\(\[\]\); setMonthlyReview\(\{ good: "", bad: "", next: "" \}\); setReportMonth\(value\) \}/)
+  assert.match(page, /function changeReportMonth\(value: string\) \{ if \(!\/\^\\d\{4\}-\(0\[1-9\]\|1\[0-2\]\)\$\/\.test\(value\)\) return; \+\+operationalRequest\.current; \+\+pivotRequest\.current; setOperationalPeriod\(""\); setVisits\(\{ hunterVisits: 0, sales: \[\] \}\); setPivotFilename\(""\); setClosings\(\[\]\); setPipelines\(\[\]\); setMonthlyReview\(\{ good: "", bad: "", next: "" \}\); setReportMonth\(value\) \}/)
   assert.match(page, /onChange=\{changeReportMonth\}/)
   assert.doesNotMatch(page, /useEffect\(\(\) => \{ setOperationalPeriod/)
   assert.match(page, /const requestId = \+\+operationalRequest\.current/)
   assert.match(page, /if \(requestId !== operationalRequest\.current\) return/)
-  assert.match(page, /const requestId = pivotRequest\.current/)
+  assert.match(page, /const requestId = \+\+pivotRequest\.current/)
   assert.match(page, /if \(requestId !== pivotRequest\.current\) return/)
+  assert.match(page, /parsePivotSheet\(raw, monthsInRange\(periodStart, periodEnd\), true\)/)
+})
+
+test("Monthly Report initializes from local time and surfaces history load failures", async () => {
+  const page = await read("app/monthly-report/page.tsx")
+  assert.match(page, /const localMonth = \(date: Date\) => `\$\{date\.getFullYear\(\)\}-\$\{String\(date\.getMonth\(\) \+ 1\)\.padStart\(2, "0"\)\}`/)
+  assert.match(page, /useState\(localMonth\(new Date\(\)\)\)/)
+  assert.match(page, /const \{ data, error \} = await query/)
+  assert.match(page, /if \(error\) \{[\s\S]*?setMessage\(errorMessage\); showToast\(errorMessage, "error"\)[\s\S]*?return[\s\S]*?\}/)
+  assert.match(page, /\}, \[user, isAdmin, showToast\]\)/)
 })
 
 test("Monthly Report is available to weekly-report desktop roles only", async () => {
