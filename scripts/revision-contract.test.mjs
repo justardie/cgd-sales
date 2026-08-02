@@ -252,6 +252,16 @@ test("Monthly Report clears period-bound Pivot data and ignores stale loads", as
   assert.match(page, /if \(requestId !== pivotRequest\.current\) return/)
 })
 
+test("Monthly Report waits for the current operational load before accepting a Pivot", async () => {
+  const page = await read("app/monthly-report/page.tsx")
+  assert.match(page, /const \[operationalPeriod, setOperationalPeriod\] = useState\(""\)/)
+  assert.match(page, /const operationalReady = operationalPeriod === `\$\{periodStart\}:\$\{periodEnd\}`/)
+  assert.match(page, /if \(requestId !== operationalRequest\.current\) return[\s\S]*setOperationalPeriod\(`\$\{periodStart\}:\$\{periodEnd\}`\)/)
+  assert.match(page, /disabled=\{!operationalReady\}/)
+  assert.equal((page.match(/if \(!operationalReady\)/g) || []).length, 2)
+  assert.match(page, /setMessage\(loadMessage\); showToast\(loadMessage, "error"\)/)
+})
+
 test("Weekly Report date picker uses a larger white calendar icon", async () => {
   const page = await read("app/report/page.tsx")
   const css = await read("app/globals.css")

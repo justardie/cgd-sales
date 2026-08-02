@@ -12,6 +12,7 @@ import { Download, FileSpreadsheet, Trash2 } from "lucide-react"
 interface StoredReport { id: string; hunter_name: string; period_start: string; period_end: string; status: "final"; snapshot: ReportSnapshot | null; updated_at: string }
 const iso = (date: Date) => date.toISOString().slice(0, 10)
 const reviewMessage = "Isi What's Good, What's Bad, dan What's Next sebelum finalisasi."
+const loadMessage = "Tunggu data laporan selesai dimuat."
 
 export default function MonthlyReportPage() {
   const { user, isAdmin } = useAuth()
@@ -28,8 +29,10 @@ export default function MonthlyReportPage() {
   const [reports, setReports] = useState<StoredReport[]>([])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
+  const [operationalPeriod, setOperationalPeriod] = useState("")
   const operationalRequest = useRef(0)
   const pivotRequest = useRef(0)
+  const operationalReady = operationalPeriod === `${periodStart}:${periodEnd}`
 
   const loadReports = useCallback(async () => {
     if (!user) return
@@ -49,13 +52,19 @@ export default function MonthlyReportPage() {
       supabase.from("konsumen").select("sales_person,name,project,unit,potensi_closing,visit_date,sudah_booking_fee").eq("status", "hot").eq("sales_hunter", user.name).or("board.eq.pipeline,board.is.null"),
     ])
     if (requestId !== operationalRequest.current) return
+    if (profileRes.error || teamRes.error || closingRes.error || pipelineRes.error) {
+      const errorMessage = "Data laporan gagal dimuat. Coba lagi."
+      setMessage(errorMessage); showToast(errorMessage, "error")
+      return
+    }
     if (profileRes.data) setProfile({ monthly_target: profileRes.data.monthly_target || 0, win_or_die_target: profileRes.data.win_or_die_target || 0, visit_target: profileRes.data.visit_target || 0, project_coverage: profileRes.data.project_coverage || [] })
     setTeam((teamRes.data || []).map(x => x.name))
     setClosings((closingRes.data || []).map(x => ({ salesPerson: x.sales_person || user.name, customer: x.name, project: x.project, unit: x.unit, value: x.nilai_hjr || 0, visitDate: x.visit_date, closingDate: x.closing_date })))
     setPipelines((pipelineRes.data || []).map(x => ({ salesPerson: x.sales_person || user.name, customer: x.name, project: x.project, unit: x.unit, value: x.potensi_closing || 0, visitDate: x.visit_date, bookingFee: x.sudah_booking_fee })))
+    setOperationalPeriod(`${periodStart}:${periodEnd}`)
   }, [user, isAdmin, periodStart, periodEnd])
 
-  useEffect(() => { setVisits({ hunterVisits: 0, sales: [] }); setPivotFilename(""); setClosings([]); setPipelines([]); setMonthlyReview({ good: "", bad: "", next: "" }); ++pivotRequest.current }, [periodStart, periodEnd])
+  useEffect(() => { setOperationalPeriod(""); setVisits({ hunterVisits: 0, sales: [] }); setPivotFilename(""); setClosings([]); setPipelines([]); setMonthlyReview({ good: "", bad: "", next: "" }); ++pivotRequest.current }, [periodStart, periodEnd])
   useEffect(() => { queueMicrotask(() => { void loadReports(); void loadOperationalData() }) }, [loadReports, loadOperationalData])
   const snapshot = useMemo<ReportSnapshot>(() => ({ hunterName: user?.name || "", reportDate: periodEnd, periodStart, periodEnd, coverage: profile.project_coverage, monthlyTarget: profile.monthly_target, winOrDieTarget: profile.win_or_die_target, visitTarget: profile.visit_target, closings, pipelines, hunterVisits: visits.hunterVisits, salesVisits: visits.sales, activities: [], monthlyReview }), [user, periodStart, periodEnd, profile, closings, pipelines, visits, monthlyReview])
 
@@ -66,6 +75,10 @@ export default function MonthlyReportPage() {
   }
 
   async function parsePivot(file: File) {
+    if (!operationalReady) {
+      setMessage(loadMessage); showToast(loadMessage, "error")
+      return
+    }
     const requestId = pivotRequest.current
     try {
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" })
@@ -84,6 +97,10 @@ export default function MonthlyReportPage() {
 
   async function finalizeReport() {
     if (!user) return
+    if (!operationalReady) {
+      setMessage(loadMessage); showToast(loadMessage, "error")
+      return
+    }
     if (!pivotFilename) {
       setMessage("Unggah Pivot Activities sebelum finalisasi.")
       showToast("Unggah Pivot Activities sebelum finalisasi.", "error")
@@ -125,9 +142,9 @@ export default function MonthlyReportPage() {
   return <DashboardShell><div className="space-y-6">
     <div><h1 className="text-xl font-bold text-white">MONTHLY REPORT</h1><p className="text-sm text-slate-500">Monthly Sales Report · MASCOL Division</p></div>
     {isAdmin ? <ReportHistory reports={reports} onDownload={download} onDelete={deleteReport} /> : user?.role !== "hunter" ? <div className="card">MONTHLY REPORT hanya tersedia untuk Sales Hunter.</div> : <>
-      <section className="rounded-xl border p-5 space-y-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}><div className="grid md:grid-cols-4 gap-3"><Field label="Sales Hunter" value={user.name} disabled /><Field label="Bulan Laporan" value={reportMonth} type="month" onChange={setReportMonth} /><Field label="Periode Otomatis" value={`${periodStart} – ${periodEnd}`} disabled /><Field label="Coverage" value={profile.project_coverage.join(", ") || "Belum diatur"} disabled /></div></section>
+      <section className="rounded-xl border p-5 space-y-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}><div className="grid md:grid-cols-4 gap-3"><Field label="Sales Hunter" value={user.name} disabled /><Field label="Bulan Laporan" value={reportMonth} type="month" onChange={value => { setOperationalPeriod(""); setReportMonth(value) }} /><Field label="Periode Otomatis" value={`${periodStart} – ${periodEnd}`} disabled /><Field label="Coverage" value={profile.project_coverage.join(", ") || "Belum diatur"} disabled /></div></section>
       <div className="grid md:grid-cols-4 gap-3">{[["Closing Bulanan", closings.length.toString()], ["Omset Bulanan", formatRupiah(closings.reduce((sum, closing) => sum + closing.value, 0))], ["Pipeline Hot", pipelines.length.toString()], ["Potensi Pipeline", formatRupiah(pipelines.reduce((sum, pipeline) => sum + pipeline.value, 0))]].map(([label, value]) => <div key={label} className="rounded-xl border p-4" style={{ background: "var(--surface)", borderColor: "var(--border)" }}><div className="text-xs text-slate-500">{label}</div><b className="text-white block mt-1">{value}</b></div>)}</div>
-      <section className="rounded-xl border p-5 space-y-3" style={{ background: "var(--surface)", borderColor: "var(--border)" }}><h2 className="font-semibold text-white">Pencapaian Visit Tim</h2><label className="inline-flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer bg-emerald-600 text-white text-sm"><FileSpreadsheet size={16} /> Upload Pivot Activities<input type="file" accept=".xlsx,.xls" className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void parsePivot(file) }} /></label>{pivotFilename && <span className="ml-3 text-xs text-emerald-400">{pivotFilename}</span>}<div className="text-sm text-slate-300">Visit Hunter: <b>{visits.hunterVisits}</b> · {visits.sales.map(sale => `${sale.name}: ${sale.visits}`).join(" · ") || "Belum ada data"}</div></section>
+      <section className="rounded-xl border p-5 space-y-3" style={{ background: "var(--surface)", borderColor: "var(--border)" }}><h2 className="font-semibold text-white">Pencapaian Visit Tim</h2><label className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-white text-sm ${operationalReady ? "cursor-pointer bg-emerald-600" : "cursor-not-allowed bg-slate-500"}`}><FileSpreadsheet size={16} /> Upload Pivot Activities<input type="file" accept=".xlsx,.xls" className="hidden" disabled={!operationalReady} onChange={event => { const file = event.target.files?.[0]; if (file) void parsePivot(file) }} /></label>{pivotFilename && <span className="ml-3 text-xs text-emerald-400">{pivotFilename}</span>}<div className="text-sm text-slate-300">Visit Hunter: <b>{visits.hunterVisits}</b> · {visits.sales.map(sale => `${sale.name}: ${sale.visits}`).join(" · ") || "Belum ada data"}</div></section>
       <section className="rounded-xl border p-5 space-y-3" style={{ background: "var(--surface)", borderColor: "var(--border)" }}><h2 className="font-semibold text-white">Monthly Review</h2>{([ ["good", "What's Good"], ["bad", "What's Bad"], ["next", "What's Next"] ] as const).map(([field, label]) => <label key={field} className="block text-sm text-slate-300">{label}<textarea className="input-dark mt-1 w-full" rows={3} value={monthlyReview[field]} onChange={event => setMonthlyReview(value => ({ ...value, [field]: event.target.value }))} /></label>)}</section>
       {message && <p className="text-sm text-amber-300">{message}</p>}<div className="flex gap-3"><button disabled={busy} onClick={() => void finalizeReport()} className="btn-primary flex items-center gap-2"><Download size={16} /> Finalisasi &amp; Download</button></div>
       <ReportHistory reports={reports} onDownload={download} onDelete={deleteReport} />
