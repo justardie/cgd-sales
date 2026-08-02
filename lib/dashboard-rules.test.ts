@@ -23,7 +23,10 @@ test("canonical projects remain visible with zero revenue", () => {
 
 test("top closing comes only from positive closing rows", () => {
   assert.equal(topClosingBy([], "sales_hunter"), null)
-  assert.equal(topClosingBy([{ sales_hunter: "Lyndon", nilai_hjr: 0 }], "sales_hunter"), null)
+  assert.equal(topClosingBy([
+    { sales_hunter: "Lyndon", nilai_hjr: 0 },
+    { sales_hunter: "Rina", nilai_hjr: -10 },
+  ], "sales_hunter"), null)
   assert.deepEqual(
     topClosingBy([
       { sales_person: "Alvin", nilai_hjr: 100 },

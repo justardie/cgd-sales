@@ -57,7 +57,7 @@ test("Closing supports active Hunters, Agent names, and cancellation to Hot", as
 test("dashboard applies period-independent KPIs and includes both active sales roles", async () => {
   const source = await read("app/page.tsx")
   assert.match(source, /periodTarget/)
-  assert.match(source, /isActiveSalesRole/)
+  assert.match(source, /\.in\("role", \["sales_person", "telemarketing"\]\)\.eq\("status", "active"\)/)
   assert.match(source, /closingsCurrentMonth/)
   assert.match(source, /closingsPreviousMonth/)
   assert.match(source, /Pipeline Hot/)
