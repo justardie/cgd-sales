@@ -15,7 +15,7 @@ Menambahkan halaman `/monthly-report` untuk Sales Hunter yang mengikuti tampilan
 
 - Hunter memilih bulan melalui input bulan; nilai awal adalah bulan berjalan.
 - Sistem menurunkan periode menjadi tanggal pertama sampai tanggal terakhir bulan terpilih.
-- Hunter mengunggah Pivot Activities dan mengisi minimal satu rencana aktivitas bulan depan.
+- Hunter mengunggah Pivot Activities dan mengisi evaluasi bulanan dalam tiga bagian pada halaman yang sama.
 - Finalisasi menyimpan snapshot tetap dan langsung mengunduh HTML mandiri berformat A4 landscape.
 - Riwayat pada halaman hanya menampilkan report bulanan.
 
@@ -25,7 +25,9 @@ Menambahkan halaman `/monthly-report` untuk Sales Hunter yang mengikuti tampilan
 - Pipeline sama dengan report mingguan: seluruh pipeline Hunter yang sedang berstatus Hot, tanpa filter tanggal.
 - Pivot Activities hanya membaca grup bulan dan tahun yang dipilih. Perhitungan visit tetap memakai aturan report mingguan.
 - Target omset, Win or Die, coverage, anggota tim, dan target visit memakai data profil yang sudah ada.
-- Rencana aktivitas ditampilkan sebagai `Rencana Aktivitas Bulan Depan`.
+- Bagian akhir report bulanan menggantikan `Rencana Aktivitas Bulan Depan` dengan tiga textarea: `What's Good`, `What's Bad`, dan `What's Next`.
+- `What's Good` mencatat pencapaian atau hal yang berjalan baik, `What's Bad` mencatat kendala atau hal yang belum berjalan baik, dan `What's Next` mencatat tindakan serta fokus bulan berikutnya.
+- Ketiga textarea wajib diisi dan disimpan dalam snapshot sebagai `monthlyReview`.
 - Output memakai judul `Sales Monthly Report`; label MTD diganti menjadi label bulanan yang sesuai.
 - Nama file unduhan memuat nama Hunter dan bulan laporan.
 
@@ -39,18 +41,18 @@ Menambahkan halaman `/monthly-report` untuk Sales Hunter yang mengikuti tampilan
 ## Implementasi minimal
 
 - Gunakan kembali tipe snapshot, parser Pivot, kalkulasi visit, dan generator HTML.
-- Tambahkan mode report pada generator untuk mengganti judul, label periode, label closing, label aktivitas, serta nama file tanpa menggandakan template.
+- Tambahkan mode report pada generator untuk mengganti judul, label periode, label closing, serta bagian akhir report tanpa menggandakan template.
+- Mode mingguan tetap menampilkan tabel rencana aktivitas. Mode bulanan menampilkan `What's Good`, `What's Bad`, dan `What's Next` sebagai tiga bagian pada dokumen yang sama.
 - Halaman baru mengikuti struktur `/report`; ekstraksi komponen hanya dilakukan jika langsung mengurangi duplikasi yang nyata dan tidak memperbesar perubahan.
 
 ## Kegagalan dan validasi
 
-- Tolak finalisasi bila Pivot Activities belum diunggah atau rencana aktivitas masih kosong.
+- Tolak finalisasi bila Pivot Activities belum diunggah atau salah satu bagian `What's Good`, `What's Bad`, dan `What's Next` masih kosong.
 - Kesalahan parsing Pivot dan penyimpanan tetap ditampilkan melalui toast dan pesan halaman.
 - Snapshot lama tanpa `report_type` diperlakukan sebagai report mingguan melalui default database dan pemfilteran eksplisit.
 
 ## Verifikasi
 
 - Tambahkan pengujian periode awal dan akhir bulan, termasuk Februari tahun kabisat.
-- Tambahkan pengujian bahwa HTML mode bulanan menampilkan judul dan label bulanan tanpa mengubah output mode mingguan.
+- Tambahkan pengujian bahwa HTML mode bulanan menampilkan judul, label bulanan, dan ketiga bagian evaluasi tanpa mengubah output mode mingguan.
 - Jalankan pengujian report, lint, pemeriksaan tipe/build, dan pemeriksaan kontrak yang relevan.
-
