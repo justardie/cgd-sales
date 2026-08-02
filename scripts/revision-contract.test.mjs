@@ -252,6 +252,25 @@ test("Monthly Report clears period-bound Pivot data and ignores stale loads", as
   assert.match(page, /if \(requestId !== pivotRequest\.current\) return/)
 })
 
+test("Monthly Report is available to weekly-report desktop roles only", async () => {
+  const header = await read("components/Header.tsx")
+  const settings = await read("lib/access-settings.ts")
+  const migration = await read("supabase/044_monthly_report_access.sql")
+  assert.match(header, /\{ href: "\/monthly-report", label: "MONTHLY REPORT", reportAccess: true \}/)
+  assert.match(header, /\{ href: "\/report",\s+label: "REPORT",\s+reportAccess: true\s+\},\r?\n  \{ href: "\/monthly-report"/)
+  assert.match(settings, /\{ key: "monthly_report", label: "MONTHLY REPORT", href: "\/monthly-report" \}/)
+  assert.match(settings, /admin:[\s\S]*desktop_menus: \[[^\]]*"report", "monthly_report"/)
+  assert.match(settings, /hunter:[\s\S]*desktop_menus: \[[^\]]*"report", "monthly_report"/)
+  for (const role of ["sales_person", "telemarketing", "task_force"]) {
+    const roleSettings = settings.match(new RegExp(`${role}: \\{[\\s\\S]*?\\n  \\},`))?.[0] ?? ""
+    assert.doesNotMatch(roleSettings, /"monthly_report"/)
+  }
+  assert.match(migration, /role_key IN \('admin', 'hunter'\)/)
+  assert.match(migration, /array_append\(desktop_menus, 'monthly_report'\)/)
+  assert.match(migration, /'report' = ANY\(desktop_menus\)/)
+  assert.match(migration, /NOT \('monthly_report' = ANY\(desktop_menus\)\)/)
+})
+
 test("Monthly Report waits for the current operational load before accepting a Pivot", async () => {
   const page = await read("app/monthly-report/page.tsx")
   assert.match(page, /const \[operationalPeriod, setOperationalPeriod\] = useState\(""\)/)

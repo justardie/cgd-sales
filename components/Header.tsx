@@ -14,6 +14,7 @@ const SALES_NAV = [
   { href: "/closing",        label: "Closing"                            },
   { href: "/unit-special",   label: "Unit Special"                       },
   { href: "/report",         label: "REPORT",        reportAccess: true  },
+  { href: "/monthly-report", label: "MONTHLY REPORT", reportAccess: true },
   { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
   { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
 ]

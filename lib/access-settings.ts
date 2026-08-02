@@ -9,6 +9,7 @@ export const MENU_ITEMS = [
   { key: "team", label: "Team Status", href: "/team" },
   { key: "unit_special", label: "Unit Special", href: "/unit-special" },
   { key: "report", label: "REPORT", href: "/report" },
+  { key: "monthly_report", label: "MONTHLY REPORT", href: "/monthly-report" },
   { key: "funnel", label: "Leads Funnel", href: "/funnel" },
   { key: "funnel_summary", label: "Funnel Summary", href: "/funnel-summary" },
   { key: "admin", label: "Admin", href: "/admin" },
@@ -34,13 +35,13 @@ export const DEFAULT_ROLE_ACCESS: Record<AccessRoleKey, {
 }> = {
   admin: {
     data_scope: "all",
-    desktop_menus: ["overview", "pipeline", "closing", "unit_special", "report", "funnel", "funnel_summary", "team", "admin", "role_access", "lapor_mas"],
+    desktop_menus: ["overview", "pipeline", "closing", "unit_special", "report", "monthly_report", "funnel", "funnel_summary", "team", "admin", "role_access", "lapor_mas"],
     tablet_menus: ["overview", "pipeline", "closing", "team", "admin", "role_access"],
     mobile_menus: ["overview", "pipeline", "closing", "team"],
   },
   hunter: {
     data_scope: "team_only",
-    desktop_menus: ["overview", "pipeline", "closing", "unit_special", "report", "funnel", "funnel_summary"],
+    desktop_menus: ["overview", "pipeline", "closing", "unit_special", "report", "monthly_report", "funnel", "funnel_summary"],
     tablet_menus: ["overview", "pipeline", "closing", "team"],
     mobile_menus: ["overview", "pipeline", "closing", "team"],
   },
