@@ -231,6 +231,27 @@ test("weekly snapshots are isolated from monthly snapshots", async () => {
   assert.match(page, /onConflict: "user_id,report_type,period_start,period_end"/)
 })
 
+test("Monthly Report uses a full-month final snapshot with required review fields", async () => {
+  const page = await read("app/monthly-report/page.tsx")
+  assert.match(page, /report_type", "monthly"/)
+  assert.match(page, /getMonthRange/)
+  assert.match(page, /buildReportHtml\(data, "monthly"\)/)
+  assert.match(page, /\.gte\("closing_date", periodStart\)/)
+  assert.match(page, /\.lte\("closing_date", periodEnd\)/)
+  assert.match(page, /\.eq\("status", "hot"\).*\.eq\("sales_hunter", user\.name\).*\.or\("board\.eq\.pipeline,board\.is\.null"\)/s)
+  for (const label of ["What's Good", "What's Bad", "What's Next"]) assert.match(page, new RegExp(label))
+  assert.match(page, /Isi What's Good, What's Bad, dan What's Next sebelum finalisasi\./)
+})
+
+test("Monthly Report clears period-bound Pivot data and ignores stale loads", async () => {
+  const page = await read("app/monthly-report/page.tsx")
+  assert.match(page, /setVisits\(\{ hunterVisits: 0, sales: \[\] \}\); setPivotFilename\(""\); setClosings\(\[\]\); setPipelines\(\[\]\); setMonthlyReview\(\{ good: "", bad: "", next: "" \}\); \+\+pivotRequest\.current/)
+  assert.match(page, /const requestId = \+\+operationalRequest\.current/)
+  assert.match(page, /if \(requestId !== operationalRequest\.current\) return/)
+  assert.match(page, /const requestId = pivotRequest\.current/)
+  assert.match(page, /if \(requestId !== pivotRequest\.current\) return/)
+})
+
 test("Weekly Report date picker uses a larger white calendar icon", async () => {
   const page = await read("app/report/page.tsx")
   const css = await read("app/globals.css")
