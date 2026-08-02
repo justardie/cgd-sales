@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, normalizePersonName } from "./weekly-report.ts"
+import { buildReportHtml, calculateVisitSummary, getMonthRange, getMtdRange, getPreviousWeekPeriod, normalizePersonName } from "./weekly-report.ts"
 
 test("report date automatically selects the previous Monday through Sunday", () => {
   assert.deepEqual(getPreviousWeekPeriod("2026-06-29"), { start: "2026-06-22", end: "2026-06-28" })
@@ -22,6 +22,25 @@ test("calculates Hunter accompanied visits and each active Sales Person total", 
 
 test("MTD starts on first day of end date month", () => {
   assert.deepEqual(getMtdRange("2026-06-30"), { start: "2026-06-01", end: "2026-06-30" })
+})
+
+test("month input expands to the complete calendar month", () => {
+  assert.deepEqual(getMonthRange("2026-02"), { start: "2026-02-01", end: "2026-02-28" })
+  assert.deepEqual(getMonthRange("2028-02"), { start: "2028-02-01", end: "2028-02-29" })
+})
+
+test("monthly report uses monthly copy while weekly remains unchanged", () => {
+  const data = { hunterName: "Andre", periodStart: "2026-07-01", periodEnd: "2026-07-31", coverage: [], monthlyTarget: 100, winOrDieTarget: 50, closings: [], pipelines: [], hunterVisits: 0, salesVisits: [], activities: [], monthlyReview: { good: "Target tercapai", bad: "Visit kurang", next: "Tambah kunjungan" } }
+  const monthly = buildReportHtml(data, "monthly")
+  assert.match(monthly, /SALES MONTHLY REPORT/)
+  assert.match(monthly, /Closing Bulanan/)
+  assert.match(monthly, /What's Good/)
+  assert.match(monthly, /What's Bad/)
+  assert.match(monthly, /What's Next/)
+  const weekly = buildReportHtml(data)
+  assert.match(weekly, /SALES WEEKLY REPORT/)
+  assert.match(weekly, /Rencana Aktivitas Minggu Depan/)
+  assert.doesNotMatch(weekly, /What's Good/)
 })
 
 test("report HTML is print-ready, shows progress and escapes user content", () => {
