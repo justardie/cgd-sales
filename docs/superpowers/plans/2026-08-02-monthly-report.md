@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a separate `/monthly-report` page that snapshots and downloads a Hunter's full-calendar-month closing, current Hot pipeline, monthly visit Pivot, and next-month activity plan.
+**Goal:** Add one `/monthly-report` page that snapshots and downloads a Hunter's full-calendar-month closing, current Hot pipeline, monthly visit Pivot, and three-part monthly evaluation.
 
 **Architecture:** Reuse the existing weekly report data types, Pivot parser, visit calculation, and HTML generator. Add a `monthly` rendering mode and a calendar-month range helper, keep both report types in `weekly_reports` with an explicit discriminator, and implement one new client page following the existing report flow.
 
@@ -14,6 +14,8 @@
 - `/monthly-report` is a separate route for Hunter and Admin.
 - Monthly closing uses the complete selected calendar month; Hot pipeline remains unfiltered by date.
 - Pivot visit parsing uses only the selected month and year.
+- The monthly page contains three required textareas on the same page: `What's Good`, `What's Bad`, and `What's Next`.
+- The weekly page keeps its existing activity-plan table unchanged.
 - Reuse installed dependencies and existing report helpers; add no packages.
 - Finalized history is separated by `report_type` and downloaded from its stored snapshot.
 
@@ -27,6 +29,7 @@
 
 **Interfaces:**
 - Produces: `getMonthRange(monthValue: string): { start: string; end: string }`
+- Produces: `MonthlyReview = { good: string; bad: string; next: string }`
 - Produces: `buildReportHtml(data: ReportSnapshot, reportType?: "weekly" | "monthly"): string`
 - Preserves: omitted `reportType` renders the existing weekly report.
 
@@ -43,12 +46,17 @@ test("month input expands to the complete calendar month", () => {
 })
 
 test("monthly report uses monthly copy while weekly remains unchanged", () => {
-  const data = { hunterName: "Andre", periodStart: "2026-07-01", periodEnd: "2026-07-31", coverage: [], monthlyTarget: 100, winOrDieTarget: 50, closings: [], pipelines: [], hunterVisits: 0, salesVisits: [], activities: [] }
+  const data = { hunterName: "Andre", periodStart: "2026-07-01", periodEnd: "2026-07-31", coverage: [], monthlyTarget: 100, winOrDieTarget: 50, closings: [], pipelines: [], hunterVisits: 0, salesVisits: [], activities: [], monthlyReview: { good: "Target tercapai", bad: "Visit kurang", next: "Tambah kunjungan" } }
   const monthly = buildReportHtml(data, "monthly")
   assert.match(monthly, /SALES MONTHLY REPORT/)
   assert.match(monthly, /Closing Bulanan/)
-  assert.match(monthly, /Rencana Aktivitas Bulan Depan/)
-  assert.match(buildReportHtml(data), /SALES WEEKLY REPORT/)
+  assert.match(monthly, /What's Good/)
+  assert.match(monthly, /What's Bad/)
+  assert.match(monthly, /What's Next/)
+  const weekly = buildReportHtml(data)
+  assert.match(weekly, /SALES WEEKLY REPORT/)
+  assert.match(weekly, /Rencana Aktivitas Minggu Depan/)
+  assert.doesNotMatch(weekly, /What's Good/)
 })
 ```
 
@@ -70,7 +78,21 @@ export function getMonthRange(monthValue: string) {
 }
 ```
 
-Change `buildReportHtml` to accept `reportType = "weekly"`, derive four strings (`reportTitle`, `closingLabel`, `closingPeriodLabel`, `activityLabel`), and use those strings in the existing single HTML template. Do not duplicate the template.
+Add the snapshot field without breaking stored weekly snapshots:
+
+```ts
+export interface MonthlyReview { good: string; bad: string; next: string }
+
+export interface ReportSnapshot {
+  hunterName: string; reportDate?: string; periodStart: string; periodEnd: string; coverage: string[]
+  monthlyTarget: number; winOrDieTarget: number; visitTarget?: number
+  closings: ReportClosing[]; pipelines: ReportPipeline[]
+  hunterVisits: number; salesVisits: SalesVisit[]; activities: ReportActivity[]
+  monthlyReview?: MonthlyReview
+}
+```
+
+Change `buildReportHtml` to accept `reportType = "weekly"` and derive `reportTitle`, `closingLabel`, and `closingPeriodLabel`. Build one `finalSection` string: monthly mode renders three escaped review cards with `white-space: pre-wrap`; weekly mode renders the existing activity table. Insert `finalSection` once into the existing HTML template rather than duplicating the template.
 
 - [ ] **Step 4: Run report tests**
 
@@ -184,6 +206,14 @@ supabase.from("konsumen")
 
 Keep the existing Hot pipeline query unchanged. Parse Pivot with `monthsInRange(periodStart, periodEnd)`. Load history with `.eq("report_type", "monthly")`; save `report_type: "monthly"` and conflict target `user_id,report_type,period_start,period_end`.
 
+Use one state object for the three required fields:
+
+```ts
+const [monthlyReview, setMonthlyReview] = useState<MonthlyReview>({ good: "", bad: "", next: "" })
+```
+
+Include `monthlyReview` and `activities: []` in the monthly snapshot. Before saving, reject when any of `good`, `bad`, or `next` is blank after `trim()` and show `Isi What's Good, What's Bad, dan What's Next sebelum finalisasi.` through the existing message and toast pattern.
+
 - [ ] **Step 2: Apply monthly labels and download name**
 
 Use:
@@ -193,11 +223,11 @@ buildReportHtml(data, "monthly")
 `Monthly Report - ${data.hunterName} - ${data.periodStart.slice(0, 7)}.html`
 ```
 
-Visible copy must include `MONTHLY REPORT`, `Monthly Sales Report · MASCOL Division`, `Bulan Laporan`, `Closing Bulanan`, `Omset Bulanan`, and `Rencana Aktivitas Bulan Depan`.
+Visible copy must include `MONTHLY REPORT`, `Monthly Sales Report · MASCOL Division`, `Bulan Laporan`, `Closing Bulanan`, and `Omset Bulanan`. On that same page, render three labeled `<textarea>` fields for `What's Good`, `What's Bad`, and `What's Next`; do not render the weekly add/remove activity rows.
 
 - [ ] **Step 3: Add page contract assertions**
 
-Extend `scripts/revision-contract.test.mjs` to assert that `app/monthly-report/page.tsx` contains the monthly report discriminator, `getMonthRange`, monthly HTML mode, full-month closing range, and unchanged Hot pipeline condition.
+Extend `scripts/revision-contract.test.mjs` to assert that `app/monthly-report/page.tsx` contains the monthly report discriminator, `getMonthRange`, monthly HTML mode, full-month closing range, unchanged Hot pipeline condition, all three review labels, and the required-field validation message.
 
 - [ ] **Step 4: Run tests and type checking**
 
