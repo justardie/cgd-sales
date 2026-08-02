@@ -31,7 +31,7 @@ export default function ReportPage() {
 
   const loadReports = useCallback(async () => {
     if (!user) return
-    let query = supabase.from("weekly_reports").select("id,hunter_name,period_start,period_end,status,snapshot,updated_at").eq("status", "final").order("updated_at", { ascending: false })
+    let query = supabase.from("weekly_reports").select("id,hunter_name,period_start,period_end,status,snapshot,updated_at").eq("status", "final").eq("report_type", "weekly").order("updated_at", { ascending: false })
     if (!isAdmin) query = query.eq("user_id", user.id)
     const { data } = await query
     setReports((data || []) as StoredReport[])
@@ -93,8 +93,8 @@ export default function ReportPage() {
       return
     }
     setBusy(true)
-    const payload = { user_id: user.id, hunter_name: user.name, period_start: periodStart, period_end: periodEnd, status: "final", activities: snapshot.activities, visit_data: visits, pivot_filename: pivotFilename, snapshot, finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-    const { error } = await supabase.from("weekly_reports").upsert(payload, { onConflict: "user_id,period_start,period_end" })
+    const payload = { user_id: user.id, hunter_name: user.name, report_type: "weekly", period_start: periodStart, period_end: periodEnd, status: "final", activities: snapshot.activities, visit_data: visits, pivot_filename: pivotFilename, snapshot, finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+    const { error } = await supabase.from("weekly_reports").upsert(payload, { onConflict: "user_id,report_type,period_start,period_end" })
     setBusy(false)
     if (error) {
       setMessage(`Gagal menyimpan: ${error.message}`)

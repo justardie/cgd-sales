@@ -219,6 +219,18 @@ test("Weekly Report supports Pivot, final snapshots, deletion, and HTML download
   assert.match(migration, /project_coverage/)
 })
 
+test("weekly snapshots are isolated from monthly snapshots", async () => {
+  const page = await read("app/report/page.tsx")
+  const migration = await read("supabase/043_monthly_reports.sql")
+  assert.match(migration, /report_type/)
+  assert.match(migration, /'weekly'/)
+  assert.match(migration, /'monthly'/)
+  assert.match(migration, /UNIQUE \(user_id, report_type, period_start, period_end\)/)
+  assert.match(page, /\.eq\("report_type", "weekly"\)/)
+  assert.match(page, /report_type: "weekly"/)
+  assert.match(page, /onConflict: "user_id,report_type,period_start,period_end"/)
+})
+
 test("Weekly Report date picker uses a larger white calendar icon", async () => {
   const page = await read("app/report/page.tsx")
   const css = await read("app/globals.css")
