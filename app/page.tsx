@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
-import { canonicalProjectTotals, isActiveSalesRole, periodTarget } from "@/lib/dashboard-rules"
+import { canonicalProjectTotals, isActiveSalesRole, periodTarget, topClosingBy } from "@/lib/dashboard-rules"
 import {
   TrendingUp, DollarSign, Trophy,
   Users, Activity,
@@ -227,34 +227,17 @@ export default function OverviewPage() {
 
       // Top Performers: best hunter + best sales person by MTD omset
       const hunterUsers = allUsers.filter((u: { role: string }) => u.role === "hunter")
-      const spUsers     = allUsers.filter((u: { role: string }) => isActiveSalesRole(u.role))
       const mtdData = closingsCurrentMonth.data || []
 
-      const hunterOmset: Record<string, number> = {}
-      mtdData.forEach(c => {
-        if (c.sales_hunter) hunterOmset[c.sales_hunter] = (hunterOmset[c.sales_hunter] || 0) + (c.nilai_hjr || 0)
-      })
-      let bestHunter: { name: string; omset: number; pct: number } | null = null
-      hunterUsers.forEach((u: { name: string; monthly_target: number }) => {
-        const o = hunterOmset[u.name] || 0
-        if (!bestHunter || o > bestHunter.omset) {
-          bestHunter = { name: u.name, omset: o, pct: u.monthly_target > 0 ? Math.round((o / u.monthly_target) * 100) : 0 }
-        }
-      })
-      setTopHunter(bestHunter)
-
-      const spOmset: Record<string, number> = {}
-      mtdData.forEach(c => {
-        if (c.sales_person) spOmset[c.sales_person] = (spOmset[c.sales_person] || 0) + (c.nilai_hjr || 0)
-      })
-      let bestSp: { name: string; omset: number } | null = null
-      spUsers.forEach((u: { name: string }) => {
-        const o = spOmset[u.name] || 0
-        if (!bestSp || o > bestSp.omset) {
-          bestSp = { name: u.name, omset: o }
-        }
-      })
-      setTopSales(bestSp)
+      const bestHunter = topClosingBy(mtdData, "sales_hunter")
+      const hunterTarget = bestHunter
+        ? hunterUsers.find((u: { name: string }) => u.name === bestHunter.name)?.monthly_target || 0
+        : 0
+      setTopHunter(bestHunter ? {
+        ...bestHunter,
+        pct: hunterTarget > 0 ? Math.round((bestHunter.omset / hunterTarget) * 100) : 0,
+      } : null)
+      setTopSales(topClosingBy(mtdData, "sales_person"))
 
       const list: HunterStat[] = HUNTER_GROUPS
         .map(group => {
