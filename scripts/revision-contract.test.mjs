@@ -293,10 +293,12 @@ test("Monthly Report waits for the current operational load before accepting a P
   assert.match(page, /setMessage\(loadMessage\); showToast\(loadMessage, "error"\)/)
 })
 
-test("Weekly Report date picker uses a larger white calendar icon", async () => {
+test("Report date and month pickers use a larger white calendar icon", async () => {
   const page = await read("app/report/page.tsx")
+  const monthlyPage = await read("app/monthly-report/page.tsx")
   const css = await read("app/globals.css")
   assert.match(page, /report-date-input/)
+  assert.match(monthlyPage, /\["date", "month"\]\.includes\(type\)[\s\S]*?report-date-input/)
   assert.match(css, /report-date-input::-webkit-calendar-picker-indicator/)
   assert.match(css, /filter:\s*brightness\(0\) invert\(1\)/)
   assert.match(css, /width:\s*20px/)
