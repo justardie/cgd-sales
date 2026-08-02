@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
-import { canonicalProjectTotals, isActiveSalesRole, periodTarget, topClosingBy } from "@/lib/dashboard-rules"
+import { canonicalProjectTotals, periodTarget, topClosingBy } from "@/lib/dashboard-rules"
 import {
   TrendingUp, DollarSign, Trophy,
   Users, Activity,
