@@ -193,6 +193,9 @@ test("Role Access is editable per role, device, and user data scope", async () =
 test("Funnel pages expose approved cards without Pipeline", async () => {
   const funnel = await read("app/funnel/page.tsx")
   const summary = await read("app/funnel-summary/page.tsx")
+  assert.match(funnel, /const \[kpiFilter, setKpiFilter\]/)
+  assert.match(funnel, /matchesFunnelKpiStatus/)
+  assert.match(funnel, /aria-pressed=\{k\.filter === kpiFilter\}/)
   for (const source of [funnel, summary]) {
     assert.match(source, /Visit Dijadwalkan/)
     assert.match(source, /label="Visit"|label:\s*"Visit"/)

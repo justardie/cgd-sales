@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext"
 import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
+import { matchesFunnelKpiStatus, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
 // Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
@@ -684,6 +685,7 @@ export default function FunnelPage() {
   const [tmUsers, setTmUsers]     = useState<TmUser[]>([])
   const [filterTm, setFilterTm]   = useState("")
   const [search, setSearch]       = useState("")
+  const [kpiFilter, setKpiFilter] = useState<FunnelKpiFilter>("all")
   const [showUpload, setShowUpload] = useState(false)
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
   const [loading, setLoading]     = useState(true)
@@ -726,24 +728,25 @@ export default function FunnelPage() {
   }
 
   // Filtered leads for display
+  const statusFiltered = leads.filter((lead) => matchesFunnelKpiStatus(lead.status, kpiFilter))
   const displayed = search.trim()
-    ? leads.filter((l) =>
-        l.name.toLowerCase().includes(search.toLowerCase()) ||
-        l.phone.includes(search)
+    ? statusFiltered.filter((lead) =>
+        lead.name.toLowerCase().includes(search.toLowerCase()) ||
+        lead.phone.includes(search)
       )
-    : leads
+    : statusFiltered
 
   const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px 24px", boxShadow: "var(--shadow-sm)" }
   const lbl: React.CSSProperties  = { fontSize: "11px", fontWeight: 600 as const, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }
 
   const kpis = [
-    { label: "Total",         val: leads.length, color: "var(--text-primary)" },
-    { label: "Belum",         val: leads.filter((l) => l.status === "new").length, color: "#94a3b8" },
-    { label: "Follow Up",     val: leads.filter((l) => ["bisa_dihub_tidak_angkat","angkat_tertarik"].includes(l.status)).length, color: "#fbbf24" },
-    { label: "Visit Dijadwalkan", val: leads.filter((l) => l.status === "visit_dijadwalkan").length, color: "#c084fc" },
-    { label: "Visit",         val: leads.filter((l) => l.status === "sudah_visit").length, color: "#2dd4bf" },
-    { label: "Closing",       val: leads.filter((l) => l.status === "closing").length, color: "#34d399" },
-    { label: "Dead",          val: leads.filter((l) => ["angkat_tidak_tertarik","tidak_aktif","lost"].includes(l.status)).length, color: "#f87171" },
+    { label: "Total",         filter: "all" as const, val: leads.length, color: "var(--text-primary)" },
+    { label: "Belum",         filter: "new" as const, val: leads.filter((l) => l.status === "new").length, color: "#94a3b8" },
+    { label: "Follow Up",     filter: "follow_up" as const, val: leads.filter((l) => ["bisa_dihub_tidak_angkat","angkat_tertarik"].includes(l.status)).length, color: "#fbbf24" },
+    { label: "Visit Dijadwalkan", filter: "visit_dijadwalkan" as const, val: leads.filter((l) => l.status === "visit_dijadwalkan").length, color: "#c084fc" },
+    { label: "Visit",         filter: "sudah_visit" as const, val: leads.filter((l) => l.status === "sudah_visit").length, color: "#2dd4bf" },
+    { label: "Closing",       filter: "closing" as const, val: leads.filter((l) => l.status === "closing").length, color: "#34d399" },
+    { label: "Dead",          filter: "dead" as const, val: leads.filter((l) => ["angkat_tidak_tertarik","tidak_aktif","lost"].includes(l.status)).length, color: "#f87171" },
   ]
 
   return (
@@ -796,10 +799,23 @@ export default function FunnelPage() {
       {/* KPI bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "10px", marginBottom: "20px" }}>
         {kpis.map((k) => (
-          <div key={k.label} style={{ ...card, padding: "14px 16px", textAlign: "center" }}>
+          <button
+            key={k.label}
+            type="button"
+            aria-pressed={k.filter === kpiFilter}
+            onClick={() => setKpiFilter(k.filter)}
+            style={{
+              ...card,
+              padding: "14px 16px",
+              textAlign: "center",
+              cursor: "pointer",
+              borderColor: k.filter === kpiFilter ? k.color : "var(--border)",
+              boxShadow: k.filter === kpiFilter ? `0 0 0 2px ${k.color}30` : "var(--shadow-sm)",
+            }}
+          >
             <div style={{ fontSize: "24px", fontWeight: 700, color: k.color }}>{k.val}</div>
             <div style={{ ...lbl, marginTop: "4px" }}>{k.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -825,7 +841,7 @@ export default function FunnelPage() {
         <div style={{ ...card, textAlign: "center", padding: "48px", color: "var(--text-muted)" }}>Memuat data...</div>
       ) : displayed.length === 0 ? (
         <div style={{ ...card, textAlign: "center", padding: "48px", color: "var(--text-muted)" }}>
-          {search ? "Tidak ada lead yang cocok dengan pencarian." : isTm ? "Belum ada leads yang di-assign untukmu periode ini." : "Belum ada leads untuk periode & filter ini."}
+          {search.trim() ? "Tidak ada lead yang cocok dengan pencarian." : kpiFilter !== "all" ? "Tidak ada leads dengan status ini." : isTm ? "Belum ada leads yang di-assign untukmu periode ini." : "Belum ada leads untuk periode & filter ini."}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
