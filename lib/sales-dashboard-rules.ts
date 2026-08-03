@@ -12,6 +12,24 @@ export interface FunnelCounters {
 
 export type PipelineStatusFilter = "all" | "active" | "warm" | "hot" | "tidak_potensial"
 
+export type FunnelKpiFilter =
+  | "all"
+  | "new"
+  | "follow_up"
+  | "visit_dijadwalkan"
+  | "sudah_visit"
+  | "closing"
+  | "dead"
+
+const FUNNEL_KPI_STATUSES: Record<Exclude<FunnelKpiFilter, "all">, readonly string[]> = {
+  new: ["new"],
+  follow_up: ["bisa_dihub_tidak_angkat", "angkat_tertarik"],
+  visit_dijadwalkan: ["visit_dijadwalkan"],
+  sudah_visit: ["sudah_visit"],
+  closing: ["closing"],
+  dead: ["angkat_tidak_tertarik", "tidak_aktif", "lost"],
+}
+
 export function getFunnelMetrics(c: FunnelCounters) {
   const followUp = c.bisa_dihub_tidak_angkat + c.angkat_tertarik
   const closing = c.closing
@@ -31,6 +49,10 @@ export function matchesPipelineStatus(status: string, filter: PipelineStatusFilt
   if (filter === "all") return true
   if (filter === "active") return status === "warm" || status === "hot"
   return status === filter
+}
+
+export function matchesFunnelKpiStatus(status: string, filter: FunnelKpiFilter): boolean {
+  return filter === "all" || FUNNEL_KPI_STATUSES[filter].includes(status)
 }
 
 export function formatSalesPerson(salesPerson: string | null, agentName: string | null) {

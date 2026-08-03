@@ -3,6 +3,7 @@ import test from "node:test"
 import {
   formatSalesPerson,
   getFunnelMetrics,
+  matchesFunnelKpiStatus,
   matchesPipelineStatus,
 } from "./sales-dashboard-rules.ts"
 
@@ -44,6 +45,20 @@ test("treats active as warm or hot", () => {
   assert.equal(matchesPipelineStatus("hot", "active"), true)
   assert.equal(matchesPipelineStatus("tidak_potensial", "active"), false)
   assert.equal(matchesPipelineStatus("hot", "all"), true)
+})
+
+test("matches Funnel KPI cards to their lead statuses", () => {
+  assert.equal(matchesFunnelKpiStatus("new", "all"), true)
+  assert.equal(matchesFunnelKpiStatus("new", "new"), true)
+  assert.equal(matchesFunnelKpiStatus("bisa_dihub_tidak_angkat", "follow_up"), true)
+  assert.equal(matchesFunnelKpiStatus("angkat_tertarik", "follow_up"), true)
+  assert.equal(matchesFunnelKpiStatus("visit_dijadwalkan", "visit_dijadwalkan"), true)
+  assert.equal(matchesFunnelKpiStatus("sudah_visit", "sudah_visit"), true)
+  assert.equal(matchesFunnelKpiStatus("closing", "closing"), true)
+  for (const status of ["angkat_tidak_tertarik", "tidak_aktif", "lost"]) {
+    assert.equal(matchesFunnelKpiStatus(status, "dead"), true)
+  }
+  assert.equal(matchesFunnelKpiStatus("new", "dead"), false)
 })
 
 test("formats named and legacy Agent rows safely", () => {
