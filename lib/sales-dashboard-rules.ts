@@ -55,6 +55,27 @@ export function matchesFunnelKpiStatus(status: string, filter: FunnelKpiFilter):
   return filter === "all" || FUNNEL_KPI_STATUSES[filter].includes(status)
 }
 
+export function countFunnelKpiLeads<T extends { status: string }>(leads: readonly T[], filter: FunnelKpiFilter): number {
+  return filter === "all" ? leads.length : leads.filter((lead) => matchesFunnelKpiStatus(lead.status, filter)).length
+}
+
+export function filterFunnelKpiLeads<T extends { name: string; phone: string; status: string }>(
+  leads: readonly T[],
+  filter: FunnelKpiFilter,
+  search: string,
+): T[] {
+  const statusFiltered = leads.filter((lead) => matchesFunnelKpiStatus(lead.status, filter))
+  return search.trim()
+    ? statusFiltered.filter((lead) => lead.name.toLowerCase().includes(search.toLowerCase()) || lead.phone.includes(search))
+    : statusFiltered
+}
+
+export function getFunnelEmptyStateMessage(search: string, filter: FunnelKpiFilter, isTm: boolean): string {
+  if (search.trim()) return "Tidak ada lead yang cocok dengan pencarian."
+  if (filter !== "all") return "Tidak ada leads dengan status ini."
+  return isTm ? "Belum ada leads yang di-assign untukmu periode ini." : "Belum ada leads untuk periode & filter ini."
+}
+
 export function formatSalesPerson(salesPerson: string | null, agentName: string | null) {
   if (!salesPerson) return "—"
   if (salesPerson !== "Agent") return salesPerson

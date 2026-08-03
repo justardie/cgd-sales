@@ -2,6 +2,10 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import {
   formatSalesPerson,
+  countFunnelKpiLeads,
+  filterFunnelKpiLeads,
+  type FunnelKpiFilter,
+  getFunnelEmptyStateMessage,
   getFunnelMetrics,
   matchesFunnelKpiStatus,
   matchesPipelineStatus,
@@ -59,6 +63,29 @@ test("matches Funnel KPI cards to their lead statuses", () => {
     assert.equal(matchesFunnelKpiStatus(status, "dead"), true)
   }
   assert.equal(matchesFunnelKpiStatus("new", "dead"), false)
+})
+
+test("keeps KPI card interaction results stable across search and lead reloads", () => {
+  const leads = [
+    { name: "Ayu", phone: "62811", status: "new" },
+    { name: "Bima", phone: "62812", status: "angkat_tertarik" },
+    { name: "Citra", phone: "62813", status: "bisa_dihub_tidak_angkat" },
+    { name: "Deni", phone: "62814", status: "closing" },
+  ]
+  let selected: FunnelKpiFilter = "all"
+
+  assert.equal(countFunnelKpiLeads(leads, selected), 4)
+  assert.deepEqual(filterFunnelKpiLeads(leads, selected, ""), leads)
+
+  selected = "follow_up"
+  assert.equal(countFunnelKpiLeads(leads, "all"), 4)
+  assert.equal(countFunnelKpiLeads(leads, selected), 2)
+  assert.deepEqual(filterFunnelKpiLeads(leads, selected, "bima"), [leads[1]])
+  assert.deepEqual(filterFunnelKpiLeads(leads, selected, "62813"), [leads[2]])
+  assert.deepEqual(filterFunnelKpiLeads(leads, selected, "missing"), [])
+  assert.deepEqual(filterFunnelKpiLeads([{ name: "Dewi", phone: "62815", status: "new" }], selected, ""), [])
+  assert.equal(getFunnelEmptyStateMessage("", selected, false), "Tidak ada leads dengan status ini.")
+  assert.equal(getFunnelEmptyStateMessage("missing", selected, false), "Tidak ada lead yang cocok dengan pencarian.")
 })
 
 test("formats named and legacy Agent rows safely", () => {

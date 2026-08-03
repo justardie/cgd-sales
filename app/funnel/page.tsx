@@ -7,7 +7,7 @@ import { useToast } from "@/contexts/ToastContext"
 import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
-import { matchesFunnelKpiStatus, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
+import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelEmptyStateMessage, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
 // Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
@@ -728,25 +728,19 @@ export default function FunnelPage() {
   }
 
   // Filtered leads for display
-  const statusFiltered = leads.filter((lead) => matchesFunnelKpiStatus(lead.status, kpiFilter))
-  const displayed = search.trim()
-    ? statusFiltered.filter((lead) =>
-        lead.name.toLowerCase().includes(search.toLowerCase()) ||
-        lead.phone.includes(search)
-      )
-    : statusFiltered
+  const displayed = filterFunnelKpiLeads(leads, kpiFilter, search)
 
   const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px 24px", boxShadow: "var(--shadow-sm)" }
   const lbl: React.CSSProperties  = { fontSize: "11px", fontWeight: 600 as const, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }
 
   const kpis = [
     { label: "Total",         filter: "all" as const, val: leads.length, color: "var(--text-primary)" },
-    { label: "Belum",         filter: "new" as const, val: leads.filter((l) => l.status === "new").length, color: "#94a3b8" },
-    { label: "Follow Up",     filter: "follow_up" as const, val: leads.filter((l) => ["bisa_dihub_tidak_angkat","angkat_tertarik"].includes(l.status)).length, color: "#fbbf24" },
-    { label: "Visit Dijadwalkan", filter: "visit_dijadwalkan" as const, val: leads.filter((l) => l.status === "visit_dijadwalkan").length, color: "#c084fc" },
-    { label: "Visit",         filter: "sudah_visit" as const, val: leads.filter((l) => l.status === "sudah_visit").length, color: "#2dd4bf" },
-    { label: "Closing",       filter: "closing" as const, val: leads.filter((l) => l.status === "closing").length, color: "#34d399" },
-    { label: "Dead",          filter: "dead" as const, val: leads.filter((l) => ["angkat_tidak_tertarik","tidak_aktif","lost"].includes(l.status)).length, color: "#f87171" },
+    { label: "Belum",         filter: "new" as const, val: countFunnelKpiLeads(leads, "new"), color: "#94a3b8" },
+    { label: "Follow Up",     filter: "follow_up" as const, val: countFunnelKpiLeads(leads, "follow_up"), color: "#fbbf24" },
+    { label: "Visit Dijadwalkan", filter: "visit_dijadwalkan" as const, val: countFunnelKpiLeads(leads, "visit_dijadwalkan"), color: "#c084fc" },
+    { label: "Visit",         filter: "sudah_visit" as const, val: countFunnelKpiLeads(leads, "sudah_visit"), color: "#2dd4bf" },
+    { label: "Closing",       filter: "closing" as const, val: countFunnelKpiLeads(leads, "closing"), color: "#34d399" },
+    { label: "Dead",          filter: "dead" as const, val: countFunnelKpiLeads(leads, "dead"), color: "#f87171" },
   ]
 
   return (
@@ -841,7 +835,7 @@ export default function FunnelPage() {
         <div style={{ ...card, textAlign: "center", padding: "48px", color: "var(--text-muted)" }}>Memuat data...</div>
       ) : displayed.length === 0 ? (
         <div style={{ ...card, textAlign: "center", padding: "48px", color: "var(--text-muted)" }}>
-          {search.trim() ? "Tidak ada lead yang cocok dengan pencarian." : kpiFilter !== "all" ? "Tidak ada leads dengan status ini." : isTm ? "Belum ada leads yang di-assign untukmu periode ini." : "Belum ada leads untuk periode & filter ini."}
+          {getFunnelEmptyStateMessage(search, kpiFilter, isTm)}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
