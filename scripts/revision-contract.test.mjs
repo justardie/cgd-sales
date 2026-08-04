@@ -508,4 +508,6 @@ test("Premium Dashboard motion is native, accessible, and dependency-free", asyn
   assert.match(notification, /bell-attention/)
   assert.match(modal, /motion-backdrop/)
   assert.match(toast, /cgd-toast--exit/)
+  assert.match(toast, /mounted && createPortal/)
+  assert.match(toast, /queueMicrotask\(\(\) => setMounted\(true\)\)/)
 })
