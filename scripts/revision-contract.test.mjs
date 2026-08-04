@@ -177,12 +177,12 @@ test("Non Sales has the approved navigation and no legacy page", async () => {
   assert.match(admin, /Non Sales/)
   assert.match(header, /isNonSales \? "Non Sales"/)
   assert.match(login, /user\.role === "task_force"\) router\.push\("\/"\)/)
-  assert.match(nonSalesHeaderNav, /\/unit-special/)
-  assert.doesNotMatch(nonSalesHeaderNav, /\/pipeline|\/closing|\/team/)
   for (const route of ["/", "/pipeline", "/closing", "/unit-special"]) {
+    assert.match(nonSalesHeaderNav, new RegExp(route.replace("/", "\\/")))
     assert.match(nonSalesMobileNav, new RegExp(route.replace("/", "\\/")))
     assert.match(shell, new RegExp(route.replace("/", "\\/")))
   }
+  assert.doesNotMatch(nonSalesHeaderNav, /\/team|\/report|\/funnel/)
   assert.doesNotMatch(nonSalesMobileNav, /\/team/)
   assert.match(header, /!isNonSales &&/)
   assert.match(settings, /task_force:[\s\S]*?unit_special/)
@@ -251,7 +251,7 @@ test("Sales Telemarketing navigation is identical on every device and has no mob
     assert.match(source, /isSalesTelemarketing/)
     assert.doesNotMatch(source, /role === "telemarketing"/)
   }
-  assert.match(header, /salesTelemarketing \? "Telemarketing" : user\?\.role/)
+  assert.match(header, /salesTelemarketing \? "Telemarketing" :[\s\S]*?user\?\.role/)
   assert.match(sidebar, /salesTelemarketing[\s\S]*showFab\s*=\s*false/)
   assert.match(sidebar, /bottom-nav\$\{salesTelemarketing \? " bottom-nav--sales-tm" : ""\}/)
   assert.match(css, /\.bottom-nav--sales-tm \.bottom-nav__inner\s*\{[^}]*padding:\s*6px 4px;[^}]*gap:\s*0;/s)

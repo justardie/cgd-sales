@@ -53,7 +53,7 @@ export default function LoginPage() {
     setUser(user)
     // Route by role
     if (user.role === "dgm" || user.role === "admin_dgm") router.push("/funnel")
-    else if (user.role === "task_force") router.push("/task-force")
+    else if (user.role === "task_force") router.push("/")
     else router.push("/")
   }
 

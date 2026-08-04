@@ -72,9 +72,9 @@ export const DEFAULT_ROLE_ACCESS: Record<AccessRoleKey, {
   },
   task_force: {
     data_scope: "all",
-    desktop_menus: ["overview", "pipeline", "closing", "team"],
-    tablet_menus: ["overview", "pipeline", "closing", "team"],
-    mobile_menus: ["overview", "pipeline", "closing", "team"],
+    desktop_menus: ["overview", "pipeline", "closing", "unit_special"],
+    tablet_menus: ["overview", "pipeline", "closing", "unit_special"],
+    mobile_menus: ["overview", "pipeline", "closing", "unit_special"],
   },
 }
 

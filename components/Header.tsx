@@ -25,11 +25,11 @@ const DGM_NAV = [
   { href: "/funnel-summary", label: "Funnel Summary" },
 ]
 
-const TF_NAV = [
-  { href: "/",        label: "Overview"    },
-  { href: "/pipeline", label: "Pipeline"   },
-  { href: "/closing",  label: "Closing"    },
-  { href: "/team",     label: "Team Status"},
+const NON_SALES_NAV = [
+  { href: "/",             label: "Overview"     },
+  { href: "/pipeline",     label: "Pipeline"     },
+  { href: "/closing",      label: "Closing"      },
+  { href: "/unit-special", label: "Unit Special" },
 ]
 
 export default function Header() {
@@ -46,17 +46,17 @@ export default function Header() {
 
   const role = user?.role ?? ""
   const isDgmOnly = role === "dgm" || role === "admin_dgm"
-  const isTf = role === "task_force"
+  const isNonSales = role === "task_force"
   const hasTmAccess = user?.has_tm_access ?? false
   const salesTelemarketing = isSalesTelemarketing(role, hasTmAccess)
-  const hasPipelineAccess = isAdmin || isTf || role === "hunter" || role === "sales_person"
+  const hasPipelineAccess = isAdmin || isNonSales || role === "hunter" || role === "sales_person"
 
   const navItems = isDgmOnly
     ? DGM_NAV
     : salesTelemarketing
     ? TELEMARKETING_NAV_ITEMS
-    : isTf
-    ? TF_NAV
+    : isNonSales
+    ? NON_SALES_NAV
     : SALES_NAV.filter((item) => {
         if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin) return false
         if (item.reportAccess && role !== "hunter" && !isAdmin) return false
@@ -135,7 +135,7 @@ export default function Header() {
           >
             <div className="user-profile-text">
               <span className="user-name">{user?.name}</span>
-              <span className="user-role">{salesTelemarketing ? "Telemarketing" : user?.role} · CGD</span>
+              <span className="user-role">{salesTelemarketing ? "Telemarketing" : isNonSales ? "Non Sales" : user?.role} · CGD</span>
             </div>
             <div className="user-avatar">{initials}</div>
           </button>
@@ -161,7 +161,7 @@ export default function Header() {
                 </button>
               </div>
               <div className="profile-dropdown-divider" />
-              {!isDgmOnly && !salesTelemarketing && (
+              {!isDgmOnly && !salesTelemarketing && !isNonSales && (
                 <Link href="/team" className="profile-dropdown-item" onClick={() => setProfileOpen(false)}>
                   <Users size={14} /><span>Team Status</span>
                 </Link>

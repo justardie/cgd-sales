@@ -275,7 +275,7 @@ export default function AdminPage() {
                 )}
                 {form.role === "task_force" && (
                   <p className="text-xs text-blue-400/80 mt-1">
-                    Dapat akses Overview, Pipeline, Closing, dan Team Status
+                    Dapat akses Overview, Pipeline, Closing, dan Unit Special
                   </p>
                 )}
               </div>

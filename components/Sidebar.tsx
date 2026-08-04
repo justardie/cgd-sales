@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import {
   LayoutDashboard, TrendingUp, DollarSign,
-  Users, Filter, PieChart, Plus,
+  Users, Filter, PieChart, Plus, Building2,
 } from "lucide-react"
 import { TELEMARKETING_NAV_ITEMS, isSalesTelemarketing } from "@/lib/access-settings"
 
@@ -32,11 +32,11 @@ const TM_ICONS = {
 
 const TM_NAV = TELEMARKETING_NAV_ITEMS.map(item => ({ ...item, icon: TM_ICONS[item.key] }))
 
-const TF_NAV = [
-  { href: "/",          label: "Overview",  icon: LayoutDashboard },
-  { href: "/pipeline",  label: "Pipeline",  icon: TrendingUp      },
-  { href: "/closing",   label: "Closing",   icon: DollarSign      },
-  { href: "/team",      label: "Team",      icon: Users           },
+const NON_SALES_NAV = [
+  { href: "/",             label: "Overview",     icon: LayoutDashboard },
+  { href: "/pipeline",     label: "Pipeline",     icon: TrendingUp      },
+  { href: "/closing",      label: "Closing",      icon: DollarSign      },
+  { href: "/unit-special", label: "Unit Special", icon: Building2       },
 ]
 
 // Standard 4-item nav (no funnel access)
@@ -52,7 +52,7 @@ export default function Sidebar() {
   const router = useRouter()
   const { user, isAdmin } = useAuth()
   const role = user?.role ?? ""
-  const isTf = role === "task_force"
+  const isNonSales = role === "task_force"
   const hasTmAccess = user?.has_tm_access ?? false
   const salesTelemarketing = isSalesTelemarketing(role, hasTmAccess)
   const isDgmOnly = role === "dgm" || role === "admin_dgm"
@@ -72,10 +72,10 @@ export default function Sidebar() {
     leftItems = [DGM_NAV[0]]
     rightItems = [DGM_NAV[1]]
     showFab = false
-  } else if (isTf) {
+  } else if (isNonSales) {
     // Non Sales: 4 items + FAB in middle
-    leftItems  = [TF_NAV[0], TF_NAV[1]]
-    rightItems = [TF_NAV[2], TF_NAV[3]]
+    leftItems  = [NON_SALES_NAV[0], NON_SALES_NAV[1]]
+    rightItems = [NON_SALES_NAV[2], NON_SALES_NAV[3]]
     showFab    = true
   } else if (hasFunnelAccess) {
     // Hunter/admin with funnel: 4 core nav items (funnel via header)
