@@ -60,6 +60,13 @@
   --blue-soft:  rgba(59,130,246,0.18);
   --amber:      #F59E0B;
   --amber-soft: rgba(245,158,11,0.18);
+
+  --motion-fast: 140ms;
+  --motion-hover: 180ms;
+  --motion-panel: 240ms;
+  --motion-data: 700ms;
+  --ease-enter: cubic-bezier(.16, 1, .3, 1);
+  --ease-standard: cubic-bezier(.4, 0, .2, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -98,6 +105,11 @@ body {
 }
 
 input, select, textarea { color: var(--text-primary); }
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 
 .field-input {
   width: 100%;
@@ -228,13 +240,15 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   cursor: pointer;
   color: rgba(180, 200, 230, 0.65);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--motion-hover) ease, background var(--motion-hover) ease, transform var(--motion-fast) ease;
   border: none;
   background: transparent;
 }
 .bottom-nav__item:hover {
   color: rgba(255, 255, 255, 0.85);
+  background: rgba(255,255,255,0.05);
 }
+.bottom-nav__item:active { transform: translateY(1px); }
 .bottom-nav__item--active {
   color: var(--accent) !important;
 }
@@ -264,18 +278,18 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   justify-content: center;
   color: #fff;
   box-shadow: 0 6px 28px rgba(255, 106, 61, 0.50), 0 2px 8px rgba(0,0,0,0.35);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--motion-hover) var(--ease-standard), box-shadow var(--motion-hover) ease;
   flex-shrink: 0;
   margin: 0 6px;
   position: relative;
   top: -4px; /* elevate slightly */
 }
 .bottom-nav__fab:hover {
-  transform: scale(1.08);
+  transform: translateY(-2px);
   box-shadow: 0 8px 36px rgba(255, 106, 61, 0.65), 0 2px 8px rgba(0,0,0,0.40);
 }
 .bottom-nav__fab:active {
-  transform: scale(0.96);
+  transform: translateY(1px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -332,7 +346,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   color: var(--text-secondary);
   white-space: nowrap;
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--motion-hover) ease;
   line-height: 1;
 }
 .nav-pill:hover:not(.nav-pill--active) {
@@ -351,10 +365,16 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: var(--nav-active-bg);
   box-shadow: 0 2px 8px rgba(0,0,0,0.14);
   pointer-events: none;
-  transition: transform 240ms cubic-bezier(.22,1,.36,1), width 240ms cubic-bezier(.22,1,.36,1), opacity 120ms ease;
+  transition: transform var(--motion-panel) var(--ease-enter), width var(--motion-panel) var(--ease-enter), opacity var(--motion-fast) ease;
 }
 @media (prefers-reduced-motion: reduce) {
-  .nav-glider { transition: none; }
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .header-right {
@@ -375,14 +395,16 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   color: var(--text-secondary);
   background: var(--surface);
   border: 1px solid var(--border);
-  transition: border-color 0.2s, color 0.2s, transform 0.2s;
+  transition: border-color var(--motion-hover) ease, color var(--motion-hover) ease, transform var(--motion-fast) ease, box-shadow var(--motion-hover) ease;
   flex-shrink: 0;
 }
 .header-icon-btn:hover {
   color: var(--text-primary);
   border-color: var(--border-medium);
-  transform: scale(1.06);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
+.header-icon-btn:active { transform: translateY(0); }
 
 .user-profile-wrap {
   position: relative;
@@ -398,7 +420,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   border-radius: 50px;
   cursor: pointer;
   box-shadow: var(--shadow-xs);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color var(--motion-hover) ease, box-shadow var(--motion-hover) ease, transform var(--motion-fast) ease;
 }
 .user-profile-btn:hover {
   border-color: var(--border-medium);
@@ -467,7 +489,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   padding: 6px;
   box-shadow: var(--shadow-lg);
   z-index: 200;
-  animation: fadeUp 0.15s ease;
+  animation: fadeUp var(--motion-panel) var(--ease-enter);
 }
 
 .profile-dropdown-item {
@@ -483,13 +505,14 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--motion-fast) ease, color var(--motion-fast) ease, transform var(--motion-fast) ease;
   text-align: left;
   text-decoration: none;
 }
 .profile-dropdown-item:hover {
   background: var(--surface2);
 }
+.profile-dropdown-item:active { transform: translateY(1px); }
 .profile-dropdown-item--danger { color: var(--red); }
 .profile-dropdown-item--danger:hover { background: var(--red-soft); }
 
@@ -521,7 +544,7 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--motion-fast) ease, color var(--motion-fast) ease;
 }
 .theme-toggle__btn:hover { color: var(--text-primary); }
 .theme-toggle__btn--active {
@@ -621,15 +644,21 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
    ANIMATIONS
 ═══════════════════════════════════════════════════════════════ */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.user-profile-btn:active { transform: translateY(1px); }
 
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(12px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
-.cgd-toast { animation: toastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.cgd-toast { animation: toastIn var(--motion-panel) var(--ease-enter) both; }
+.cgd-toast--exit { animation: toastOut var(--motion-fast) ease-in both; }
+
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
 
 @keyframes fadeInCard {
   from { opacity: 0; transform: translateY(14px) scale(0.98); }
@@ -637,22 +666,24 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 /* Staggered card entrance — apply .card-enter-N to each card */
-.card-enter   { animation: fadeInCard 0.32s ease both; }
-.card-enter-1 { animation: fadeInCard 0.32s 0.05s ease both; }
-.card-enter-2 { animation: fadeInCard 0.32s 0.10s ease both; }
-.card-enter-3 { animation: fadeInCard 0.32s 0.15s ease both; }
-.card-enter-4 { animation: fadeInCard 0.32s 0.20s ease both; }
-.card-enter-5 { animation: fadeInCard 0.32s 0.25s ease both; }
-.card-enter-6 { animation: fadeInCard 0.32s 0.30s ease both; }
+.card-enter   { animation: fadeInCard var(--motion-panel) var(--ease-enter) both; }
+.card-enter-1 { animation: fadeInCard var(--motion-panel) 50ms var(--ease-enter) both; }
+.card-enter-2 { animation: fadeInCard var(--motion-panel) 80ms var(--ease-enter) both; }
+.card-enter-3 { animation: fadeInCard var(--motion-panel) 110ms var(--ease-enter) both; }
+.card-enter-4 { animation: fadeInCard var(--motion-panel) 140ms var(--ease-enter) both; }
+.card-enter-5 { animation: fadeInCard var(--motion-panel) 170ms var(--ease-enter) both; }
+.card-enter-6 { animation: fadeInCard var(--motion-panel) 200ms var(--ease-enter) both; }
 
 /* Hover lift for KPI cards — subtle scale, no extra shadow */
 .kpi-card {
-  transition: transform 0.22s ease, border-color 0.22s ease;
+  transition: transform var(--motion-hover) var(--ease-standard), border-color var(--motion-hover) ease, box-shadow var(--motion-hover) ease;
 }
 .kpi-card:hover {
-  transform: translateY(-2px) scale(1.008);
+  transform: translateY(-3px);
   border-color: rgba(255,255,255,0.22) !important;
+  box-shadow: var(--shadow-lg) !important;
 }
+.kpi-card:active { transform: translateY(-1px); }
 
 
 /* Smooth expand / collapse panel (replace conditional render with this) */
@@ -684,11 +715,11 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.section-fade   { animation: sectionFade 0.40s ease both; }
-.section-fade-1 { animation: sectionFade 0.40s 0.08s ease both; }
-.section-fade-2 { animation: sectionFade 0.40s 0.16s ease both; }
-.section-fade-3 { animation: sectionFade 0.40s 0.24s ease both; }
-.section-fade-4 { animation: sectionFade 0.40s 0.32s ease both; }
+.section-fade   { animation: sectionFade var(--motion-panel) var(--ease-enter) both; }
+.section-fade-1 { animation: sectionFade var(--motion-panel) 180ms var(--ease-enter) both; }
+.section-fade-2 { animation: sectionFade var(--motion-panel) 220ms var(--ease-enter) both; }
+.section-fade-3 { animation: sectionFade var(--motion-panel) 260ms var(--ease-enter) both; }
+.section-fade-4 { animation: sectionFade var(--motion-panel) 300ms var(--ease-enter) both; }
 
 /* ── Shimmer skeleton loader ── */
 @keyframes shimmer {
@@ -703,6 +734,45 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     var(--surface2) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite linear;
+}
+
+.dashboard-skeleton-card {
+  min-height: 132px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--surface), var(--surface2));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.motion-number {
+  display: inline-block;
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.motion-page { animation: pageEnter var(--motion-panel) var(--ease-enter) both; }
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.motion-backdrop { animation: backdropIn var(--motion-panel) ease-out both; }
+@keyframes backdropIn { from { opacity: 0; } }
+
+.motion-panel { animation: panelIn var(--motion-panel) var(--ease-enter) both; }
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bell-attention { animation: bellAttention 520ms var(--ease-enter); }
+@keyframes bellAttention {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(9deg); }
+  50% { transform: rotate(-7deg); }
+  75% { transform: rotate(4deg); }
 }
 
 /* ── Badge pop ── */

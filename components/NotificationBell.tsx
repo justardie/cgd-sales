@@ -15,15 +15,26 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [showSpotlight, setShowSpotlight] = useState(false)
+  const [attention, setAttention] = useState(false)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const bellBtnRef = useRef<HTMLButtonElement>(null)
+  const previousCount = useRef(staleLeads.length)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true))
   }, [])
+
+  useEffect(() => {
+    const previous = previousCount.current
+    previousCount.current = staleLeads.length
+    if (staleLeads.length <= previous) return
+    setAttention(true)
+    const timer = window.setTimeout(() => setAttention(false), 520)
+    return () => window.clearTimeout(timer)
+  }, [staleLeads.length])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -77,7 +88,7 @@ export default function NotificationBell() {
     <div className="user-profile-wrap" ref={wrapRef}>
       <button
         ref={bellBtnRef}
-        className="header-icon-btn"
+        className={`header-icon-btn${attention ? " bell-attention" : ""}`}
         style={{ position: "relative" }}
         onClick={() => setOpen(v => !v)}
         title={staleLeads.length > 0 ? `${staleLeads.length} lead stuck` : "Tidak ada lead stuck"}

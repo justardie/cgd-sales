@@ -23,12 +23,12 @@ export default function Modal({ onClose, isDirty = false, maxWidth = "max-w-lg",
   return (
     <>
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 motion-backdrop"
         style={{ background: "rgba(0,0,0,0.7)" }}
         onClick={requestClose}
       >
         <div
-          className={`w-full ${maxWidth} rounded-xl relative max-h-[90vh] overflow-y-auto`}
+          className={`w-full ${maxWidth} rounded-xl relative max-h-[90vh] overflow-y-auto motion-panel`}
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           onClick={(e) => e.stopPropagation()}
         >

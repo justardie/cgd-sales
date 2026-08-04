@@ -41,7 +41,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div className="app-main">
         <Header />
         <main className="app-content">
-          {children}
+          <div key={pathname} className="motion-page">
+            {children}
+          </div>
         </main>
       </div>
       <Sidebar />

@@ -3,9 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
+import { AnimatedNumber, DashboardSkeleton, useReducedMotion } from "@/components/DashboardMotion"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import { canonicalProjectTotals, periodTarget, topClosingBy } from "@/lib/dashboard-rules"
-import { DollarSign, Trophy } from "lucide-react"
+import { DollarSign, Star, Trophy } from "lucide-react"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -51,7 +52,7 @@ const KPI_SUB_CLASS = "text-xs mt-0.5 leading-snug break-words"
 const KPI_CARD_CLASS = "h-full min-h-[132px] rounded-2xl p-3 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-2 sm:gap-3 lg:gap-2 xl:gap-3 items-center"
 
 function GaugeCard({ label, value, sub, achievement, accentColor }: {
-  label: string; value: string; sub?: string; achievement: number
+  label: string; value: React.ReactNode; sub?: string; achievement: number
   accentColor?: string
 }) {
   const p = Math.min(1, Math.max(0, achievement))
@@ -89,7 +90,7 @@ function GaugeCard({ label, value, sub, achievement, accentColor }: {
 
 /* ─── Flat Stat Card ────────────────────────────── */
 function StatCard({ label, value, sub }: {
-  label: string; value: string; sub?: string
+  label: string; value: React.ReactNode; sub?: string
 }) {
   return (
     <div className={KPI_CARD_CLASS} style={{
@@ -112,6 +113,7 @@ const now = new Date()
 
 export default function OverviewPage() {
   const { user } = useAuth()
+  const reducedMotion = useReducedMotion()
 
   const [hunters, setHunters] = useState<HunterStat[]>([])
   const [totals, setTotals] = useState({
@@ -479,36 +481,39 @@ export default function OverviewPage() {
           </div>
         </div>
 
+        {loading ? <DashboardSkeleton /> : <>
         {/* Hero KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="card-enter-1 kpi-card">
             <StatCard label="Omset YTD"
-              value={formatRupiah(totals.omsetYtd)}
+              value={<AnimatedNumber value={totals.omsetYtd} format={value => formatRupiah(Math.round(value))} />}
               sub={`Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`}
               />
           </div>
           <div className="card-enter-2 kpi-card">
             <GaugeCard label={ytdMode ? "Omset YTD" : "Omset MTD"}
-              value={formatRupiah(revenueValue)}
+              value={<AnimatedNumber value={revenueValue} format={value => formatRupiah(Math.round(value))} />}
               sub={`Target ${formatRupiah(revenueTarget)}`}
               achievement={revenueTarget > 0 ? revenueValue / revenueTarget : 0} />
           </div>
           <div className="card-enter-3 kpi-card">
             <StatCard label="Pipeline Hot"
-              value={totals.pipeline.toString()}
+              value={<AnimatedNumber value={totals.pipeline} format={value => Math.round(value).toLocaleString("id-ID")} />}
               sub={formatRupiah(totals.pipelineVal)}
               />
           </div>
           <div className="card-enter-4 kpi-card">
             <GaugeCard label="Sales Aktif"
-              value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
+              value={<><AnimatedNumber value={totals.spMenjual} format={value => Math.round(value).toLocaleString("id-ID")} /> / {totals.totalActiveSps}</>}
               sub={dateMode === "today" ? "menjual hari ini" : dateMode === "ytd" ? "menjual tahun ini" : dateMode === "custom" ? "menjual periode ini" : "menjual bulan ini"}
               achievement={totals.totalActiveSps > 0 ? totals.spMenjual / totals.totalActiveSps : 0}
               accentColor="#10b981" />
           </div>
-          <div className="card-enter-6 kpi-card">
+          <div className="card-enter-5 kpi-card">
             <StatCard label={`vs ${getMonthName(now.getMonth() === 0 ? 12 : now.getMonth())}`}
-              value={mtdGrowth !== null ? `${mtdGrowth >= 0 ? "+" : ""}${mtdGrowth}%` : "—"}
+              value={mtdGrowth !== null
+                ? <AnimatedNumber value={mtdGrowth} format={value => `${value >= 0 ? "+" : ""}${Math.round(value)}%`} />
+                : "—"}
               sub={mtdGrowth !== null
                 ? `${mtdGrowth >= 0 ? "Naik" : "Turun"} dari bulan lalu`
                 : "Belum ada data bulan lalu"}
@@ -523,8 +528,8 @@ export default function OverviewPage() {
             background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
             border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
           }}>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
-              🏆 Top Sales Hunter
+            <p className="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+              <Trophy size={14} aria-hidden /> Top Sales Hunter
             </p>
             {topHunter ? (
               <>
@@ -557,8 +562,8 @@ export default function OverviewPage() {
             background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
             border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
           }}>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
-              🌟 Top Sales Person
+            <p className="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+              <Star size={14} aria-hidden /> Top Sales Person
             </p>
             {topSales ? (
               <>
@@ -626,7 +631,8 @@ export default function OverviewPage() {
               <XAxis dataKey="month" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={value => `${Math.round(Number(value) / 1_000_000_000)}M`} tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} width={42} />
               <Tooltip formatter={value => formatRupiah(Number(value))} contentStyle={{ background: "var(--surface3)", border: "1px solid var(--border-medium)", borderRadius: 10, color: "var(--text-primary)" }} />
-              <Line type="monotone" dataKey="total" stroke="#FF6A3D" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="total" stroke="#FF6A3D" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }}
+                isAnimationActive={!reducedMotion} animationDuration={700} animationEasing="ease-out" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -726,6 +732,7 @@ export default function OverviewPage() {
             </table>
           </div>
         </div>
+        </>}
 
       </div>
     </DashboardShell>

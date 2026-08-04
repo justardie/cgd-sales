@@ -9,6 +9,7 @@ interface ToastItem {
   id: number
   message: string
   type: ToastType
+  exiting?: boolean
 }
 
 interface ToastContextValue {
@@ -36,7 +37,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const idRef = useRef(0)
 
   const dismissToast = useCallback((id: number) => {
-    setToasts(current => current.filter(toast => toast.id !== id))
+    setToasts(current => current.map(toast => toast.id === id ? { ...toast, exiting: true } : toast))
+    window.setTimeout(() => {
+      setToasts(current => current.filter(toast => toast.id !== id))
+    }, 160)
   }, [])
 
   const showToast = useCallback((message: string, type: ToastType = "info") => {
@@ -63,7 +67,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <div
                 key={toast.id}
                 role="status"
-                className="cgd-toast"
+                className={`cgd-toast${toast.exiting ? " cgd-toast--exit" : ""}`}
                 onClick={() => dismissToast(toast.id)}
                 style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
