@@ -289,7 +289,7 @@ export default function TaskForcePage() {
     const [{ data }, spsRes, projRes, cbRes, notesCountRes] = await Promise.all([
       supabase.from("task_force_leads").select("*")
         .in("status", ["warm", "hot", "tidak_potensial"]).order("created_at", { ascending: false }),
-      supabase.from("users").select("name,hunter_name").in("role", ["sales_person", "telemarketing"]).neq("status", "resigned"),
+      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
       supabase.from("task_force_leads").select("project").not("project", "is", null),
       supabase.from("task_force_leads").select("cara_bayar").not("cara_bayar", "is", null),
       supabase.from("task_force_notes").select("lead_id"),

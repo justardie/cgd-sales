@@ -347,7 +347,7 @@ export default function ClosingPage() {
         .eq("status", "active"),
       supabase.from("users")
         .select("name,hunter_name")
-        .in("role", ["sales_person", "telemarketing"]),
+        .eq("role", "sales_person"),
       supabase.from("konsumen")
         .select("project")
         .not("project", "is", null),

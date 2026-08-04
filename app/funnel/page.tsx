@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext"
 import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
+import { isSalesTelemarketing } from "@/lib/access-settings"
 import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelEmptyStateMessage, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
@@ -675,7 +676,7 @@ export default function FunnelPage() {
   const role     = user?.role ?? ""
   const isAdmin  = role === "admin"
   const isDgm    = role === "dgm" || role === "admin_dgm" || isAdmin
-  const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
+  const isTm     = isSalesTelemarketing(role, user?.has_tm_access)
   const isHunter = role === "hunter"
   const canEdit  = isTm || isDgm
 

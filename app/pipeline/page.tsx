@@ -495,7 +495,7 @@ export default function PipelinePage() {
   const fetchData = useCallback(async () => {
     const [{ data }, spsRes, projRes, cbRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).or("board.eq.pipeline,board.is.null").order("created_at", { ascending: false }),
-      supabase.from("users").select("name,hunter_name").in("role", ["sales_person", "telemarketing"]).neq("status", "resigned"),
+      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
       supabase.from("konsumen").select("project").not("project", "is", null),
       supabase.from("konsumen").select("cara_bayar").not("cara_bayar", "is", null),
     ])

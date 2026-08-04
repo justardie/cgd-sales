@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import DashboardShell from "@/components/DashboardShell"
+import { isSalesTelemarketing } from "@/lib/access-settings"
 import { getFunnelMetrics } from "@/lib/sales-dashboard-rules"
 
 interface TmUser { id: string; name: string; hunter_name: string }
@@ -68,7 +69,7 @@ function StatPill({ value, color, label }: { value: number; color: string; label
 export default function FunnelSummaryPage() {
   const { user } = useAuth()
   const role     = user?.role ?? ""
-  const isTm     = role === "telemarketing" || (user?.has_tm_access ?? false)
+  const isTm     = isSalesTelemarketing(role, user?.has_tm_access)
   const isHunter = role === "hunter"
 
   const now = new Date()

@@ -192,7 +192,7 @@ export default function AdminPage() {
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
                     <div className="font-medium text-white">{u.name}</div>
-                    {(u.role === "sales_person" || u.role === "telemarketing") && u.hunter_name && (
+                    {u.role === "sales_person" && u.hunter_name && (
                       <div className="text-xs text-slate-500 mt-0.5">Tim: {u.hunter_name}</div>
                     )}
                   </td>
@@ -201,13 +201,11 @@ export default function AdminPage() {
                       u.role === "admin"          ? "bg-purple-500/20 text-purple-400" :
                       u.role === "hunter"         ? "bg-blue-500/20 text-blue-400" :
                       u.role === "sales_person"   ? "bg-green-500/20 text-green-400" :
-                      u.role === "telemarketing"  ? "bg-amber-500/20 text-amber-400" :
                                                     "bg-slate-500/20 text-slate-400"
                     }`}>
                       {u.role === "hunter"        ? "Sales Hunter"   :
                        u.role === "sales_person" && u.has_tm_access ? "Telemarketing" :
                        u.role === "sales_person"  ? "Sales Person"   :
-                       u.role === "telemarketing" ? "Telemarketing"  :
                        u.role === "task_force"    ? "Non Sales"      : u.role}
                     </span>
                   </td>

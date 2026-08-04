@@ -13,6 +13,14 @@ test("auth persists in localStorage and clears legacy sessionStorage", async () 
   assert.match(source, /sessionStorage\.removeItem\(SESSION_KEY/)
 })
 
+test("auth normalizes persisted legacy Telemarketing sessions", async () => {
+  const source = await read("lib/auth.ts")
+  assert.match(source, /\(user\.role as string\) === 'telemarketing'/)
+  assert.match(source, /user\.role = 'sales_person'/)
+  assert.match(source, /user\.has_tm_access = true/)
+  assert.match(source, /localStorage\.setItem\(SESSION_KEY, JSON\.stringify\(user\)\)/)
+})
+
 test("header logo is rendered white", async () => {
   const source = await read("components/Header.tsx")
   assert.match(source, /filter:\s*theme === "dark" \? "brightness\(0\) invert\(1\)" : "none"/)
@@ -54,10 +62,10 @@ test("Closing supports active Hunters, Agent names, and cancellation to Hot", as
   assert.match(source, /\.eq\(["']status["'],\s*["']active["']\)/)
 })
 
-test("dashboard applies period-independent KPIs and includes both active sales roles", async () => {
+test("dashboard applies period-independent KPIs and includes active Sales Persons", async () => {
   const source = await read("app/page.tsx")
   assert.match(source, /periodTarget/)
-  assert.match(source, /\.in\("role", \["sales_person", "telemarketing"\]\)\.eq\("status", "active"\)/)
+  assert.match(source, /\.eq\("role", "sales_person"\)\.eq\("status", "active"\)/)
   assert.match(source, /closingsCurrentMonth/)
   assert.match(source, /closingsPreviousMonth/)
   assert.match(source, /Pipeline Hot/)
@@ -173,6 +181,34 @@ test("Admin documents role access and stores Telemarketing as Sales Person with 
   assert.match(admin, /has_tm_access/)
   assert.match(admin, /u\.role === "task_force"\s+\?\s+"Non Sales"/)
   assert.match(types, /has_tm_access\?: boolean/)
+})
+
+test("Telemarketing is an access profile, not a database role", async () => {
+  const types = await read("types/index.ts")
+  const migration = await read("supabase/047_unify_telemarketing_role.sql")
+  assert.doesNotMatch(types, /\|\s*'telemarketing'/)
+  assert.match(migration, /SET role = 'sales_person', has_tm_access = true/)
+  assert.match(migration, /role IN \('admin', 'hunter', 'sales_person', 'dgm', 'admin_dgm', 'task_force'\)/)
+  assert.doesNotMatch(migration.match(/ADD CONSTRAINT users_role_check[\s\S]*?;/)?.[0] ?? "", /telemarketing/)
+
+  for (const path of [
+    "components/DashboardShell.tsx",
+    "app/funnel/page.tsx",
+    "app/funnel-summary/page.tsx",
+  ]) {
+    assert.doesNotMatch(await read(path), /role === "telemarketing"/)
+  }
+
+  for (const path of [
+    "app/page.tsx",
+    "app/pipeline/page.tsx",
+    "app/closing/page.tsx",
+    "app/task-force/page.tsx",
+    "app/report/page.tsx",
+    "app/monthly-report/page.tsx",
+  ]) {
+    assert.doesNotMatch(await read(path), /\["sales_person", "telemarketing"\]/)
+  }
 })
 
 test("Role Access is editable per role, device, and user data scope", async () => {

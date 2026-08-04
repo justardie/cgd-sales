@@ -208,7 +208,7 @@ export default function OverviewPage() {
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_year", effYear).lte("closing_month", effMonth),
         supabase.from("konsumen").select("user_id,nilai_hjr,sales_hunter").eq("status", "closing").eq("closing_month", currentPreviousMonth).eq("closing_year", currentPreviousYear),
         supabase.from("konsumen").select("user_id,potensi_closing,status").eq("status", "hot").or("board.eq.pipeline,board.is.null"),
-        supabase.from("users").select("name,role").in("role", ["sales_person", "telemarketing"]).eq("status", "active"),
+        supabase.from("users").select("name,role").eq("role", "sales_person").eq("status", "active"),
       ])
 
       const allUsers = usersRes.data || []

@@ -38,7 +38,11 @@ export function getSession(): AuthUser | null {
   if (!raw) return null
   try {
     const user = JSON.parse(raw) as AuthUser
-    localStorage.setItem(SESSION_KEY, raw)
+    if ((user.role as string) === 'telemarketing') {
+      user.role = 'sales_person'
+      user.has_tm_access = true
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(user))
     sessionStorage.removeItem(SESSION_KEY)
     return user
   } catch {

@@ -52,7 +52,7 @@ export default function MonthlyReportPage() {
     if (!user || isAdmin || user.role !== "hunter") return
     const [profileRes, teamRes, closingRes, pipelineRes] = await Promise.all([
       supabase.from("users").select("monthly_target,win_or_die_target,visit_target,project_coverage").eq("id", user.id).single(),
-      supabase.from("users").select("name").eq("status", "active").in("role", ["sales_person", "telemarketing"]).eq("hunter_name", user.name),
+      supabase.from("users").select("name").eq("status", "active").eq("role", "sales_person").eq("hunter_name", user.name),
       supabase.from("konsumen").select("sales_person,name,project,unit,nilai_hjr,visit_date,closing_date").eq("status", "closing").eq("sales_hunter", user.name).gte("closing_date", periodStart).lte("closing_date", periodEnd),
       supabase.from("konsumen").select("sales_person,name,project,unit,potensi_closing,visit_date,sudah_booking_fee").eq("status", "hot").eq("sales_hunter", user.name).or("board.eq.pipeline,board.is.null"),
     ])
