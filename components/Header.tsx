@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { LogOut, Shield, MessageSquare, Sun, Moon, Users, ShieldCheck } from "lucide-react"
 import NotificationBell from "@/components/NotificationBell"
+import { TELEMARKETING_NAV_ITEMS, isSalesTelemarketing } from "@/lib/access-settings"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview"                           },
@@ -19,7 +20,7 @@ const SALES_NAV = [
   { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
 ]
 
-const TM_NAV = [
+const DGM_NAV = [
   { href: "/funnel",         label: "Leads Funnel"   },
   { href: "/funnel-summary", label: "Funnel Summary" },
 ]
@@ -44,13 +45,16 @@ export default function Header() {
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)
 
   const role = user?.role ?? ""
-  const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
+  const isDgmOnly = role === "dgm" || role === "admin_dgm"
   const isTf = role === "task_force"
   const hasTmAccess = user?.has_tm_access ?? false
+  const salesTelemarketing = isSalesTelemarketing(role, hasTmAccess)
   const hasPipelineAccess = isAdmin || isTf || role === "hunter" || role === "sales_person"
 
-  const navItems = isTm
-    ? TM_NAV
+  const navItems = isDgmOnly
+    ? DGM_NAV
+    : salesTelemarketing
+    ? TELEMARKETING_NAV_ITEMS
     : isTf
     ? TF_NAV
     : SALES_NAV.filter((item) => {
@@ -131,7 +135,7 @@ export default function Header() {
           >
             <div className="user-profile-text">
               <span className="user-name">{user?.name}</span>
-              <span className="user-role">{user?.role} · CGD</span>
+              <span className="user-role">{salesTelemarketing ? "Telemarketing" : user?.role} · CGD</span>
             </div>
             <div className="user-avatar">{initials}</div>
           </button>
@@ -157,7 +161,7 @@ export default function Header() {
                 </button>
               </div>
               <div className="profile-dropdown-divider" />
-              {!isTm && (
+              {!isDgmOnly && !salesTelemarketing && (
                 <Link href="/team" className="profile-dropdown-item" onClick={() => setProfileOpen(false)}>
                   <Users size={14} /><span>Team Status</span>
                 </Link>

@@ -190,6 +190,22 @@ test("Role Access is editable per role, device, and user data scope", async () =
   assert.match(migration, /CREATE TABLE IF NOT EXISTS user_access_overrides/)
 })
 
+test("Sales Telemarketing navigation is identical on every device and has no mobile FAB", async () => {
+  const header = await read("components/Header.tsx")
+  const sidebar = await read("components/Sidebar.tsx")
+  const settings = await read("lib/access-settings.ts")
+  for (const source of [header, sidebar]) {
+    assert.match(source, /TELEMARKETING_NAV_ITEMS/)
+    assert.match(source, /isSalesTelemarketing/)
+    assert.doesNotMatch(source, /role === "telemarketing"/)
+  }
+  assert.match(header, /salesTelemarketing \? "Telemarketing" : user\?\.role/)
+  assert.match(sidebar, /salesTelemarketing[\s\S]*showFab\s*=\s*false/)
+  assert.match(settings, /desktop_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
+  assert.match(settings, /tablet_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
+  assert.match(settings, /mobile_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
+})
+
 test("Funnel pages expose approved cards without Pipeline", async () => {
   const funnel = await read("app/funnel/page.tsx")
   const summary = await read("app/funnel-summary/page.tsx")

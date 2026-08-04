@@ -6,6 +6,7 @@ import {
   LayoutDashboard, TrendingUp, DollarSign,
   Users, Filter, PieChart, Plus,
 } from "lucide-react"
+import { TELEMARKETING_NAV_ITEMS, isSalesTelemarketing } from "@/lib/access-settings"
 
 const SALES_NAV = [
   { href: "/",               label: "Overview",  icon: LayoutDashboard                      },
@@ -16,10 +17,20 @@ const SALES_NAV = [
   { href: "/funnel-summary", label: "Summary",   icon: PieChart,   funnelAccess: true       },
 ]
 
-const TM_NAV = [
+const DGM_NAV = [
   { href: "/funnel",         label: "Leads Funnel",   icon: Filter   },
   { href: "/funnel-summary", label: "Funnel Summary", icon: PieChart },
 ]
+
+const TM_ICONS = {
+  overview: LayoutDashboard,
+  pipeline: TrendingUp,
+  closing: DollarSign,
+  funnel: Filter,
+  funnel_summary: PieChart,
+} as const
+
+const TM_NAV = TELEMARKETING_NAV_ITEMS.map(item => ({ ...item, icon: TM_ICONS[item.key] }))
 
 const TF_NAV = [
   { href: "/",          label: "Overview",  icon: LayoutDashboard },
@@ -41,9 +52,10 @@ export default function Sidebar() {
   const router = useRouter()
   const { user, isAdmin } = useAuth()
   const role = user?.role ?? ""
-  const isTm = role === "telemarketing" || role === "dgm" || role === "admin_dgm"
   const isTf = role === "task_force"
   const hasTmAccess = user?.has_tm_access ?? false
+  const salesTelemarketing = isSalesTelemarketing(role, hasTmAccess)
+  const isDgmOnly = role === "dgm" || role === "admin_dgm"
   const hasFunnelAccess = role === "hunter" || hasTmAccess || isAdmin
 
   // Build left/right items around the center FAB
@@ -52,11 +64,14 @@ export default function Sidebar() {
   let rightItems: typeof SALES_NAV = []
   let showFab = false
 
-  if (isTm) {
-    // TM: just 2 items, no FAB
-    leftItems  = [TM_NAV[0]]
-    rightItems = [TM_NAV[1]]
-    showFab    = false
+  if (salesTelemarketing) {
+    leftItems = TM_NAV.slice(0, 3)
+    rightItems = TM_NAV.slice(3)
+    showFab = false
+  } else if (isDgmOnly) {
+    leftItems = [DGM_NAV[0]]
+    rightItems = [DGM_NAV[1]]
+    showFab = false
   } else if (isTf) {
     // Non Sales: 4 items + FAB in middle
     leftItems  = [TF_NAV[0], TF_NAV[1]]
