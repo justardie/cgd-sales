@@ -74,6 +74,13 @@ export function getVisibleFunnelLeads<T>(leads: readonly T[], limit: number): T[
   return leads.slice(0, limit)
 }
 
+export function getFunnelDetailActionState(isDirty: boolean, hasUnsentNote: boolean, saving: boolean) {
+  if (saving) return { action: "wait" as const, disabled: true, label: "Menyimpan..." }
+  if (hasUnsentNote) return { action: "wait" as const, disabled: true, label: "Simpan Catatan Terlebih Dahulu" }
+  if (isDirty) return { action: "save" as const, disabled: false, label: "Simpan Perubahan" }
+  return { action: "close" as const, disabled: false, label: "Tutup — Tidak Ada Perubahan" }
+}
+
 export function getFunnelEmptyStateMessage(search: string, filter: FunnelKpiFilter, isTm: boolean): string {
   if (search.trim()) return "Tidak ada lead yang cocok dengan pencarian."
   if (filter !== "all") return "Tidak ada leads dengan status ini."

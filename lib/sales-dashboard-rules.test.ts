@@ -7,6 +7,7 @@ import {
   type FunnelKpiFilter,
   getFunnelEmptyStateMessage,
   getFunnelMetrics,
+  getFunnelDetailActionState,
   getVisibleFunnelLeads,
   matchesFunnelKpiStatus,
   matchesPipelineStatus,
@@ -94,6 +95,24 @@ test("shows Funnel leads in batches of 25", () => {
 
   assert.deepEqual(getVisibleFunnelLeads(leads, 25), leads.slice(0, 25))
   assert.deepEqual(getVisibleFunnelLeads(leads, 50), leads.slice(0, 50))
+})
+
+test("guides Funnel detail actions without losing an unsent journey note", () => {
+  assert.deepEqual(getFunnelDetailActionState(false, false, false), {
+    action: "close",
+    disabled: false,
+    label: "Tutup — Tidak Ada Perubahan",
+  })
+  assert.deepEqual(getFunnelDetailActionState(true, false, false), {
+    action: "save",
+    disabled: false,
+    label: "Simpan Perubahan",
+  })
+  assert.deepEqual(getFunnelDetailActionState(true, true, false), {
+    action: "wait",
+    disabled: true,
+    label: "Simpan Catatan Terlebih Dahulu",
+  })
 })
 
 test("formats named and legacy Agent rows safely", () => {

@@ -8,7 +8,7 @@ import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
 import { isSalesTelemarketing } from "@/lib/access-settings"
-import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelEmptyStateMessage, getVisibleFunnelLeads, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
+import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelDetailActionState, getFunnelEmptyStateMessage, getVisibleFunnelLeads, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
 // Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
@@ -127,9 +127,16 @@ function LeadCard({ lead, tmName, onTap }: { lead: Lead; tmName?: string; onTap:
 }
 
 // ── Journey Notes ─────────────────────────────────────────────────────────────
-function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: string } | null }) {
+function JourneyNotes({ lead, user, summaryNotes, canEdit, onSummaryNotesChange, onDraftChange }: {
+  lead: Lead
+  user: { id: string; name: string } | null
+  summaryNotes: string
+  canEdit: boolean
+  onSummaryNotesChange: (value: string) => void
+  onDraftChange: (hasDraft: boolean) => void
+}) {
   const { showToast } = useToast()
-  const [notes, setNotes]     = useState<LeadNote[]>([])
+  const [history, setHistory] = useState<LeadNote[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText]       = useState("")
   const [sending, setSending] = useState(false)
@@ -141,12 +148,12 @@ function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: st
       .select("*")
       .eq("lead_id", lead.id)
       .order("created_at", { ascending: true })
-    setNotes((data || []) as LeadNote[])
+    setHistory((data || []) as LeadNote[])
     setLoading(false)
   }, [lead.id])
 
   useEffect(() => { queueMicrotask(() => void loadNotes()) }, [loadNotes])
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [history])
 
   async function handleSend() {
     if (!text.trim() || !user) {
@@ -166,8 +173,9 @@ function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: st
       return
     }
     setText("")
+    onDraftChange(false)
     loadNotes()
-    showToast("Catatan journey berhasil disimpan", "success")
+    showToast("Catatan berhasil disimpan", "success")
   }
 
   function fmtNoteDate(iso: string): string {
@@ -177,61 +185,85 @@ function JourneyNotes({ lead, user }: { lead: Lead; user: { id: string; name: st
   }
 
   return (
-    <div style={{ marginBottom: "22px" }}>
-      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
-        <BookOpen size={11} /> Journey / Catatan
+    <div style={{ marginBottom: "22px", textAlign: "center" }}>
+      <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+        <BookOpen size={11} /> Catatan &amp; Journey
       </div>
 
-      {/* Timeline */}
-      <div style={{ maxHeight: "220px", overflowY: "auto", marginBottom: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {loading ? (
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", padding: "12px" }}>Memuat...</div>
-        ) : notes.length === 0 ? (
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center", padding: "16px", background: "var(--surface)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-            Belum ada catatan journey. Tambahkan di bawah.
-          </div>
-        ) : notes.map(n => (
-          <div key={n.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px" }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)" }}>{n.author_name}</span>
-              <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border-medium)", borderRadius: "14px", padding: "14px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px" }}>Ringkasan hasil follow up</div>
+        <textarea
+          value={summaryNotes}
+          onChange={(e) => canEdit && onSummaryNotesChange(e.target.value)}
+          readOnly={!canEdit}
+          placeholder={canEdit ? "Tulis hasil follow up, jadwal visit, dll..." : "Belum ada catatan"}
+          rows={4}
+          style={{
+            width: "100%", background: "var(--surface2)", border: "1px solid var(--border-medium)",
+            borderRadius: "12px", padding: "11px 14px", color: "var(--text-primary)", fontSize: "14px",
+            outline: "none", resize: "none", boxSizing: "border-box", lineHeight: "1.5", textAlign: "left",
+            opacity: canEdit ? 1 : 0.7,
+          }}
+        />
+
+        <div style={{ height: "1px", background: "var(--border)", margin: "16px 0" }} />
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px" }}>Riwayat catatan</div>
+        <div style={{ maxHeight: "220px", overflowY: "auto", marginBottom: user ? "0" : undefined, display: "flex", flexDirection: "column", gap: "8px" }}>
+          {loading ? (
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "12px" }}>Memuat...</div>
+          ) : history.length === 0 ? (
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "14px", background: "var(--surface2)", borderRadius: "10px", border: "1px solid var(--border)" }}>
+              Belum ada riwayat catatan.
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-primary)", whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
-          </div>
-        ))}
-        <div ref={bottomRef} />
-      </div>
+          ) : history.map(n => (
+            <div key={n.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px", textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)" }}>{n.author_name}</span>
+                <span style={{ fontSize: "10px", color: "var(--text-muted)", flexShrink: 0 }}>{fmtNoteDate(n.created_at)}</span>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--text-primary)", whiteSpace: "pre-wrap", lineHeight: "1.5" }}>{n.content}</div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
 
-      {/* Input */}
-      {user && (
-        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+        {user && (
+          <div>
+            <div style={{ height: "1px", background: "var(--border)", margin: "16px 0" }} />
+            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px" }}>Tambah catatan baru</div>
           <textarea
             value={text}
-            onChange={e => setText(e.target.value)}
+            onChange={e => { setText(e.target.value); onDraftChange(Boolean(e.target.value.trim())) }}
             onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); handleSend() } }}
-            placeholder="Tulis catatan journey... (Ctrl+Enter kirim)"
-            rows={2}
+            placeholder="Tulis catatan baru..."
+            rows={3}
             style={{
-              flex: 1, background: "var(--surface)", border: "1px solid var(--border-medium)",
+              width: "100%", background: "var(--surface2)", border: "1px solid var(--border-medium)",
               borderRadius: "10px", padding: "9px 12px", color: "var(--text-primary)",
-              fontSize: "13px", outline: "none", resize: "none", lineHeight: "1.5", boxSizing: "border-box",
+              fontSize: "13px", outline: "none", resize: "none", lineHeight: "1.5", boxSizing: "border-box", textAlign: "left",
             }}
           />
+          <div style={{ fontSize: "11px", color: text.trim() ? "#fbbf24" : "var(--text-muted)", margin: "8px 0 10px", lineHeight: 1.4 }}>
+            {text.trim()
+              ? "Catatan belum tersimpan. Klik Simpan Catatan sebelum melanjutkan."
+              : "Catatan masuk ke Journey setelah tombol Simpan Catatan ditekan."}
+          </div>
           <button
             onClick={handleSend}
             disabled={!text.trim() || sending}
             style={{
-              flexShrink: 0, width: 38, height: 38, borderRadius: "10px", border: "none",
+              width: "100%", minHeight: 42, borderRadius: "10px", border: "none",
               background: !text.trim() || sending ? "var(--surface3)" : "var(--accent)",
               color: !text.trim() || sending ? "var(--text-muted)" : "#fff",
               cursor: !text.trim() || sending ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "7px", fontSize: "13px", fontWeight: 700,
             }}
           >
-            <Send size={15} />
+            <Send size={15} /> {sending ? "Menyimpan Catatan..." : "Simpan Catatan"}
           </button>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -248,7 +280,17 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
   const [saving, setSaving]         = useState(false)
   const [deleting, setDeleting]     = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
+  const [hasJourneyDraft, setHasJourneyDraft] = useState(false)
   const isDirty = status !== lead.status || notes !== (lead.notes || "")
+  const primaryAction = getFunnelDetailActionState(isDirty, hasJourneyDraft, saving)
+
+  const handleClose = useCallback(() => {
+    if (hasJourneyDraft) {
+      showToast("Simpan atau kosongkan catatan baru sebelum menutup.", "error")
+      return
+    }
+    onClose()
+  }, [hasJourneyDraft, onClose, showToast])
 
   const handleSave = async () => {
     if (!isDirty) return
@@ -280,27 +322,27 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
 
   const lbl: React.CSSProperties = {
     fontSize: "10px", fontWeight: 700, color: "var(--text-muted)",
-    textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "8px",
+    textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "8px", textAlign: "center",
   }
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape") handleClose()
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [onClose])
+  }, [handleClose])
 
   return (
     <div
       className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center sm:p-6"
       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl" style={{
         background: "var(--surface2)", border: "1px solid var(--border)",
         padding: "0 20px 28px", maxHeight: "90vh", overflowY: "auto",
-        boxShadow: "0 -8px 48px rgba(0,0,0,0.5)",
+        boxShadow: "0 -8px 48px rgba(0,0,0,0.5)", textAlign: "center",
       }}>
         {/* Drag handle — mobile only, hints the bottom sheet is swipeable */}
         <div className="flex sm:hidden justify-center" style={{ padding: "14px 0 20px" }}>
@@ -309,11 +351,11 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
         <div className="hidden sm:block" style={{ height: 24 }} />
 
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", marginBottom: "14px", position: "relative" }}>
+          <div style={{ width: "100%", padding: "0 44px" }}>
             <div style={{ fontSize: "19px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "5px" }}>{lead.name}</div>
             <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px", fontFamily: "monospace" }}>{lead.phone}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
               <a
                 href={`tel:${lead.phone}`}
                 style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(96,165,250,0.15)", color: "#60a5fa", padding: "6px 14px", borderRadius: "20px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
@@ -329,7 +371,7 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
               </a>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", position: "absolute", right: 0, top: 0 }}>
             {canDelete && (
               <button
                 onClick={() => setConfirmDel(true)}
@@ -339,14 +381,14 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
                 <Trash2 size={15} />
               </button>
             )}
-            <button onClick={onClose} style={{ background: "var(--surface3)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <button onClick={handleClose} style={{ background: "var(--surface3)", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <X size={16} />
             </button>
           </div>
         </div>
 
         {/* Meta */}
-        <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginBottom: "24px", flexWrap: "wrap", alignItems: "center" }}>
           {lead.project && (
             <span style={{ fontSize: "11px", background: "var(--accent-soft)", color: "var(--accent)", padding: "2px 8px", borderRadius: "6px", fontWeight: 700 }}>
               {lead.project}
@@ -363,10 +405,10 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
           <label style={lbl}>Update Status</label>
           {STATUS_GROUPS.map((group) => (
             <div key={group.label} style={{ marginBottom: "14px" }}>
-              <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "7px", fontWeight: 600, letterSpacing: "0.04em" }}>
+              <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "7px", fontWeight: 600, letterSpacing: "0.04em", textAlign: "center" }}>
                 {group.label}
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "8px" }}>
                 {group.statuses.map((s) => {
                   const cfg = LEAD_STATUS_CONFIG[s]
                   const c   = COLOR_MAP[cfg.color] ?? COLOR_MAP["slate"]
@@ -394,26 +436,14 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
           ))}
         </div>
 
-        {/* Notes */}
-        <div style={{ marginBottom: "22px" }}>
-          <label style={lbl}>Catatan Hasil Follow Up</label>
-          <textarea
-            value={notes}
-            onChange={(e) => canEdit && setNotes(e.target.value)}
-            readOnly={!canEdit}
-            placeholder={canEdit ? "Tulis hasil follow up, jadwal visit, dll..." : "Belum ada catatan"}
-            rows={4}
-            style={{
-              width: "100%", background: "var(--surface)", border: "1px solid var(--border-medium)",
-              borderRadius: "12px", padding: "11px 14px", color: "var(--text-primary)", fontSize: "14px",
-              outline: "none", resize: "none", boxSizing: "border-box", lineHeight: "1.5",
-              opacity: canEdit ? 1 : 0.7,
-            }}
-          />
-        </div>
-
-        {/* Journey Notes */}
-        <JourneyNotes lead={lead} user={user} />
+        <JourneyNotes
+          lead={lead}
+          user={user}
+          summaryNotes={notes}
+          canEdit={canEdit}
+          onSummaryNotesChange={setNotes}
+          onDraftChange={setHasJourneyDraft}
+        />
 
         {/* Delete confirmation panel */}
         {confirmDel && (
@@ -448,20 +478,21 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
         {/* Save */}
         {canEdit && (
           <button
-            onClick={handleSave}
-            disabled={saving || !isDirty}
+            onClick={primaryAction.action === "save" ? handleSave : primaryAction.action === "close" ? handleClose : undefined}
+            disabled={primaryAction.disabled}
             style={{
               width: "100%", padding: "15px", borderRadius: "14px", fontSize: "15px", fontWeight: 700,
-              background: saving || !isDirty
-                ? "var(--surface3)"
-                : "linear-gradient(135deg, var(--accent-start), var(--accent-end))",
-              color: saving || !isDirty ? "var(--text-muted)" : "#fff",
-              border: "none", cursor: saving || !isDirty ? "not-allowed" : "pointer",
-              boxShadow: saving || !isDirty ? "none" : "var(--shadow-accent)",
+              background: primaryAction.action === "save"
+                ? "linear-gradient(135deg, var(--accent-start), var(--accent-end))"
+                : "var(--surface3)",
+              color: primaryAction.action === "save" ? "#fff" : "var(--text-secondary)",
+              border: primaryAction.action === "close" ? "1px solid var(--border-medium)" : "none",
+              cursor: primaryAction.disabled ? "not-allowed" : "pointer",
+              boxShadow: primaryAction.action === "save" ? "var(--shadow-accent)" : "none",
               transition: "all 0.2s",
             }}
           >
-            {saving ? "Menyimpan..." : isDirty ? "Simpan Perubahan" : "Tidak Ada Perubahan"}
+            {primaryAction.label}
           </button>
         )}
       </div>
