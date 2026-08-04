@@ -176,19 +176,10 @@ test("Non Sales user-facing labels do not use the old role name", async () => {
   assert.doesNotMatch(shell, /Task Force/)
 })
 
-test("Admin documents role access and stores Telemarketing as Sales Person with TM access", async () => {
+test("Admin stores Telemarketing as Sales Person with TM access", async () => {
   const admin = await read("app/admin/page.tsx")
-  const roleAccessPage = await read("app/role-access/page.tsx")
-  const roleAccessData = await read("lib/role-access.ts")
-  const header = await read("components/Header.tsx")
   const types = await read("types/index.ts")
-  assert.match(roleAccessPage, /Setting Role &amp; Akses Data/)
-  assert.match(roleAccessPage, /ACCESS_ROLES\.map/)
-  assert.match(roleAccessData, /Telemarketing/)
   assert.match(admin, /Akses: Overview, Pipeline, Closing, Leads Funnel, Funnel Summary/)
-  assert.match(roleAccessData, /menu: "Overview, Pipeline, Closing, Leads Funnel, Funnel Summary"/)
-  assert.match(header, /href="\/role-access"/)
-  assert.match(header, /Role &amp; Akses Data/)
   assert.match(admin, /Telemarketing is stored as Sales Person/)
   assert.match(admin, /normalizedRole = form\.role === "telemarketing" \? "sales_person" : form\.role/)
   assert.match(admin, /has_tm_access/)
@@ -224,15 +215,14 @@ test("Telemarketing is an access profile, not a database role", async () => {
   }
 })
 
-test("Role Access is editable per role, device, and user data scope", async () => {
-  const page = await read("app/role-access/page.tsx")
+test("Role Access UI is removed while its database settings remain available", async () => {
+  const header = await read("components/Header.tsx")
   const settings = await read("lib/access-settings.ts")
   const migration = await read("supabase/042_access_settings.sql")
-  assert.match(page, /Simpan Setting/)
-  assert.match(page, /desktop_menus/)
-  assert.match(page, /tablet_menus/)
-  assert.match(page, /mobile_menus/)
-  assert.match(page, /user_access_overrides/)
+  await assert.rejects(() => read("app/role-access/page.tsx"), error => error?.code === "ENOENT")
+  await assert.rejects(() => read("lib/role-access.ts"), error => error?.code === "ENOENT")
+  assert.doesNotMatch(header, /role-access|Role &amp; Akses Data/)
+  assert.doesNotMatch(settings, /role_access|\/role-access/)
   assert.match(settings, /MENU_ITEMS/)
   assert.match(settings, /team_only/)
   assert.match(migration, /CREATE TABLE IF NOT EXISTS role_access_settings/)
