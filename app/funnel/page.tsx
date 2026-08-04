@@ -8,7 +8,7 @@ import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
 import { isSalesTelemarketing } from "@/lib/access-settings"
-import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelDetailActionState, getFunnelEmptyStateMessage, getVisibleFunnelLeads, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
+import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelDetailActionState, getFunnelEmptyStateMessage, getVisibleFunnelLeads, mergeFunnelNotes, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
 // Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
@@ -127,12 +127,9 @@ function LeadCard({ lead, tmName, onTap }: { lead: Lead; tmName?: string; onTap:
 }
 
 // ── Journey Notes ─────────────────────────────────────────────────────────────
-function JourneyNotes({ lead, user, summaryNotes, canEdit, onSummaryNotesChange, onDraftChange }: {
+function JourneyNotes({ lead, user, onDraftChange }: {
   lead: Lead
   user: { id: string; name: string } | null
-  summaryNotes: string
-  canEdit: boolean
-  onSummaryNotesChange: (value: string) => void
   onDraftChange: (hasDraft: boolean) => void
 }) {
   const { showToast } = useToast()
@@ -184,6 +181,8 @@ function JourneyNotes({ lead, user, summaryNotes, canEdit, onSummaryNotesChange,
     return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`
   }
 
+  const timeline = mergeFunnelNotes(lead, history)
+
   return (
     <div style={{ marginBottom: "22px", textAlign: "center" }}>
       <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
@@ -191,31 +190,10 @@ function JourneyNotes({ lead, user, summaryNotes, canEdit, onSummaryNotesChange,
       </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border-medium)", borderRadius: "14px", padding: "14px" }}>
-        <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px" }}>Ringkasan hasil follow up</div>
-        <textarea
-          value={summaryNotes}
-          onChange={(e) => canEdit && onSummaryNotesChange(e.target.value)}
-          readOnly={!canEdit}
-          placeholder={canEdit ? "Tulis hasil follow up, jadwal visit, dll..." : "Belum ada catatan"}
-          rows={4}
-          style={{
-            width: "100%", background: "var(--surface2)", border: "1px solid var(--border-medium)",
-            borderRadius: "12px", padding: "11px 14px", color: "var(--text-primary)", fontSize: "14px",
-            outline: "none", resize: "none", boxSizing: "border-box", lineHeight: "1.5", textAlign: "left",
-            opacity: canEdit ? 1 : 0.7,
-          }}
-        />
-
-        <div style={{ height: "1px", background: "var(--border)", margin: "16px 0" }} />
-        <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px" }}>Riwayat catatan</div>
-        <div style={{ maxHeight: "220px", overflowY: "auto", marginBottom: user ? "0" : undefined, display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ maxHeight: "280px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
           {loading ? (
             <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "12px" }}>Memuat...</div>
-          ) : history.length === 0 ? (
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", padding: "14px", background: "var(--surface2)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-              Belum ada riwayat catatan.
-            </div>
-          ) : history.map(n => (
+          ) : timeline.map(n => (
             <div key={n.id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "10px", padding: "10px 12px", textAlign: "left" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px" }}>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--accent)" }}>{n.author_name}</span>
@@ -228,9 +206,7 @@ function JourneyNotes({ lead, user, summaryNotes, canEdit, onSummaryNotesChange,
         </div>
 
         {user && (
-          <div>
-            <div style={{ height: "1px", background: "var(--border)", margin: "16px 0" }} />
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px" }}>Tambah catatan baru</div>
+          <div style={{ marginTop: timeline.length > 0 ? "12px" : 0 }}>
           <textarea
             value={text}
             onChange={e => { setText(e.target.value); onDraftChange(Boolean(e.target.value.trim())) }}
@@ -276,12 +252,11 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
 }) {
   const { showToast } = useToast()
   const [status, setStatus]         = useState<LeadStatus>(lead.status)
-  const [notes,  setNotes]          = useState(lead.notes || "")
   const [saving, setSaving]         = useState(false)
   const [deleting, setDeleting]     = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const [hasJourneyDraft, setHasJourneyDraft] = useState(false)
-  const isDirty = status !== lead.status || notes !== (lead.notes || "")
+  const isDirty = status !== lead.status
   const primaryAction = getFunnelDetailActionState(isDirty, hasJourneyDraft, saving)
 
   const handleClose = useCallback(() => {
@@ -296,13 +271,13 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
     if (!isDirty) return
     setSaving(true)
     const now = new Date().toISOString()
-    const { error } = await supabase.from("leads").update({ status, notes, updated_at: now }).eq("id", lead.id)
+    const { error } = await supabase.from("leads").update({ status, updated_at: now }).eq("id", lead.id)
     setSaving(false)
     if (error) {
       showToast(`Gagal menyimpan perubahan: ${error.message}`, "error")
       return
     }
-    onSaved({ ...lead, status, notes, updated_at: now })
+    onSaved({ ...lead, status, updated_at: now })
     onClose()
     showToast("Perubahan lead berhasil disimpan", "success")
   }
@@ -439,9 +414,6 @@ function DetailSheet({ lead, canEdit, canDelete, user, onClose, onSaved, onDelet
         <JourneyNotes
           lead={lead}
           user={user}
-          summaryNotes={notes}
-          canEdit={canEdit}
-          onSummaryNotesChange={setNotes}
           onDraftChange={setHasJourneyDraft}
         />
 

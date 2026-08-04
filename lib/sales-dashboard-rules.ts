@@ -81,6 +81,32 @@ export function getFunnelDetailActionState(isDirty: boolean, hasUnsentNote: bool
   return { action: "close" as const, disabled: false, label: "Tutup — Tidak Ada Perubahan" }
 }
 
+export interface FunnelTimelineNote {
+  id: string
+  lead_id: string
+  content: string
+  author_name: string
+  created_by: string | null
+  created_at: string
+}
+
+export function mergeFunnelNotes(
+  lead: { id: string; notes: string; created_at: string; updated_at: string },
+  history: readonly FunnelTimelineNote[],
+): FunnelTimelineNote[] {
+  const legacyContent = lead.notes.trim()
+  const alreadyMigrated = history.some((note) => note.content.trim() === legacyContent)
+  const legacy = legacyContent && !alreadyMigrated ? [{
+    id: `legacy-${lead.id}`,
+    lead_id: lead.id,
+    content: legacyContent,
+    author_name: "Catatan sebelumnya",
+    created_by: null,
+    created_at: lead.updated_at || lead.created_at,
+  }] : []
+  return [...legacy, ...history].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
+}
+
 export function getFunnelEmptyStateMessage(search: string, filter: FunnelKpiFilter, isTm: boolean): string {
   if (search.trim()) return "Tidak ada lead yang cocok dengan pencarian."
   if (filter !== "all") return "Tidak ada leads dengan status ini."

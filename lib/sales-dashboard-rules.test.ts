@@ -8,6 +8,7 @@ import {
   getFunnelEmptyStateMessage,
   getFunnelMetrics,
   getFunnelDetailActionState,
+  mergeFunnelNotes,
   getVisibleFunnelLeads,
   matchesFunnelKpiStatus,
   matchesPipelineStatus,
@@ -113,6 +114,39 @@ test("guides Funnel detail actions without losing an unsent journey note", () =>
     disabled: true,
     label: "Simpan Catatan Terlebih Dahulu",
   })
+})
+
+test("merges a legacy Funnel note into the dated journey timeline", () => {
+  const history = [{
+    id: "note-2",
+    lead_id: "lead-1",
+    content: "Catatan baru",
+    author_name: "Rio",
+    created_by: "rio-id",
+    created_at: "2026-08-04T10:00:00.000Z",
+  }]
+
+  assert.deepEqual(mergeFunnelNotes({
+    id: "lead-1",
+    notes: "Catatan lama",
+    created_at: "2026-07-01T08:00:00.000Z",
+    updated_at: "2026-08-03T09:00:00.000Z",
+  }, history), [{
+    id: "legacy-lead-1",
+    lead_id: "lead-1",
+    content: "Catatan lama",
+    author_name: "Catatan sebelumnya",
+    created_by: null,
+    created_at: "2026-08-03T09:00:00.000Z",
+  }, history[0]])
+
+  const migratedLegacy = [{ ...history[0], id: "migrated", content: "Catatan lama" }]
+  assert.deepEqual(mergeFunnelNotes({
+    id: "lead-1",
+    notes: "Catatan lama",
+    created_at: "2026-07-01T08:00:00.000Z",
+    updated_at: "2026-08-03T09:00:00.000Z",
+  }, migratedLegacy), migratedLegacy)
 })
 
 test("formats named and legacy Agent rows safely", () => {
