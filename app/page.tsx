@@ -10,7 +10,7 @@ import {
   Users, Activity,
 } from "lucide-react"
 import { HUNTER_GROUPS } from "@/lib/hunters"
-import { Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 interface HunterStat {
   id: string
@@ -56,7 +56,7 @@ function GaugeCard({ label, value, sub, achievement, icon: Icon, accentColor }: 
   const pctNum = Math.round(p * 100)
   const col = accentColor ?? (p >= 1 ? "#22c55e" : p >= 0.7 ? "#FF6A3D" : "#ef4444")
   return (
-    <div className="rounded-2xl p-5 flex gap-4 items-center" style={{
+    <div className="h-full min-h-[132px] rounded-2xl p-4 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-3 lg:gap-2 xl:gap-3 items-center" style={{
       background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-md)",
@@ -98,7 +98,7 @@ function StatCard({ label, value, sub, icon: Icon, color }: {
 }) {
   const col = color ?? "var(--accent)"
   return (
-    <div className="rounded-2xl p-5 flex gap-4 items-start" style={{
+    <div className="h-full min-h-[132px] rounded-2xl p-4 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-3 lg:gap-2 xl:gap-3 items-center" style={{
       background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-md)",
@@ -307,7 +307,6 @@ export default function OverviewPage() {
     ? Math.round(((totals.omsetCurrentMonth - totals.omsetPreviousMonth) / totals.omsetPreviousMonth) * 100)
     : null
   const projectData = canonicalProjectTotals(projectTotals, PROJECT_NAMES)
-  const projectChartData = projectData.filter(project => project.value > 0)
   const revenueValue = ytdMode ? totals.omsetYtd : totals.omsetMtd
   const revenueTarget = periodTarget(TEAM_MONTHLY_TARGET, now.getMonth() + 1, ytdMode)
   const targetAlertHunters = hunters
@@ -491,7 +490,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Hero KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="card-enter-1 kpi-card">
             <StatCard label="Omset YTD" icon={TrendingUp}
               value={formatRupiah(totals.omsetYtd)}
@@ -647,20 +646,6 @@ export default function OverviewPage() {
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-muted)" }}>
               Omset per Proyek — {ytdMode ? `YTD ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
             </p>
-            <div className="rounded-2xl p-4 mb-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              {projectChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={projectChartData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={2}>
-                      {projectChartData.map((project, index) => <Cell key={project.name} fill={["#FF6A3D", "#8b5cf6", "#10b981", "#3b82f6", "#f59e0b"][index % 5]} />)}
-                    </Pie>
-                    <Tooltip formatter={value => formatRupiah(Number(value))} contentStyle={{ background: "var(--surface3)", border: "1px solid var(--border-medium)", borderRadius: 10, color: "var(--text-primary)" }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-40 flex items-center justify-center text-sm" style={{ color: "var(--text-muted)" }}>Belum ada omset pada periode ini</div>
-              )}
-            </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {projectData.map((project, idx) => (
                 <div key={project.name} className={`rounded-2xl p-4 kpi-card card-enter-${Math.min(idx + 1, 6)}`} style={{

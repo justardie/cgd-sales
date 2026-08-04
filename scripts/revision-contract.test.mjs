@@ -83,12 +83,15 @@ test("desktop header navigation uses a sliding hover glider", async () => {
   assert.match(css, /prefers-reduced-motion:\s*reduce/)
 })
 
-test("monthly chart and always-visible project donut live on Overview", async () => {
+test("Overview keeps project totals without the donut and aligns KPI cards", async () => {
   const source = await read("app/page.tsx")
   assert.match(source, /Omset Bulanan/)
   assert.match(source, /ResponsiveContainer/)
   assert.match(source, /canonicalProjectTotals/)
-  assert.match(source, /PieChart/)
+  assert.match(source, /Omset per Proyek/)
+  assert.match(source, /projectData\.map/)
+  assert.match(source, /lg:grid-cols-5/)
+  assert.doesNotMatch(source, /PieChart|<Pie\b|<Cell\b/)
   assert.doesNotMatch(source, /Minimal OR/)
 })
 
