@@ -401,4 +401,9 @@ test("Pipeline and Closing share the Hunter team scope", async () => {
     assert.match(source, /user\.role === "sales_person"/)
     assert.match(source, /Sales Hunter belum ditentukan/)
   }
+
+  const closing = await read("app/closing/page.tsx")
+  const salesBranch = closing.match(/else if \(user && user\.role === "sales_person"\) \{[\s\S]*?\n    \} else \{/)?.[0] ?? ""
+  assert.match(salesBranch, /setClosings\(scoped\.records\)/)
+  assert.match(salesBranch, /setPeriodClosings\(scoped\.records\)/)
 })
