@@ -288,6 +288,24 @@ test("Funnel pages expose approved cards without Pipeline", async () => {
   }
 })
 
+test("Funnel Summary uses compact responsive cards without a legend", async () => {
+  const summary = await read("app/funnel-summary/page.tsx")
+  const css = await read("app/globals.css")
+
+  assert.doesNotMatch(summary, /\{\/\* Legend \*\/\}/)
+  for (const className of [
+    "funnel-summary-card",
+    "funnel-summary-card__header",
+    "funnel-summary-card__metrics",
+    "funnel-summary-card__progress",
+    "funnel-summary-metric__value",
+  ]) {
+    assert.match(summary, new RegExp(className))
+  }
+  assert.match(css, /@media \(max-width: 1024px\)[\s\S]*\.funnel-summary-card__metrics\s*\{[^}]*grid-template-columns:\s*repeat\(6, minmax\(0, 1fr\)\)/)
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.funnel-summary-card__metrics\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/)
+})
+
 test("Weekly Report supports Pivot, final snapshots, deletion, and HTML download", async () => {
   const page = await read("app/report/page.tsx")
   const domain = await read("lib/weekly-report.ts")

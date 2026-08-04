@@ -1040,3 +1040,89 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 [data-theme="light"] .text-fuchsia-400  { color: #A21CAF; }
 [data-theme="light"] .text-pink-400     { color: #BE185D; }
 [data-theme="light"] .text-rose-400     { color: #BE123C; }
+
+/* Funnel Summary: keep desktop flow, compact cards on tablet and mobile. */
+@media (max-width: 1024px) {
+  .funnel-summary-header {
+    margin-bottom: 16px !important;
+  }
+
+  .funnel-summary-card {
+    padding: 16px !important;
+  }
+
+  .funnel-summary-card__header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .funnel-summary-card__identity {
+    min-width: 0 !important;
+    flex: initial !important;
+  }
+
+  .funnel-summary-card__content {
+    display: contents !important;
+  }
+
+  .funnel-summary-card__total {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .funnel-summary-card__divider {
+    display: none;
+  }
+
+  .funnel-summary-card__metrics {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: 100%;
+    gap: 12px 8px !important;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .funnel-summary-metric {
+    min-width: 0 !important;
+  }
+
+  .funnel-summary-metric__value {
+    font-size: 24px !important;
+  }
+
+  .funnel-summary-metric__label {
+    max-width: none !important;
+    font-size: 11px !important;
+  }
+
+  .funnel-summary-card__progress {
+    margin-top: 14px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .funnel-summary-card {
+    padding: 14px !important;
+  }
+
+  .funnel-summary-card__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 8px !important;
+  }
+
+  .funnel-summary-metric__value {
+    font-size: 26px !important;
+  }
+
+  .funnel-summary-card__total > span:first-child {
+    font-size: 28px !important;
+  }
+
+  .funnel-summary-card__progress-label {
+    font-size: 11px !important;
+  }
+}

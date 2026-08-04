@@ -59,9 +59,9 @@ function ProgressBar({ stat }: { stat: TmStat }) {
 
 function StatPill({ value, color, label }: { value: number; color: string; label: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
-      <span style={{ fontSize: "16px", fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
-      <span style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "3px", textAlign: "center", lineHeight: 1.2, maxWidth: "54px" }}>{label}</span>
+    <div className="funnel-summary-metric" style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "52px" }}>
+      <span className="funnel-summary-metric__value" style={{ fontSize: "16px", fontWeight: 700, color, lineHeight: 1 }}>{value}</span>
+      <span className="funnel-summary-metric__label" style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "3px", textAlign: "center", lineHeight: 1.2, maxWidth: "54px" }}>{label}</span>
     </div>
   )
 }
@@ -155,7 +155,7 @@ export default function FunnelSummaryPage() {
     <DashboardShell>
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+      <div className="funnel-summary-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>Summary Funnel Leads</h1>
           <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>
@@ -178,23 +178,11 @@ export default function FunnelSummaryPage() {
         />
       </div>
 
-      {/* Legend */}
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "20px" }}>
-        {STATUS_COLS.map(({ key, color }) => (
-          <div key={key} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>
-              {LEAD_STATUS_CONFIG[key].result}
-            </span>
-          </div>
-        ))}
-      </div>
-
       {/* Team aggregate (DGM or Hunter with multiple TMs) */}
       {!isTm && stats.length > 1 && (
-        <div style={{ ...card, marginBottom: "16px", background: "var(--surface2)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-            <div>
+        <div className="funnel-summary-card funnel-summary-card--team" style={{ ...card, marginBottom: "16px", background: "var(--surface2)" }}>
+          <div className="funnel-summary-card__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+            <div className="funnel-summary-card__identity">
               <div style={{ ...lbl, marginBottom: "4px" }}>Total Tim</div>
               <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--accent)", letterSpacing: "-1px" }}>
                 {teamTotal.total}
@@ -203,7 +191,7 @@ export default function FunnelSummaryPage() {
                 leads · {stats.length} TM aktif
               </div>
             </div>
-            <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
+            <div className="funnel-summary-card__metrics" style={{ display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
               <StatPill value={teamMetrics.new}             color="#94a3b8" label="Belum" />
               <StatPill value={teamMetrics.followUp}       color="#fbbf24" label="Follow Up" />
               <StatPill value={teamMetrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
@@ -213,7 +201,7 @@ export default function FunnelSummaryPage() {
             </div>
           </div>
           {teamTotal.total > 0 && (
-            <div style={{ marginTop: "14px" }}>
+            <div className="funnel-summary-card__progress" style={{ marginTop: "14px" }}>
               <ProgressBar stat={{ tm: { id: "", name: "", hunter_name: "" }, ...teamTotal }} />
             </div>
           )}
@@ -236,11 +224,11 @@ export default function FunnelSummaryPage() {
             const contactedPct = stat.total > 0 ? Math.round((metrics.contacted / stat.total) * 100) : 0
 
             return (
-              <div key={stat.tm.id} style={{ ...card, padding: "18px 22px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", flexWrap: "wrap" }}>
+              <div key={stat.tm.id} className="funnel-summary-card" style={{ ...card, padding: "18px 22px" }}>
+                <div className="funnel-summary-card__header" style={{ display: "flex", alignItems: "flex-start", gap: "16px", flexWrap: "wrap" }}>
 
                   {/* Name + meta */}
-                  <div style={{ minWidth: "160px", flex: "0 0 160px" }}>
+                  <div className="funnel-summary-card__identity" style={{ minWidth: "160px", flex: "0 0 160px" }}>
                     <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "2px" }}>
                       {stat.tm.name}
                     </div>
@@ -255,32 +243,34 @@ export default function FunnelSummaryPage() {
                   </div>
 
                   {/* Stats grid */}
-                  <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", flex: 1, alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div className="funnel-summary-card__content" style={{ display: "flex", gap: "20px", flexWrap: "wrap", flex: 1, alignItems: "center" }}>
+                    <div className="funnel-summary-card__total" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <span style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>
                         {stat.total}
                       </span>
                       <span style={{ ...lbl, lineHeight: 1.3 }}>Total<br />Leads</span>
                     </div>
 
-                    <div style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
+                    <div className="funnel-summary-card__divider" style={{ width: "1px", height: "32px", background: "var(--border)", flexShrink: 0 }} />
 
-                    <StatPill value={metrics.new}             color="#94a3b8" label="Belum" />
-                    <StatPill value={metrics.followUp}       color="#fbbf24" label="Follow Up" />
-                    <StatPill value={metrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
-                    <StatPill value={metrics.visited}        color="#2dd4bf" label="Visit" />
-                    <StatPill value={metrics.closing}        color="#34d399" label="Closing" />
-                    <StatPill value={metrics.dead}           color="#f87171" label="Dead" />
+                    <div className="funnel-summary-card__metrics" style={{ display: "contents" }}>
+                      <StatPill value={metrics.new}             color="#94a3b8" label="Belum" />
+                      <StatPill value={metrics.followUp}       color="#fbbf24" label="Follow Up" />
+                      <StatPill value={metrics.visitScheduled} color="#c084fc" label="Visit Dijadwalkan" />
+                      <StatPill value={metrics.visited}        color="#2dd4bf" label="Visit" />
+                      <StatPill value={metrics.closing}        color="#34d399" label="Closing" />
+                      <StatPill value={metrics.dead}           color="#f87171" label="Dead" />
+                    </div>
 
                   </div>
                 </div>
 
                 {/* Progress bar */}
                 {stat.total > 0 && (
-                  <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div className="funnel-summary-card__progress" style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
                     <ProgressBar stat={stat} />
-                    <span style={{ fontSize: "10px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                      {contactedPct}% reached
+                    <span className="funnel-summary-card__progress-label" style={{ fontSize: "10px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                      {contactedPct}% dihubungi
                     </span>
                   </div>
                 )}
