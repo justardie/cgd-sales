@@ -249,6 +249,12 @@ test("Sales Telemarketing navigation is identical on every device and has no mob
   assert.match(settings, /mobile_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
 })
 
+test("mobile navigation activates only the exact current route", async () => {
+  const sidebar = await read("components/Sidebar.tsx")
+  assert.match(sidebar, /return pathname === href/)
+  assert.doesNotMatch(sidebar, /pathname\.startsWith\(href\)/)
+})
+
 test("Telemarketing rollout preflights schema before changing users", async () => {
   const migration = await read("supabase/047_unify_telemarketing_role.sql")
   const lock = migration.indexOf("LOCK TABLE public.users IN SHARE ROW EXCLUSIVE MODE")
