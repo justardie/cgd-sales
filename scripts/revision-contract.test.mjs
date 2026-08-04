@@ -394,7 +394,7 @@ test("Team lets admins manage multi-project coverage", async () => {
 })
 
 test("Pipeline and Closing share the Hunter team scope", async () => {
-  for (const path of ["app/pipeline/page.tsx"]) {
+  for (const path of ["app/pipeline/page.tsx", "app/closing/page.tsx"]) {
     const source = await read(path)
     assert.match(source, /filterRecordsForHunterTeam/)
     assert.match(source, /select\("id,name,hunter_name,status"\)/)

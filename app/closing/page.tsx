@@ -11,12 +11,13 @@ import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEA
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { canonicalProjectTotals, periodTarget } from "@/lib/dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
+import { filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
 import { Plus, Edit2, Calendar, AlertTriangle, FileDown, Target } from "lucide-react"
 import type { User } from "@/types"
 
 interface KonsumenRow {
   id: string
-  user_id?: string
+  user_id: string
   sales_hunter: string
   sales_person: string | null
   agent_name: string | null
@@ -294,6 +295,7 @@ export default function ClosingPage() {
   const [showTargetModal, setShowTargetModal] = useState(false)
   const [showCancelClosingConfirm, setShowCancelClosingConfirm] = useState(false)
   const [formError, setFormError] = useState("")
+  const [scopeError, setScopeError] = useState("")
   const [editingClosing,  setEditingClosing]  = useState<KonsumenRow | null>(null)
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
@@ -346,7 +348,7 @@ export default function ClosingPage() {
         .eq("role", "hunter")
         .eq("status", "active"),
       supabase.from("users")
-        .select("name,hunter_name")
+        .select("id,name,hunter_name,status")
         .eq("role", "sales_person"),
       supabase.from("konsumen")
         .select("project")
@@ -376,14 +378,22 @@ export default function ClosingPage() {
         return key >= minKey && key <= maxKey
       })
     }
-    setPeriodClosings(allClosings)
     if (isAdmin || isTf) {
+      setScopeError("")
       setClosings(allClosings)
+      setPeriodClosings(allClosings)
+    } else if (user && user.role === "sales_person") {
+      const scoped = filterRecordsForHunterTeam(allClosings, user.id, spsRes.data || [])
+      setScopeError(scoped.hunterName ? "" : "Sales Hunter belum ditentukan. Hubungi Admin.")
+      setClosings(scoped.records)
+      setPeriodClosings(scoped.records)
     } else {
+      setScopeError("")
       const name = (user!.name || "").toLowerCase()
       setClosings(allClosings.filter(c =>
         c.user_id === user!.id || (c.sales_hunter || "").toLowerCase() === name
       ))
+      setPeriodClosings(allClosings)
     }
     const spsMap: Record<string, string[]> = {}
     for (const sp of (spsRes.data || [])) {
@@ -817,6 +827,12 @@ export default function ClosingPage() {
             )}
           </div>
         </div>
+
+        {scopeError && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {scopeError}
+          </div>
+        )}
 
         {winOrDieHunters.length > 0 && (
           <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(239,68,68,0.35)" }}>
