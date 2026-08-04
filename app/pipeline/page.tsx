@@ -11,12 +11,13 @@ import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
 import { daysSince, isStaleLead } from "@/lib/stale-leads"
+import { filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
 import { Plus, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical, AlertTriangle } from "lucide-react"
 import Modal from "@/components/Modal"
 
 interface KonsumenRow {
   id: string
-  user_id?: string
+  user_id: string
   sales_hunter: string
   sales_person: string | null
   agent_name: string | null
@@ -408,6 +409,7 @@ export default function PipelinePage() {
   const [sortCol, setSortCol] = useState("")
   const [sortDir, setSortDir] = useState<"asc"|"desc">("asc")
   const [formError, setFormError] = useState("")
+  const [scopeError, setScopeError] = useState("")
   const [deleteTarget, setDeleteTarget] = useState<KonsumenRow | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -495,7 +497,7 @@ export default function PipelinePage() {
   const fetchData = useCallback(async () => {
     const [{ data }, spsRes, projRes, cbRes] = await Promise.all([
       supabase.from("konsumen").select("*").in("status", ["warm", "hot", "tidak_potensial"]).or("board.eq.pipeline,board.is.null").order("created_at", { ascending: false }),
-      supabase.from("users").select("name,hunter_name").eq("role", "sales_person").neq("status", "resigned"),
+      supabase.from("users").select("id,name,hunter_name,status").eq("role", "sales_person"),
       supabase.from("konsumen").select("project").not("project", "is", null),
       supabase.from("konsumen").select("cara_bayar").not("cara_bayar", "is", null),
     ])
@@ -510,14 +512,23 @@ export default function PipelinePage() {
     setDbCaraBayar([...CANONICAL_CARA_BAYAR, ...Array.from(new Set(extraCb)).sort()])
 
     const all = (data || []) as KonsumenRow[]
+    let visibleRecords = all
     if (isAdmin || isTf) {
-      setRows(all)
+      setScopeError("")
+      visibleRecords = all
+    } else if (user && user.role === "sales_person") {
+      const scoped = filterRecordsForHunterTeam(all, user.id, spsRes.data || [])
+      setScopeError(scoped.hunterName ? "" : "Sales Hunter belum ditentukan. Hubungi Admin.")
+      visibleRecords = scoped.records
     } else {
+      setScopeError("")
       const name = (user!.name || "").toLowerCase()
-      setRows(all.filter(r => r.user_id === user!.id || (r.sales_hunter || "").toLowerCase() === name))
+      visibleRecords = all.filter(r => r.user_id === user!.id || (r.sales_hunter || "").toLowerCase() === name)
     }
+    setRows(visibleRecords)
     const spsMap: Record<string, string[]> = {}
     for (const sp of (spsRes.data || [])) {
+      if (sp.status === "resigned") continue
       if (!sp.hunter_name) continue
       if (!spsMap[sp.hunter_name]) spsMap[sp.hunter_name] = []
       spsMap[sp.hunter_name].push(sp.name)
@@ -526,7 +537,7 @@ export default function PipelinePage() {
 
     // Fetch latest pipeline_note for each konsumen — chunked to avoid URL-length
     // limits when the pipeline has many rows (a single huge .in() fails silently)
-    const ids = (data || []).map((r: { id: string }) => r.id)
+    const ids = visibleRecords.map(record => record.id)
     if (ids.length > 0) {
       const CHUNK_SIZE = 50
       const chunks: string[][] = []
@@ -842,6 +853,12 @@ export default function PipelinePage() {
             </div>
           ))}
         </div>
+
+        {scopeError && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {scopeError}
+          </div>
+        )}
 
         <div className="flex gap-3 flex-wrap items-end">
           <div className="flex-1">
