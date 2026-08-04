@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  DEFAULT_ROLE_ACCESS,
   TELEMARKETING_NAV_ITEMS,
   accessRoleForUser,
   isSalesTelemarketing,
@@ -21,13 +22,19 @@ test("Sales Telemarketing is a Sales Person with TM access", () => {
 })
 
 test("Sales Telemarketing uses the same five menus on every device", () => {
-  assert.deepEqual(TELEMARKETING_NAV_ITEMS, [
+  const expectedItems = [
     { key: "overview", label: "Overview", href: "/" },
     { key: "pipeline", label: "Pipeline", href: "/pipeline" },
     { key: "closing", label: "Closing", href: "/closing" },
     { key: "funnel", label: "Leads Funnel", href: "/funnel" },
     { key: "funnel_summary", label: "Funnel Summary", href: "/funnel-summary" },
-  ])
+  ]
+  const expectedKeys = expectedItems.map(item => item.key)
+
+  assert.deepEqual(TELEMARKETING_NAV_ITEMS, expectedItems)
+  assert.deepEqual(DEFAULT_ROLE_ACCESS.telemarketing.desktop_menus, expectedKeys)
+  assert.deepEqual(DEFAULT_ROLE_ACCESS.telemarketing.tablet_menus, expectedKeys)
+  assert.deepEqual(DEFAULT_ROLE_ACCESS.telemarketing.mobile_menus, expectedKeys)
 })
 
 test("active sales role is Sales Person only", () => {

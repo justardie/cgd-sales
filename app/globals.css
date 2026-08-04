@@ -896,6 +896,9 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   .user-profile-btn  { padding: 5px; }
   .bottom-nav { width: calc(100vw - 24px); bottom: 16px; }
   .bottom-nav__fab { width: 48px; height: 48px; }
+  .bottom-nav--sales-tm .bottom-nav__inner { padding: 6px 4px; gap: 0; }
+  .bottom-nav--sales-tm .bottom-nav__item { min-width: 0; padding: 6px 2px; gap: 2px; }
+  .bottom-nav--sales-tm .bottom-nav__label { white-space: normal; text-align: center; line-height: 1.1; }
 }
 
 /* ── Print ── */

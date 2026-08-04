@@ -270,7 +270,7 @@ export default function AdminPage() {
                 </select>
                 {form.role === "telemarketing" && (
                   <p className="text-xs text-amber-400/80 mt-1">
-                    Hanya dapat akses Leads Funnel &amp; Funnel Summary
+                    Akses: Overview, Pipeline, Closing, Leads Funnel, Funnel Summary
                   </p>
                 )}
                 {form.role === "task_force" && (

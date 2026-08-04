@@ -174,6 +174,8 @@ test("Admin documents role access and stores Telemarketing as Sales Person with 
   assert.match(roleAccessPage, /Setting Role &amp; Akses Data/)
   assert.match(roleAccessPage, /ACCESS_ROLES\.map/)
   assert.match(roleAccessData, /Telemarketing/)
+  assert.match(admin, /Akses: Overview, Pipeline, Closing, Leads Funnel, Funnel Summary/)
+  assert.match(roleAccessData, /menu: "Overview, Pipeline, Closing, Leads Funnel, Funnel Summary"/)
   assert.match(header, /href="\/role-access"/)
   assert.match(header, /Role &amp; Akses Data/)
   assert.match(admin, /Telemarketing is stored as Sales Person/)
@@ -230,6 +232,7 @@ test("Sales Telemarketing navigation is identical on every device and has no mob
   const header = await read("components/Header.tsx")
   const sidebar = await read("components/Sidebar.tsx")
   const settings = await read("lib/access-settings.ts")
+  const css = await read("app/globals.css")
   for (const source of [header, sidebar]) {
     assert.match(source, /TELEMARKETING_NAV_ITEMS/)
     assert.match(source, /isSalesTelemarketing/)
@@ -237,9 +240,30 @@ test("Sales Telemarketing navigation is identical on every device and has no mob
   }
   assert.match(header, /salesTelemarketing \? "Telemarketing" : user\?\.role/)
   assert.match(sidebar, /salesTelemarketing[\s\S]*showFab\s*=\s*false/)
+  assert.match(sidebar, /bottom-nav\$\{salesTelemarketing \? " bottom-nav--sales-tm" : ""\}/)
+  assert.match(css, /\.bottom-nav--sales-tm \.bottom-nav__inner\s*\{[^}]*padding:\s*6px 4px;[^}]*gap:\s*0;/s)
+  assert.match(css, /\.bottom-nav--sales-tm \.bottom-nav__item\s*\{[^}]*min-width:\s*0;[^}]*padding:\s*6px 2px;/s)
+  assert.match(css, /\.bottom-nav--sales-tm \.bottom-nav__label\s*\{[^}]*white-space:\s*normal;[^}]*text-align:\s*center;[^}]*line-height:\s*1\.1;/s)
   assert.match(settings, /desktop_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
   assert.match(settings, /tablet_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
   assert.match(settings, /mobile_menus:\s*\[\.\.\.TELEMARKETING_MENU_KEYS\]/)
+})
+
+test("Telemarketing rollout preflights schema before changing users", async () => {
+  const migration = await read("supabase/047_unify_telemarketing_role.sql")
+  const preflight = migration.indexOf("Role schema preflight passed")
+  const update = migration.indexOf("UPDATE public.users")
+  const drop = migration.indexOf("ALTER TABLE public.users DROP CONSTRAINT")
+
+  assert.ok(preflight > 0)
+  assert.ok(preflight < update)
+  assert.ok(preflight < drop)
+  assert.match(migration, /column_name = 'role'/)
+  assert.match(migration, /column_name = 'has_tm_access'[\s\S]*data_type <> 'boolean'/)
+  assert.match(migration, /conname = 'users_role_check'/)
+  assert.match(migration, /Unexpected public\.users users_role_check definition/)
+  assert.match(migration, /DROP CONSTRAINT users_role_check;/)
+  assert.doesNotMatch(migration, /DROP CONSTRAINT IF EXISTS users_role_check/)
 })
 
 test("Funnel pages expose approved cards without Pipeline", async () => {

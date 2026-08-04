@@ -19,8 +19,8 @@ export const ROLE_ACCESS = [
   },
   {
     role: "Telemarketing",
-    menu: "Leads Funnel, Funnel Summary",
-    data: "Data leads funnel/summary telemarketing sesuai assignment dan tim hunter.",
+    menu: "Overview, Pipeline, Closing, Leads Funnel, Funnel Summary",
+    data: "Data pipeline, closing, dan leads funnel/summary sesuai assignment dan tim hunter.",
     setting: "Di Admin pilih Telemarketing; sistem menyimpan sebagai Sales Person dengan has_tm_access aktif.",
   },
   {

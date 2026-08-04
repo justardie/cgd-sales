@@ -105,7 +105,7 @@ export default function Sidebar() {
   }
 
   return (
-    <nav className="bottom-nav" aria-label="Main navigation">
+    <nav className={`bottom-nav${salesTelemarketing ? " bottom-nav--sales-tm" : ""}`} aria-label="Main navigation">
       <div className="bottom-nav__inner">
         {/* Left items */}
         {leftItems.map(({ href, label, icon: Icon }) => (
