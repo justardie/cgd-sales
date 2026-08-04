@@ -32,7 +32,7 @@ function CircleRing({ pct: p, color }: { pct: number; color: string }) {
   const clamped = Math.min(1, Math.max(0, p))
   const offset = circumference * (1 - clamped)
   return (
-    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+    <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={`${color}18`} strokeWidth="9" />
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth="9"
         strokeLinecap="round"
@@ -48,6 +48,7 @@ function CircleRing({ pct: p, color }: { pct: number; color: string }) {
 const KPI_LABEL_CLASS = "text-xs font-semibold uppercase tracking-widest leading-tight break-words"
 const KPI_VALUE_CLASS = "text-xl font-bold mt-0.5 leading-tight break-words"
 const KPI_SUB_CLASS = "text-xs mt-0.5 leading-snug break-words"
+const KPI_CARD_CLASS = "h-full min-h-[132px] rounded-2xl p-3 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-2 sm:gap-3 lg:gap-2 xl:gap-3 items-center"
 
 function GaugeCard({ label, value, sub, achievement, accentColor }: {
   label: string; value: string; sub?: string; achievement: number
@@ -57,20 +58,20 @@ function GaugeCard({ label, value, sub, achievement, accentColor }: {
   const pctNum = Math.round(p * 100)
   const col = accentColor ?? (p >= 1 ? "#22c55e" : p >= 0.7 ? "#FF6A3D" : "#ef4444")
   return (
-    <div className="h-full min-h-[132px] rounded-2xl p-4 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-3 lg:gap-2 xl:gap-3 items-center" style={{
+    <div className={KPI_CARD_CLASS} style={{
       background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-md)",
     }}>
       {/* Ring with % centered */}
-      <div style={{ position: "relative", width: 76, height: 76, flexShrink: 0 }}>
+      <div className="relative w-12 h-12 sm:w-[76px] sm:h-[76px] shrink-0">
         <CircleRing pct={p} color={col} />
         <div style={{
           position: "absolute", inset: 0,
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
         }}>
-          <span style={{ fontSize: "20px", fontWeight: 700, color: col, lineHeight: 1 }}>{pctNum}%</span>
+          <span className="text-sm sm:text-xl font-bold leading-none" style={{ color: col }}>{pctNum}%</span>
         </div>
       </div>
       <div className="flex flex-col min-w-0">
@@ -91,7 +92,7 @@ function StatCard({ label, value, sub }: {
   label: string; value: string; sub?: string
 }) {
   return (
-    <div className="h-full min-h-[132px] rounded-2xl p-4 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-3 lg:gap-2 xl:gap-3 items-center" style={{
+    <div className={KPI_CARD_CLASS} style={{
       background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-md)",
@@ -479,7 +480,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Hero KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="card-enter-1 kpi-card">
             <StatCard label="Omset YTD"
               value={formatRupiah(totals.omsetYtd)}

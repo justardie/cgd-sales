@@ -14,6 +14,7 @@
 - Remove only the project donut chart.
 - Remove decorative icons from all five KPI cards and retain percentage rings.
 - Use `Sales Aktif` and one shared typography scale without truncation.
+- Render two KPI columns on mobile with compact padding and rings.
 - Do not change mobile navigation or other pages.
 
 ---
@@ -38,7 +39,7 @@ Run: `npm.cmd run test:contracts`
 
 - [ ] **Step 3: Implement the minimal UI change**
 
-Give both KPI card components the same full-height minimum size and typography classes, remove their decorative icon properties, use `Sales Aktif`, change the KPI grid to one/two/five columns, and delete only the donut block and unused Recharts symbols.
+Give both KPI card components the same full-height minimum size and typography classes, remove their decorative icon properties, use `Sales Aktif`, change the KPI grid to two/two/five columns, compact mobile spacing and rings, and delete only the donut block and unused Recharts symbols.
 
 - [ ] **Step 4: Verify**
 
