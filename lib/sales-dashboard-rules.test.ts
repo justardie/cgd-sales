@@ -7,6 +7,7 @@ import {
   type FunnelKpiFilter,
   getFunnelEmptyStateMessage,
   getFunnelMetrics,
+  getVisibleFunnelLeads,
   matchesFunnelKpiStatus,
   matchesPipelineStatus,
 } from "./sales-dashboard-rules.ts"
@@ -86,6 +87,13 @@ test("keeps KPI card interaction results stable across search and lead reloads",
   assert.deepEqual(filterFunnelKpiLeads([{ name: "Dewi", phone: "62815", status: "new" }], selected, ""), [])
   assert.equal(getFunnelEmptyStateMessage("", selected, false), "Tidak ada leads dengan status ini.")
   assert.equal(getFunnelEmptyStateMessage("missing", selected, false), "Tidak ada lead yang cocok dengan pencarian.")
+})
+
+test("shows Funnel leads in batches of 25", () => {
+  const leads = Array.from({ length: 60 }, (_, id) => ({ id }))
+
+  assert.deepEqual(getVisibleFunnelLeads(leads, 25), leads.slice(0, 25))
+  assert.deepEqual(getVisibleFunnelLeads(leads, 50), leads.slice(0, 50))
 })
 
 test("formats named and legacy Agent rows safely", () => {

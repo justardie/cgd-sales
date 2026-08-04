@@ -70,6 +70,10 @@ export function filterFunnelKpiLeads<T extends { name: string; phone: string; st
     : statusFiltered
 }
 
+export function getVisibleFunnelLeads<T>(leads: readonly T[], limit: number): T[] {
+  return leads.slice(0, limit)
+}
+
 export function getFunnelEmptyStateMessage(search: string, filter: FunnelKpiFilter, isTm: boolean): string {
   if (search.trim()) return "Tidak ada lead yang cocok dengan pencarian."
   if (filter !== "all") return "Tidak ada leads dengan status ini."

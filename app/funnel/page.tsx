@@ -8,7 +8,7 @@ import { Lead, LeadNote, LeadStatus, LEAD_STATUS_CONFIG } from "@/types"
 import { Upload, X, Phone, Clock, ChevronDown, Search, MessageCircle, Trash2, Send, BookOpen } from "lucide-react"
 import DashboardShell from "@/components/DashboardShell"
 import { isSalesTelemarketing } from "@/lib/access-settings"
-import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelEmptyStateMessage, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
+import { countFunnelKpiLeads, filterFunnelKpiLeads, getFunnelEmptyStateMessage, getVisibleFunnelLeads, type FunnelKpiFilter } from "@/lib/sales-dashboard-rules"
 import { fmtDDMMYYYY } from "@/lib/utils"
 
 // Normalize phone: strip spaces, dashes, dots, leading + or 0 → starts with 62
@@ -687,6 +687,7 @@ export default function FunnelPage() {
   const [filterTm, setFilterTm]   = useState("")
   const [search, setSearch]       = useState("")
   const [kpiFilter, setKpiFilter] = useState<FunnelKpiFilter>("all")
+  const [visibleCount, setVisibleCount] = useState(25)
   const [showUpload, setShowUpload] = useState(false)
   const [activeLead, setActiveLead] = useState<Lead | null>(null)
   const [loading, setLoading]     = useState(true)
@@ -730,6 +731,7 @@ export default function FunnelPage() {
 
   // Filtered leads for display
   const displayed = filterFunnelKpiLeads(leads, kpiFilter, search)
+  const visibleLeads = getVisibleFunnelLeads(displayed, visibleCount)
 
   const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px 24px", boxShadow: "var(--shadow-sm)" }
   const lbl: React.CSSProperties  = { fontSize: "11px", fontWeight: 600 as const, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }
@@ -769,14 +771,14 @@ export default function FunnelPage() {
           </p>
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-          <input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} style={{
+          <input type="month" value={period} onChange={(e) => { setPeriod(e.target.value); setVisibleCount(25) }} style={{
             background: "var(--surface2)", border: "1px solid var(--border-medium)",
             borderRadius: "10px", padding: "7px 12px", color: "var(--text-primary)",
             fontSize: "12px", outline: "none", colorScheme: "dark",
           }} />
           {(isDgm || isHunter) && tmUsers.length > 0 && (
             <div style={{ position: "relative" }}>
-              <select value={filterTm} onChange={(e) => setFilterTm(e.target.value)} style={{ background: "var(--surface2)", border: "1px solid var(--border-medium)", borderRadius: "10px", padding: "7px 30px 7px 12px", color: "var(--text-primary)", fontSize: "12px", outline: "none", appearance: "none" }}>
+              <select value={filterTm} onChange={(e) => { setFilterTm(e.target.value); setVisibleCount(25) }} style={{ background: "var(--surface2)", border: "1px solid var(--border-medium)", borderRadius: "10px", padding: "7px 30px 7px 12px", color: "var(--text-primary)", fontSize: "12px", outline: "none", appearance: "none" }}>
                 <option value="">Semua TM</option>
                 {tmUsers.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
               </select>
@@ -798,7 +800,7 @@ export default function FunnelPage() {
             key={k.label}
             type="button"
             aria-pressed={k.filter === kpiFilter}
-            onClick={() => setKpiFilter(k.filter)}
+            onClick={() => { setKpiFilter(k.filter); setVisibleCount(25) }}
             style={{
               ...card,
               padding: "14px 16px",
@@ -820,7 +822,7 @@ export default function FunnelPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setVisibleCount(25) }}
           placeholder="Cari nama atau nomor telepon..."
           style={{
             width: "100%", boxSizing: "border-box",
@@ -840,7 +842,7 @@ export default function FunnelPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {displayed.map((lead) => {
+          {visibleLeads.map((lead) => {
             const tmName = (!isTm && tmUsers.length > 0) ? (tmUsers.find((t) => t.id === lead.assigned_to)?.name) : undefined
             return (
               <LeadCard
@@ -851,10 +853,17 @@ export default function FunnelPage() {
               />
             )
           })}
-          {displayed.length > 0 && (
-            <div style={{ textAlign: "center", padding: "12px", color: "var(--text-muted)", fontSize: "12px" }}>
-              {displayed.length} leads ditampilkan
-            </div>
+          <div style={{ textAlign: "center", padding: "12px", color: "var(--text-muted)", fontSize: "12px" }}>
+            Menampilkan {visibleLeads.length} dari {displayed.length} leads
+          </div>
+          {visibleLeads.length < displayed.length && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((count) => count + 25)}
+              style={{ alignSelf: "center", background: "var(--surface2)", border: "1px solid var(--border-medium)", borderRadius: "10px", padding: "9px 18px", color: "var(--text-primary)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+            >
+              Tampilkan 25 lagi
+            </button>
           )}
         </div>
       )}
