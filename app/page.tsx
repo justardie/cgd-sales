@@ -5,10 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import DashboardShell from "@/components/DashboardShell"
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import { canonicalProjectTotals, periodTarget, topClosingBy } from "@/lib/dashboard-rules"
-import {
-  TrendingUp, DollarSign, Trophy,
-  Users, Activity,
-} from "lucide-react"
+import { DollarSign, Trophy } from "lucide-react"
 import { HUNTER_GROUPS } from "@/lib/hunters"
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -48,9 +45,13 @@ function CircleRing({ pct: p, color }: { pct: number; color: string }) {
 }
 
 /* ─── Gauge Card ────────────────────────────────── */
-function GaugeCard({ label, value, sub, achievement, icon: Icon, accentColor }: {
+const KPI_LABEL_CLASS = "text-xs font-semibold uppercase tracking-widest leading-tight break-words"
+const KPI_VALUE_CLASS = "text-xl font-bold mt-0.5 leading-tight break-words"
+const KPI_SUB_CLASS = "text-xs mt-0.5 leading-snug break-words"
+
+function GaugeCard({ label, value, sub, achievement, accentColor }: {
   label: string; value: string; sub?: string; achievement: number
-  icon: React.ElementType; accentColor?: string
+  accentColor?: string
 }) {
   const p = Math.min(1, Math.max(0, achievement))
   const pctNum = Math.round(p * 100)
@@ -69,50 +70,38 @@ function GaugeCard({ label, value, sub, achievement, icon: Icon, accentColor }: 
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
         }}>
-          <span style={{ fontSize: "16px", fontWeight: 900, color: col, lineHeight: 1 }}>{pctNum}%</span>
+          <span style={{ fontSize: "20px", fontWeight: 700, color: col, lineHeight: 1 }}>{pctNum}%</span>
         </div>
       </div>
-      {/* Text */}
       <div className="flex flex-col min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: `${col}18`, border: `1px solid ${col}25` }}>
-            <Icon size={12} style={{ color: col }} />
-          </div>
-          <span className="text-xs font-semibold uppercase tracking-widest truncate" style={{ color: "var(--text-muted)" }}>
-            {label}
-          </span>
+        <div className={KPI_LABEL_CLASS} style={{ color: "var(--text-muted)" }}>
+          {label}
         </div>
-        <div className="font-bold text-base truncate" style={{ color: "var(--text-primary)", letterSpacing: "-0.3px" }}>
+        <div className={KPI_VALUE_CLASS} style={{ color: "var(--text-primary)" }}>
           {value}
         </div>
-        {sub && <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{sub}</div>}
+        {sub && <div className={KPI_SUB_CLASS} style={{ color: "var(--text-muted)" }}>{sub}</div>}
       </div>
     </div>
   )
 }
 
 /* ─── Flat Stat Card ────────────────────────────── */
-function StatCard({ label, value, sub, icon: Icon, color }: {
-  label: string; value: string; sub?: string; icon: React.ElementType; color?: string
+function StatCard({ label, value, sub }: {
+  label: string; value: string; sub?: string
 }) {
-  const col = color ?? "var(--accent)"
   return (
     <div className="h-full min-h-[132px] rounded-2xl p-4 sm:p-5 lg:p-3 xl:p-4 2xl:p-5 flex gap-3 lg:gap-2 xl:gap-3 items-center" style={{
       background: `linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)`,
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-md)",
     }}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ background: `${col}18`, border: `1px solid ${col}20` }}>
-        <Icon size={18} style={{ color: col }} />
-      </div>
-      <div>
-        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
+      <div className="min-w-0">
+        <div className={KPI_LABEL_CLASS} style={{ color: "var(--text-muted)" }}>
           {label}
         </div>
-        <div className="text-xl font-bold mt-0.5" style={{ color: "var(--text-primary)" }}>{value}</div>
-        {sub && <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{sub}</div>}
+        <div className={KPI_VALUE_CLASS} style={{ color: "var(--text-primary)" }}>{value}</div>
+        {sub && <div className={KPI_SUB_CLASS} style={{ color: "var(--text-muted)" }}>{sub}</div>}
       </div>
     </div>
   )
@@ -492,37 +481,37 @@ export default function OverviewPage() {
         {/* Hero KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="card-enter-1 kpi-card">
-            <StatCard label="Omset YTD" icon={TrendingUp}
+            <StatCard label="Omset YTD"
               value={formatRupiah(totals.omsetYtd)}
               sub={`Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`}
-              color="#FF6A3D" />
+              />
           </div>
           <div className="card-enter-2 kpi-card">
-            <GaugeCard label={ytdMode ? "Omset YTD" : "Omset MTD"} icon={DollarSign}
+            <GaugeCard label={ytdMode ? "Omset YTD" : "Omset MTD"}
               value={formatRupiah(revenueValue)}
               sub={`Target ${formatRupiah(revenueTarget)}`}
               achievement={revenueTarget > 0 ? revenueValue / revenueTarget : 0} />
           </div>
           <div className="card-enter-3 kpi-card">
-            <StatCard label="Pipeline Hot" icon={Activity}
+            <StatCard label="Pipeline Hot"
               value={totals.pipeline.toString()}
               sub={formatRupiah(totals.pipelineVal)}
-              color="#8b5cf6" />
+              />
           </div>
           <div className="card-enter-4 kpi-card">
-            <GaugeCard label="Sales Person Aktif" icon={Users}
+            <GaugeCard label="Sales Aktif"
               value={`${totals.spMenjual} / ${totals.totalActiveSps}`}
               sub={dateMode === "today" ? "menjual hari ini" : dateMode === "ytd" ? "menjual tahun ini" : dateMode === "custom" ? "menjual periode ini" : "menjual bulan ini"}
               achievement={totals.totalActiveSps > 0 ? totals.spMenjual / totals.totalActiveSps : 0}
               accentColor="#10b981" />
           </div>
           <div className="card-enter-6 kpi-card">
-            <StatCard label={`vs ${getMonthName(now.getMonth() === 0 ? 12 : now.getMonth())}`} icon={TrendingUp}
+            <StatCard label={`vs ${getMonthName(now.getMonth() === 0 ? 12 : now.getMonth())}`}
               value={mtdGrowth !== null ? `${mtdGrowth >= 0 ? "+" : ""}${mtdGrowth}%` : "—"}
               sub={mtdGrowth !== null
                 ? `${mtdGrowth >= 0 ? "Naik" : "Turun"} dari bulan lalu`
                 : "Belum ada data bulan lalu"}
-              color={mtdGrowth !== null && mtdGrowth >= 0 ? "#22c55e" : "#ef4444"} />
+              />
           </div>
         </div>
 
