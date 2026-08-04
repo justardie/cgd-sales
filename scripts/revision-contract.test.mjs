@@ -162,18 +162,31 @@ test("Unit Special page exposes three editable stock tables", async () => {
   assert.match(header, /\/unit-special/)
 })
 
-test("Non Sales user-facing labels do not use the old role name", async () => {
+test("Non Sales has the approved navigation and no legacy page", async () => {
   const login = await read("app/login/page.tsx")
   const admin = await read("app/admin/page.tsx")
-  const taskForce = await read("app/task-force/page.tsx")
+  const header = await read("components/Header.tsx")
+  const sidebar = await read("components/Sidebar.tsx")
   const shell = await read("components/DashboardShell.tsx")
+  const settings = await read("lib/access-settings.ts")
+  const nonSalesHeaderNav = header.match(/const NON_SALES_NAV = \[[\s\S]*?\n\]/)?.[0] ?? ""
+  const nonSalesMobileNav = sidebar.match(/const NON_SALES_NAV = \[[\s\S]*?\n\]/)?.[0] ?? ""
+
+  await assert.rejects(() => read("app/task-force/page.tsx"), error => error?.code === "ENOENT")
   assert.match(login, /Non Sales/)
   assert.match(admin, /Non Sales/)
-  assert.match(taskForce, /Non Sales/)
-  assert.doesNotMatch(login, /Task Force/)
-  assert.doesNotMatch(admin, /Task Force/)
-  assert.doesNotMatch(taskForce, /Task Force/)
-  assert.doesNotMatch(shell, /Task Force/)
+  assert.match(header, /isNonSales \? "Non Sales"/)
+  assert.match(login, /user\.role === "task_force"\) router\.push\("\/"\)/)
+  assert.match(nonSalesHeaderNav, /\/unit-special/)
+  assert.doesNotMatch(nonSalesHeaderNav, /\/pipeline|\/closing|\/team/)
+  for (const route of ["/", "/pipeline", "/closing", "/unit-special"]) {
+    assert.match(nonSalesMobileNav, new RegExp(route.replace("/", "\\/")))
+    assert.match(shell, new RegExp(route.replace("/", "\\/")))
+  }
+  assert.doesNotMatch(nonSalesMobileNav, /\/team/)
+  assert.match(header, /!isNonSales &&/)
+  assert.match(settings, /task_force:[\s\S]*?unit_special/)
+  for (const source of [login, admin, header, sidebar, shell]) assert.doesNotMatch(source, /Task Force/)
 })
 
 test("Admin stores Telemarketing as Sales Person with TM access", async () => {
@@ -207,7 +220,6 @@ test("Telemarketing is an access profile, not a database role", async () => {
     "app/page.tsx",
     "app/pipeline/page.tsx",
     "app/closing/page.tsx",
-    "app/task-force/page.tsx",
     "app/report/page.tsx",
     "app/monthly-report/page.tsx",
   ]) {

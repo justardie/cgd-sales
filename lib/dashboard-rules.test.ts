@@ -37,6 +37,15 @@ test("Sales Telemarketing uses the same five menus on every device", () => {
   assert.deepEqual(DEFAULT_ROLE_ACCESS.telemarketing.mobile_menus, expectedKeys)
 })
 
+test("Non Sales can access the four approved pages on every device", () => {
+  const expectedKeys = ["overview", "pipeline", "closing", "unit_special"]
+
+  assert.equal(DEFAULT_ROLE_ACCESS.task_force.data_scope, "all")
+  assert.deepEqual(DEFAULT_ROLE_ACCESS.task_force.desktop_menus, expectedKeys)
+  assert.deepEqual(DEFAULT_ROLE_ACCESS.task_force.tablet_menus, expectedKeys)
+  assert.deepEqual(DEFAULT_ROLE_ACCESS.task_force.mobile_menus, expectedKeys)
+})
+
 test("active sales role is Sales Person only", () => {
   assert.equal(isActiveSalesRole("sales_person"), true)
   assert.equal(isActiveSalesRole("telemarketing"), false)
