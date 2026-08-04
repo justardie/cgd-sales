@@ -752,10 +752,10 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
   font-variant-numeric: tabular-nums;
 }
 
-.motion-page { animation: pageEnter var(--motion-panel) var(--ease-enter) both; }
+.motion-page { animation: pageEnter var(--motion-panel) var(--ease-enter); }
 @keyframes pageEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .motion-backdrop { animation: backdropIn var(--motion-panel) ease-out both; }

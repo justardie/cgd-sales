@@ -1,5 +1,5 @@
 "use client"
-import { createContext, useCallback, useContext, useRef, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { CheckCircle2, XCircle, Info } from "lucide-react"
 
@@ -34,7 +34,12 @@ const ACCENTS: Record<ToastType, string> = {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
+  const [mounted, setMounted] = useState(false)
   const idRef = useRef(0)
+
+  useEffect(() => {
+    queueMicrotask(() => setMounted(true))
+  }, [])
 
   const dismissToast = useCallback((id: number) => {
     setToasts(current => current.map(toast => toast.id === id ? { ...toast, exiting: true } : toast))
@@ -52,7 +57,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {typeof document !== "undefined" && createPortal(
+      {mounted && createPortal(
         <div
           style={{
             position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
