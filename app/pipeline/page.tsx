@@ -11,7 +11,7 @@ import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
 import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
 import { daysSince, isStaleLead } from "@/lib/stale-leads"
-import { filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
+import { canManageRecord, filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
 import { Plus, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical, AlertTriangle } from "lucide-react"
 import Modal from "@/components/Modal"
 
@@ -191,7 +191,7 @@ interface PipelineNote {
   created_at: string
 }
 
-function PipelineNotes({ konsumenId, user, legacyNote, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void; onDirtyChange?: (dirty: boolean) => void }) {
+function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; canManage: boolean; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const { showToast } = useToast()
   const [notes, setNotes]         = useState<PipelineNote[]>([])
   const [loading, setLoading]     = useState(true)
@@ -225,6 +225,10 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved, onDirtyChange }:
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [notes])
 
   async function handleSend() {
+    if (!canManage) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     if (!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || !user) {
       showToast("Kendala, Next Action, dan Target Closing wajib diisi", "error")
       return
@@ -310,7 +314,7 @@ function PipelineNotes({ konsumenId, user, legacyNote, onSaved, onDirtyChange }:
       </div>
 
       {/* Input */}
-      {user && (
+      {user && canManage && (
         <div className="space-y-2">
           <label className="text-xs text-slate-500 block mb-1">Kendala <span className="text-red-400">*</span></label>
           <textarea
@@ -581,6 +585,10 @@ export default function PipelinePage() {
   useEffect(() => { if (user) queueMicrotask(() => void fetchData()) }, [fetchData, user])
 
   function openEdit(r: KonsumenRow) {
+    if (!canManageRecord(user?.role, user?.id, r)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     setEditing(r)
     const next = {
       sales_hunter:      r.sales_hunter || "",
@@ -605,6 +613,10 @@ export default function PipelinePage() {
   }
 
   function openClosingConfirm(r: KonsumenRow) {
+    if (!canManageRecord(user?.role, user?.id, r)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     setClosingTarget(r)
     const next = {
       unit:         r.unit || "",
@@ -620,6 +632,10 @@ export default function PipelinePage() {
   async function handleClosingConfirm(e: React.FormEvent) {
     e.preventDefault()
     if (!closingTarget) return
+    if (!canManageRecord(user?.role, user?.id, closingTarget)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     if (!closingForm.nilai_hjr || Number(closingForm.nilai_hjr) <= 0) {
       showToast("Nilai HJR wajib diisi dan lebih dari 0", "error")
       return
@@ -678,6 +694,10 @@ export default function PipelinePage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (editing && !canManageRecord(user?.role, user?.id, editing)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     const validationError = validateForm()
     setFormError(validationError)
     if (validationError) {
@@ -700,7 +720,7 @@ export default function PipelinePage() {
       sudah_booking_fee: form.sudah_booking_fee === "true",
       status:            form.status,
       notes:             form.notes || null,
-      user_id:           user!.id,
+      user_id:           editing && user?.role === "sales_person" ? editing.user_id : user!.id,
       board:             "pipeline",
     }
     const { error } = editing
@@ -717,12 +737,17 @@ export default function PipelinePage() {
   }
 
   function canDelete(r: KonsumenRow): boolean {
+    if (!canManageRecord(user?.role, user?.id, r)) return false
     if (isAdmin || isTf) return true
     return r.user_id === user?.id || (r.sales_hunter || "").toLowerCase() === (user?.name || "").toLowerCase()
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
+    if (!canManageRecord(user?.role, user?.id, deleteTarget)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     setDeleting(true)
     const { error } = await supabase.from("konsumen").delete().eq("id", deleteTarget.id)
     setDeleting(false)
@@ -984,11 +1009,11 @@ export default function PipelinePage() {
                     </td>
                     <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center">
-                        <RowActionsMenu actions={[
+                        {canManageRecord(user?.role, user?.id, r) ? <RowActionsMenu actions={[
                           { label: "Edit", icon: <Pencil size={14} />, onClick: () => openEdit(r) },
                           { label: "Closing", icon: <CheckCircle2 size={14} />, onClick: () => openClosingConfirm(r) },
                           ...(canDelete(r) ? [{ label: "Hapus", icon: <Trash2 size={14} />, onClick: () => setDeleteTarget(r), danger: true }] : []),
-                        ]} />
+                        ]} /> : <span className="text-slate-600">â€”</span>}
                       </div>
                     </td>
                   </tr>
@@ -1253,6 +1278,7 @@ export default function PipelinePage() {
                   <PipelineNotes
                     konsumenId={editing.id}
                     user={user ? { id: user.id, name: user.name } : null}
+                    canManage={canManageRecord(user?.role, user?.id, editing)}
                     legacyNote={editing.notes || ""}
                     onSaved={progress => {
                       setLatestProgress(current => ({ ...current, [editing.id]: progress }))

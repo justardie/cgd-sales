@@ -11,7 +11,7 @@ import { formatRupiah, getMonthName, normalizeProject, CANONICAL_CARA_BAYAR, TEA
 import { formatSalesPerson } from "@/lib/sales-dashboard-rules"
 import { canonicalProjectTotals, periodTarget } from "@/lib/dashboard-rules"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
-import { filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
+import { buildSalesHunterPdfScope, canManageRecord, filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
 import { Plus, Edit2, Calendar, AlertTriangle, FileDown, Target } from "lucide-react"
 import type { User } from "@/types"
 
@@ -296,6 +296,7 @@ export default function ClosingPage() {
   const [showCancelClosingConfirm, setShowCancelClosingConfirm] = useState(false)
   const [formError, setFormError] = useState("")
   const [scopeError, setScopeError] = useState("")
+  const [scopedHunterName, setScopedHunterName] = useState<string | null>(null)
   const [editingClosing,  setEditingClosing]  = useState<KonsumenRow | null>(null)
   const [editingHunter,   setEditingHunter]   = useState<User | null>(null)
   const [newTarget,       setNewTarget]       = useState("")
@@ -380,15 +381,18 @@ export default function ClosingPage() {
     }
     if (isAdmin || isTf) {
       setScopeError("")
+      setScopedHunterName(null)
       setClosings(allClosings)
       setPeriodClosings(allClosings)
     } else if (user && user.role === "sales_person") {
       const scoped = filterRecordsForHunterTeam(allClosings, user.id, spsRes.data || [])
       setScopeError(scoped.hunterName ? "" : "Sales Hunter belum ditentukan. Hubungi Admin.")
+      setScopedHunterName(scoped.hunterName)
       setClosings(scoped.records)
       setPeriodClosings(scoped.records)
     } else {
       setScopeError("")
+      setScopedHunterName(null)
       const name = (user!.name || "").toLowerCase()
       setClosings(allClosings.filter(c =>
         c.user_id === user!.id || (c.sales_hunter || "").toLowerCase() === name
@@ -458,6 +462,10 @@ export default function ClosingPage() {
   async function handleEditSave(e: React.FormEvent) {
     e.preventDefault()
     if (!editingClosing) return
+    if (!canManageRecord(user?.role, user?.id, editingClosing)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     if (form.sales_person === "Agent" && !form.agent_name.trim()) {
       setFormError("Nama Agent wajib diisi")
       showToast("Nama Agent wajib diisi", "error")
@@ -479,7 +487,7 @@ export default function ClosingPage() {
     const newHunterName = form.sales_hunter || editingClosing.sales_hunter
     const newHunterUser = hunters.find(h => h.name === newHunterName)
     const { error } = await supabase.from("konsumen").update({
-      user_id:       newHunterUser?.id ?? editingClosing.user_id,
+      user_id:       user?.role === "sales_person" ? editingClosing.user_id : newHunterUser?.id ?? editingClosing.user_id,
       sales_hunter:  newHunterName,
       sales_person:  form.sales_person || null,
       agent_name:    form.sales_person === "Agent" ? form.agent_name.trim() : null,
@@ -506,6 +514,10 @@ export default function ClosingPage() {
   }
 
   function openEdit(c: KonsumenRow) {
+    if (!canManageRecord(user?.role, user?.id, c)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     setEditingClosing(c)
     setFormError("")
     const next = {
@@ -528,6 +540,10 @@ export default function ClosingPage() {
 
   async function handleCancelClosing() {
     if (!editingClosing) return
+    if (!canManageRecord(user?.role, user?.id, editingClosing)) {
+      showToast("Anda hanya dapat mengubah data milik sendiri", "error")
+      return
+    }
     setSaving(true)
     const { error } = await supabase.from("konsumen").update({
       status:        "hot",
@@ -643,6 +659,9 @@ export default function ClosingPage() {
       const monthsElapsed = now.getMonth() + 1
       const periodTargetTeam = periodTarget(TEAM_MONTHLY_TARGET, monthsElapsed, ytdMode)
       const periodValue = periodClosings.reduce((s, c) => s + (c.nilai_hjr || 0), 0)
+      const salesPdfScope = user?.role === "sales_person"
+        ? buildSalesHunterPdfScope(scopedHunterName, hunters, periodValue, monthsElapsed, ytdMode)
+        : null
 
       const hunterOmsetPeriod: Record<string, number> = {}
       for (const c of periodClosings) {
@@ -702,10 +721,10 @@ export default function ClosingPage() {
         generatedAt,
         isYtd: ytdMode,
         mtdValue: periodValue,
-        mtdTarget: periodTargetTeam,
-        topHunter,
+        mtdTarget: salesPdfScope?.mtdTarget ?? periodTargetTeam,
+        topHunter: salesPdfScope?.topHunter ?? topHunter,
         topSales,
-        allHunters,
+        allHunters: salesPdfScope?.allHunters ?? allHunters,
         projectData,
         rows,
         totalOmset,
@@ -1096,7 +1115,7 @@ export default function ClosingPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        {!isTf && (
+                        {!isTf && canManageRecord(user?.role, user?.id, c) && (
                           <button onClick={() => openEdit(c)}
                             className="text-blue-400 hover:text-blue-300 transition" title="Edit">
                             <Edit2 size={13} />

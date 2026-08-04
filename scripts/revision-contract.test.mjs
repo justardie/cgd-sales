@@ -407,3 +407,44 @@ test("Pipeline and Closing share the Hunter team scope", async () => {
   assert.match(salesBranch, /setClosings\(scoped\.records\)/)
   assert.match(salesBranch, /setPeriodClosings\(scoped\.records\)/)
 })
+
+test("Pipeline and Closing bind ownership checks to mutation handlers and controls", async () => {
+  const pipeline = await read("app/pipeline/page.tsx")
+  const closing = await read("app/closing/page.tsx")
+
+  for (const [name, nextName] of [
+    ["openEdit", "openClosingConfirm"],
+    ["openClosingConfirm", "handleClosingConfirm"],
+    ["handleClosingConfirm", "handleSalesPersonChange"],
+    ["handleDelete", "const filtered"],
+  ]) {
+    const block = pipeline.match(new RegExp(`(?:async )?function ${name}\\([\\s\\S]*?(?=\\n  (?:async )?function ${nextName}|\\n  ${nextName})`))?.[0] ?? ""
+    assert.match(block, /canManageRecord\(user\?\.role, user\?\.id,/)
+  }
+  const pipelineSave = pipeline.match(/async function handleSave\([\s\S]*?(?=\n  function canDelete)/)?.[0] ?? ""
+  assert.match(pipelineSave, /editing && !canManageRecord\(user\?\.role, user\?\.id, editing\)/)
+  assert.match(pipeline, /canManageRecord\(user\?\.role, user\?\.id, r\) \? <RowActionsMenu/)
+  assert.match(pipeline, /<PipelineNotes[\s\S]*canManage=\{canManageRecord\(user\?\.role, user\?\.id, editing\)\}/)
+
+  for (const [name, nextName] of [
+    ["handleEditSave", "openEdit"],
+    ["openEdit", "handleCancelClosing"],
+    ["handleCancelClosing", "openTargetEdit"],
+  ]) {
+    const block = closing.match(new RegExp(`(?:async )?function ${name}\\([\\s\\S]*?(?=\\n  (?:async )?function ${nextName}|\\n  ${nextName})`))?.[0] ?? ""
+    assert.match(block, /canManageRecord\(user\?\.role, user\?\.id, editingClosing|canManageRecord\(user\?\.role, user\?\.id, c\)/)
+  }
+  assert.match(closing, /canManageRecord\(user\?\.role, user\?\.id, c\) && \(\s*<button onClick=\{\(\) => openEdit\(c\)\}/)
+})
+
+test("Sales Closing PDF consumes the persisted single-Hunter scope", async () => {
+  const closing = await read("app/closing/page.tsx")
+  const salesFetch = closing.match(/else if \(user && user\.role === "sales_person"\) \{[\s\S]*?\n    \} else \{/)?.[0] ?? ""
+  assert.match(salesFetch, /setScopedHunterName\(scoped\.hunterName\)/)
+
+  const report = closing.match(/async function handleReportClosing\([\s\S]*?(?=\n  const hunterKey)/)?.[0] ?? ""
+  assert.match(report, /buildSalesHunterPdfScope\(scopedHunterName, hunters, periodValue, monthsElapsed, ytdMode\)/)
+  assert.match(report, /mtdTarget:\s*salesPdfScope\?\.mtdTarget \?\? periodTargetTeam/)
+  assert.match(report, /topHunter:\s*salesPdfScope\?\.topHunter \?\? topHunter/)
+  assert.match(report, /allHunters:\s*salesPdfScope\?\.allHunters \?\? allHunters/)
+})
