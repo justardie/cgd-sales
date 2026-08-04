@@ -251,11 +251,14 @@ test("Sales Telemarketing navigation is identical on every device and has no mob
 
 test("Telemarketing rollout preflights schema before changing users", async () => {
   const migration = await read("supabase/047_unify_telemarketing_role.sql")
+  const lock = migration.indexOf("LOCK TABLE public.users IN SHARE ROW EXCLUSIVE MODE")
   const preflight = migration.indexOf("Role schema preflight passed")
   const update = migration.indexOf("UPDATE public.users")
   const drop = migration.indexOf("ALTER TABLE public.users DROP CONSTRAINT")
 
   assert.ok(preflight > 0)
+  assert.ok(lock > 0)
+  assert.ok(lock < preflight)
   assert.ok(preflight < update)
   assert.ok(preflight < drop)
   assert.match(migration, /column_name = 'role'/)

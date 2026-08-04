@@ -3,6 +3,8 @@
 
 BEGIN;
 
+LOCK TABLE public.users IN SHARE ROW EXCLUSIVE MODE;
+
 DO $$
 DECLARE
   role_data_type TEXT;
@@ -53,8 +55,6 @@ BEGIN
 
   RAISE NOTICE 'Role schema preflight passed';
 END $$;
-
-LOCK TABLE public.users IN SHARE ROW EXCLUSIVE MODE;
 
 DO $$
 DECLARE
