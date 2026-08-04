@@ -3,7 +3,7 @@ export function periodTarget(monthlyTarget: number, currentMonth: number, isYtd:
 }
 
 export function isActiveSalesRole(role: string): boolean {
-  return role === "sales_person" || role === "telemarketing"
+  return role === "sales_person"
 }
 
 export function canonicalProjectTotals(

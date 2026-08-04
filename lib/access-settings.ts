@@ -19,6 +19,20 @@ export const MENU_ITEMS = [
 
 export type MenuKey = typeof MENU_ITEMS[number]["key"]
 
+export const TELEMARKETING_NAV_ITEMS = [
+  { key: "overview", label: "Overview", href: "/" },
+  { key: "pipeline", label: "Pipeline", href: "/pipeline" },
+  { key: "closing", label: "Closing", href: "/closing" },
+  { key: "funnel", label: "Leads Funnel", href: "/funnel" },
+  { key: "funnel_summary", label: "Funnel Summary", href: "/funnel-summary" },
+] as const satisfies readonly (typeof MENU_ITEMS)[number][]
+
+export const TELEMARKETING_MENU_KEYS: MenuKey[] = TELEMARKETING_NAV_ITEMS.map(item => item.key)
+
+export function isSalesTelemarketing(role: string, hasTmAccess?: boolean): boolean {
+  return role === "sales_person" && hasTmAccess === true
+}
+
 export const ACCESS_ROLES: { key: AccessRoleKey; label: string }[] = [
   { key: "admin", label: "Admin" },
   { key: "hunter", label: "Sales Hunter" },
@@ -53,9 +67,9 @@ export const DEFAULT_ROLE_ACCESS: Record<AccessRoleKey, {
   },
   telemarketing: {
     data_scope: "self_only",
-    desktop_menus: ["funnel", "funnel_summary"],
-    tablet_menus: ["funnel", "funnel_summary"],
-    mobile_menus: ["funnel", "funnel_summary"],
+    desktop_menus: [...TELEMARKETING_MENU_KEYS],
+    tablet_menus: [...TELEMARKETING_MENU_KEYS],
+    mobile_menus: [...TELEMARKETING_MENU_KEYS],
   },
   task_force: {
     data_scope: "all",

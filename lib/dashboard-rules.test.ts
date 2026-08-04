@@ -1,6 +1,11 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
+import {
+  TELEMARKETING_NAV_ITEMS,
+  accessRoleForUser,
+  isSalesTelemarketing,
+} from "./access-settings.ts"
 import { canonicalProjectTotals, isActiveSalesRole, periodTarget, topClosingBy } from "./dashboard-rules.ts"
 
 test("YTD target multiplies monthly target by current month number", () => {
@@ -8,9 +13,26 @@ test("YTD target multiplies monthly target by current month number", () => {
   assert.equal(periodTarget(50_000_000_000, 6, false), 50_000_000_000)
 })
 
-test("active sales roles include sales person and telemarketing", () => {
+test("Sales Telemarketing is a Sales Person with TM access", () => {
+  assert.equal(isSalesTelemarketing("sales_person", true), true)
+  assert.equal(isSalesTelemarketing("sales_person", false), false)
+  assert.equal(isSalesTelemarketing("telemarketing", true), false)
+  assert.equal(accessRoleForUser("sales_person", true), "telemarketing")
+})
+
+test("Sales Telemarketing uses the same five menus on every device", () => {
+  assert.deepEqual(TELEMARKETING_NAV_ITEMS, [
+    { key: "overview", label: "Overview", href: "/" },
+    { key: "pipeline", label: "Pipeline", href: "/pipeline" },
+    { key: "closing", label: "Closing", href: "/closing" },
+    { key: "funnel", label: "Leads Funnel", href: "/funnel" },
+    { key: "funnel_summary", label: "Funnel Summary", href: "/funnel-summary" },
+  ])
+})
+
+test("active sales role is Sales Person only", () => {
   assert.equal(isActiveSalesRole("sales_person"), true)
-  assert.equal(isActiveSalesRole("telemarketing"), true)
+  assert.equal(isActiveSalesRole("telemarketing"), false)
   assert.equal(isActiveSalesRole("sales_hunter"), false)
 })
 
