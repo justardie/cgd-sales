@@ -374,15 +374,15 @@ export default function UnitSpecialPage() {
           <div className="flex gap-2 flex-wrap">
             {bulkEditing ? (
               <>
-                <button onClick={handleBulkSave} disabled={saving} className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
+                <button onClick={handleBulkSave} disabled={saving} className="hidden xl:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
                   <Save size={16} /> {saving ? "Menyimpan..." : "Simpan Semua"}
                 </button>
-                <button onClick={() => { setBulkEditing(false); setBulkRows({}) }} disabled={saving} className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                <button onClick={() => { setBulkEditing(false); setBulkRows({}) }} disabled={saving} className="hidden xl:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   Batal
                 </button>
               </>
             ) : (
-              <button onClick={startBulkEdit} disabled={loading || filteredRows.length === 0} className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition">
+              <button onClick={startBulkEdit} disabled={loading || filteredRows.length === 0} className="hidden xl:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition">
                 <Edit3 size={16} /> Edit Bulk
               </button>
             )}
@@ -453,7 +453,7 @@ export default function UnitSpecialPage() {
         </div>
 
         <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div className="overflow-x-auto hidden lg:block">
+          <div className="overflow-x-auto hidden xl:block">
             <table className="w-full text-sm">
               <thead style={{ background: "var(--surface2)" }}>
                 <tr className="text-slate-400 text-left">
@@ -520,7 +520,7 @@ export default function UnitSpecialPage() {
           </div>
 
           {/* Mobile card list — avoids horizontal scroll on narrow/tablet screens; bulk edit stays desktop-only */}
-          <div className="lg:hidden divide-y" style={{ borderColor: "var(--border)" }}>
+          <div className="xl:hidden divide-y" style={{ borderColor: "var(--border)" }}>
             {loading ? (
               <div className="px-4 py-8 text-center text-slate-500 text-sm">Memuat data...</div>
             ) : filteredRows.length === 0 ? (

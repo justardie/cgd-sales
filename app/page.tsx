@@ -672,7 +672,7 @@ export default function OverviewPage() {
               Ranking Performa — {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
             </h2>
           </div>
-          <div className="overflow-x-auto hidden lg:block" style={{ background: "var(--surface)" }}>
+          <div className="overflow-x-auto hidden xl:block" style={{ background: "var(--surface)" }}>
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
@@ -733,7 +733,7 @@ export default function OverviewPage() {
           </div>
 
           {/* Mobile card list — avoids horizontal scroll on narrow screens */}
-          <div className="lg:hidden divide-y" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="xl:hidden divide-y" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
             {loading ? (
               <div className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Memuat data...</div>
             ) : hunters.length === 0 ? (

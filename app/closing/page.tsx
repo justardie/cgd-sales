@@ -1087,7 +1087,7 @@ export default function ClosingPage() {
 
         {/* Table */}
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="overflow-x-auto hidden lg:block">
+          <div className="overflow-x-auto hidden xl:block">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
@@ -1178,7 +1178,7 @@ export default function ClosingPage() {
           </div>
 
           {/* Mobile card list — avoids horizontal scroll on narrow screens */}
-          <div className="lg:hidden divide-y" style={{ borderColor: "var(--border)" }}>
+          <div className="xl:hidden divide-y" style={{ borderColor: "var(--border)" }}>
             {loading ? (
               <div className="px-4 py-10 text-center text-slate-600 text-xs">Memuat...</div>
             ) : filtered.length === 0 ? (
