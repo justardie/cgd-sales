@@ -708,6 +708,40 @@ export default function ClosingPage() {
         closingDate: c.closing_date,
       }))
 
+      // Pipeline HOT leads (from /pipeline), scoped the same way as the closings above.
+      const [{ data: hotPipelineData }, { data: spsMembersData }] = await Promise.all([
+        supabase.from("konsumen")
+          .select("user_id,sales_hunter,sales_person,agent_name,name,project,unit,potensi_closing,cara_bayar,sudah_visit")
+          .eq("status", "hot")
+          .or("board.eq.pipeline,board.is.null"),
+        supabase.from("users").select("id,name,hunter_name,status").eq("role", "sales_person"),
+      ])
+      const spsMembers = spsMembersData || []
+      const allHotPipeline = (hotPipelineData || []) as {
+        user_id: string; sales_hunter: string; sales_person: string | null; agent_name: string | null
+        name: string; project: string | null; unit: string | null
+        potensi_closing: number | null; cara_bayar: string | null; sudah_visit: boolean
+      }[]
+      const scopedHotPipeline = isAdmin || isTf
+        ? allHotPipeline
+        : user?.role === "sales_person"
+        ? filterRecordsForHunterTeam(allHotPipeline, user.id, spsMembers).records
+        : allHotPipeline.filter(c =>
+            c.user_id === user?.id || (c.sales_hunter || "").toLowerCase() === (user?.name || "").toLowerCase()
+          )
+      const hotPipeline = scopedHotPipeline
+        .map(c => ({
+          hunter: c.sales_hunter,
+          salesPerson: formatSalesPerson(c.sales_person, c.agent_name),
+          konsumen: c.name,
+          project: c.project || "",
+          unit: c.unit || "",
+          potensiClosing: c.potensi_closing || 0,
+          caraBayar: c.cara_bayar || "",
+          sudahVisit: c.sudah_visit,
+        }))
+        .sort((a, b) => b.potensiClosing - a.potensiClosing)
+
       const periodLabel = ytdMode
         ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}`
         : dateMode === "custom"
@@ -729,6 +763,7 @@ export default function ClosingPage() {
         rows,
         totalOmset,
         totalCount: filtered.length,
+        hotPipeline,
       })
 
       showToast("Report Closing (PDF) berhasil diunduh", "success")

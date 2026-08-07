@@ -13,6 +13,17 @@ export interface ClosingReportRow {
   closingDate: string
 }
 
+export interface HotPipelineRow {
+  hunter: string
+  salesPerson: string
+  konsumen: string
+  project: string
+  unit: string
+  potensiClosing: number
+  caraBayar: string
+  sudahVisit: boolean
+}
+
 export interface ClosingReportData {
   periodLabel: string
   generatedAt: string
@@ -26,6 +37,7 @@ export interface ClosingReportData {
   rows: ClosingReportRow[]
   totalOmset: number
   totalCount: number
+  hotPipeline: HotPipelineRow[]
 }
 
 const ink        = "#0F172A"
@@ -357,6 +369,54 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
     pdf.text(fitText(pdf, formatRupiahFull(project.value), projCardW - 4), cx + 2.5, cy + 11.5)
   })
   y += projBoxH + 6
+
+  // ---- Pipeline HOT — perlu follow up ----
+  const hotOrange = "#EA580C"
+  const hotOrangeBg = "#FFF7ED"
+  const hotOrangeBorder = "#FED7AA"
+
+  pdf.setFont("helvetica", "bold")
+  pdf.setFontSize(10)
+  pdf.setTextColor(hotOrange)
+  labelText(pdf, `PIPELINE HOT — PERLU FOLLOW UP (${data.hotPipeline.length})`, MARGIN, y + 4)
+  y += 8
+
+  if (data.hotPipeline.length > 0) {
+    autoTable(pdf, {
+      startY: y,
+      margin: { left: MARGIN, right: MARGIN, bottom: 14 },
+      head: [["Hunter / Sales", "Konsumen", "Project / Unit", "Potensi Closing", "Cara Bayar", "Visit"]],
+      body: data.hotPipeline.map(row => [
+        `${row.hunter || "—"} / ${row.salesPerson || "—"}`,
+        row.konsumen || "—",
+        [row.project, row.unit].filter(Boolean).join(" - ") || "—",
+        formatRupiahFull(row.potensiClosing),
+        row.caraBayar || "—",
+        row.sudahVisit ? "Y" : "N",
+      ]),
+      styles: { font: "helvetica", fontSize: 7.5, textColor: ink, lineColor: hotOrangeBorder, lineWidth: 0.1, cellPadding: 2, valign: "middle" },
+      headStyles: { fillColor: hotOrange, textColor: "#FFFFFF", fontStyle: "bold", fontSize: 7.5 },
+      alternateRowStyles: { fillColor: hotOrangeBg },
+      columnStyles: {
+        3: { halign: "right", textColor: hotOrange, fontStyle: "bold", minCellWidth: 24 },
+        5: { halign: "center", cellWidth: 12 },
+      },
+      didDrawPage: () => {
+        pdf.setFont("helvetica", "normal")
+        pdf.setFontSize(7.5)
+        pdf.setTextColor(inkMuted)
+        pdf.text("Report Closing · PT Central Group Development", MARGIN, PAGE_HEIGHT - 8)
+      },
+    })
+    y = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6
+  } else {
+    roundedBox(pdf, MARGIN, y, CONTENT_WIDTH, 14, hotOrangeBg, hotOrangeBorder)
+    pdf.setFont("helvetica", "normal")
+    pdf.setFontSize(9)
+    pdf.setTextColor(inkMuted)
+    pdf.text("Tidak ada pipeline berstatus Hot saat ini.", MARGIN + 5, y + 8.5)
+    y += 20
+  }
 
   // ---- Transactions table (real text, auto-paginates if it overflows) ----
   // Hunter/Sales packs two lines into one cell with distinct styles (bold
