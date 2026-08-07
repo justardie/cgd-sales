@@ -419,6 +419,7 @@ export default function PipelinePage() {
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [notesDirty, setNotesDirty] = useState(false)
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({})
+  const mobileRowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [initialForm, setInitialForm] = useState<typeof emptyForm | null>(null)
   const [initialClosingForm, setInitialClosingForm] = useState<typeof closingForm | null>(null)
 
@@ -459,7 +460,13 @@ export default function PipelinePage() {
 
     let attempts = 0
     const tryScroll = () => {
-      const row = rowRefs.current[target]
+      // Both the desktop table row and the mobile card mount at all times (CSS just
+      // toggles which is displayed) — pick whichever one is actually visible right now.
+      const desktopRow = rowRefs.current[target]
+      const mobileRow = mobileRowRefs.current[target]
+      const row = (desktopRow && desktopRow.offsetParent !== null) ? desktopRow
+        : (mobileRow && mobileRow.offsetParent !== null) ? mobileRow
+        : desktopRow || mobileRow
       if (row) {
         row.scrollIntoView({ behavior: "smooth", block: "center" })
         setHighlightId(target)
@@ -915,7 +922,7 @@ export default function PipelinePage() {
         </div>
 
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
@@ -1013,7 +1020,7 @@ export default function PipelinePage() {
                           { label: "Edit", icon: <Pencil size={14} />, onClick: () => openEdit(r) },
                           { label: "Closing", icon: <CheckCircle2 size={14} />, onClick: () => openClosingConfirm(r) },
                           ...(canDelete(r) ? [{ label: "Hapus", icon: <Trash2 size={14} />, onClick: () => setDeleteTarget(r), danger: true }] : []),
-                        ]} /> : <span className="text-slate-600">â€”</span>}
+                        ]} /> : <span className="text-slate-600">—</span>}
                       </div>
                     </td>
                   </tr>
@@ -1038,6 +1045,95 @@ export default function PipelinePage() {
                 </tfoot>
               )}
             </table>
+          </div>
+
+          {/* Mobile card list — avoids horizontal scroll on narrow screens */}
+          <div className="md:hidden divide-y" style={{ borderColor: "var(--border)" }}>
+            {loading ? (
+              <div className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</div>
+            ) : visibleRows.length === 0 ? (
+              <div className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</div>
+            ) : visibleRows.map(r => {
+              const isTidakPotensial = r.status === "tidak_potensial"
+              const badge = statusBadge(r.status)
+              const lastActivity = latestNoteDates[r.id] || r.created_at
+              const isStale = isStaleLead(r.status, lastActivity)
+              const isFlashed = highlightId === r.id
+              return (
+                <div key={r.id}
+                  ref={node => { mobileRowRefs.current[r.id] = node }}
+                  className={`p-3 ${isTidakPotensial ? "opacity-50" : ""}`}
+                  style={{
+                    borderLeft: isStale ? "3px solid var(--orange, #f59e0b)" : "3px solid transparent",
+                    background: isFlashed ? "rgba(245,158,11,0.12)" : undefined,
+                    transition: "background 0.4s ease",
+                  }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-medium text-white text-sm flex items-center gap-1.5 flex-wrap">
+                        {r.name || "—"}
+                        {isStale && lastActivity && (
+                          <span title={`${daysSince(lastActivity)} hari tanpa update`}
+                            className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>
+                            <AlertTriangle size={9} /> {daysSince(lastActivity)}h
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        {r.sales_hunter || "—"} · {formatSalesPerson(r.sales_person, r.agent_name)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${badge.color}`}>{badge.label}</span>
+                      {canManageRecord(user?.role, user?.id, r) && <RowActionsMenu actions={[
+                        { label: "Edit", icon: <Pencil size={14} />, onClick: () => openEdit(r) },
+                        { label: "Closing", icon: <CheckCircle2 size={14} />, onClick: () => openClosingConfirm(r) },
+                        ...(canDelete(r) ? [{ label: "Hapus", icon: <Trash2 size={14} />, onClick: () => setDeleteTarget(r), danger: true }] : []),
+                      ]} />}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2.5 text-xs">
+                    <div>
+                      <span className="text-slate-600">Project/Unit: </span>
+                      <span className="text-slate-300">{[r.project, r.unit].filter(Boolean).join(" · ") || "—"}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-600">Nilai: </span>
+                      <span className="text-slate-300 font-semibold">{!isTidakPotensial && r.potensi_closing ? formatRupiah(Number(r.potensi_closing)) : "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-600">Cara Bayar: </span>
+                      <span className="text-slate-300">{r.cara_bayar || "—"}</span>
+                    </div>
+                    <div className="text-right flex items-center justify-end gap-3">
+                      <span className="text-slate-600">Visit <YNBadge value={r.sudah_visit} /></span>
+                      <span className="text-slate-600">BF <YNBadge value={r.sudah_booking_fee} /></span>
+                    </div>
+                  </div>
+
+                  {(latestNotes[r.id] || r.notes) && (
+                    <div className="text-slate-500 mt-2 whitespace-pre-wrap text-xs rounded-lg px-2.5 py-2" style={{ background: "var(--surface2)" }}>
+                      {latestNotes[r.id] || r.notes}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {!loading && visibleRows.length > 0 && (
+              <div className="px-3 py-3 text-xs font-semibold flex items-center justify-between" style={{ background: "var(--surface2)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  {filtered.filter(r => r.status !== "tidak_potensial").length} prospek aktif
+                  {filtered.filter(r => r.status === "tidak_potensial").length > 0 &&
+                    <span className="text-slate-600 ml-1">· {filtered.filter(r => r.status === "tidak_potensial").length} tdk potensial</span>
+                  }
+                </span>
+                <span style={{ color: "var(--accent)" }}>
+                  {formatRupiah(filtered.filter(r => r.status !== "tidak_potensial").reduce((s, r) => s + (Number(r.potensi_closing) || 0), 0))}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         {inactiveRows.length > 0 && (

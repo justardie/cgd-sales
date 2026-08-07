@@ -672,7 +672,7 @@ export default function OverviewPage() {
               Ranking Performa — {ytdMode ? `Jan–${getMonthName(now.getMonth() + 1)} ${now.getFullYear()}` : `${getMonthName(month)} ${year}`}
             </h2>
           </div>
-          <div className="overflow-x-auto" style={{ background: "var(--surface)" }}>
+          <div className="overflow-x-auto hidden md:block" style={{ background: "var(--surface)" }}>
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
@@ -730,6 +730,62 @@ export default function OverviewPage() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile card list — avoids horizontal scroll on narrow screens */}
+          <div className="md:hidden divide-y" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+            {loading ? (
+              <div className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Memuat data...</div>
+            ) : hunters.length === 0 ? (
+              <div className="px-4 py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>Belum ada data</div>
+            ) : hunters.map((h, rowIdx) => {
+              const ytdM       = now.getMonth() + 1
+              const omsetDisp  = ytdMode ? h.omset_ytd : h.omset_mtd
+              const targetDisp = ytdMode ? h.monthly_target * ytdM : h.monthly_target
+              const wodDisp    = ytdMode ? h.win_or_die_target * ytdM : h.win_or_die_target
+              const revPct = pct(omsetDisp, targetDisp)
+              const wodPct = wodDisp > 0 ? pct(omsetDisp, wodDisp) : null
+              const wod    = wodDisp > 0 && omsetDisp < wodDisp
+              return (
+                <div key={h.id} className={`p-3 row-enter row-enter-${Math.min(rowIdx + 1, 8)}`}
+                  style={{ background: wod ? "rgba(220,38,38,0.04)" : "transparent" }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-bold flex-shrink-0" style={{ color: "var(--text-muted)" }}>#{h.rank}</span>
+                      <span className="font-semibold text-sm truncate" style={{ color: "var(--text-primary)" }}>{h.name}</span>
+                    </div>
+                    <span className="text-sm font-bold flex-shrink-0" style={{
+                      color: revPct >= 100 ? "#22c55e" : revPct >= 70 ? "#FF6A3D" : "#ef4444"
+                    }}>
+                      {revPct}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs">
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>Realisasi: </span>
+                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{formatRupiah(omsetDisp)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span style={{ color: "var(--text-muted)" }}>Target: </span>
+                      <span style={{ color: "var(--text-muted)" }}>{formatRupiah(targetDisp)}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>Win/Die: </span>
+                      <span style={{ color: "var(--text-muted)" }}>{wodDisp > 0 ? formatRupiah(wodDisp) : "—"}</span>
+                    </div>
+                    <div className="text-right">
+                      <span style={{ color: "var(--text-muted)" }}>WoD %: </span>
+                      <span className="font-bold" style={{
+                        color: wodPct === null ? "var(--text-muted)"
+                          : wodPct >= 100 ? "#22c55e" : wodPct >= 70 ? "#FF6A3D" : "#ef4444"
+                      }}>
+                        {wodPct !== null ? `${wodPct}%` : "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
         </>}
