@@ -34,10 +34,52 @@ interface ClosingDetail {
   nilai_hjr: number
 }
 
+interface Agg {
+  omset: number
+  count: number
+}
+
 type SpOmsetMap = Record<string, number>
 type SpClosingsMap = Record<string, ClosingDetail[]>
+type AggMap = Record<string, Agg>
+
+/** Year-to-date totals only need unit count + rupiah sum, keyed by dbName / SP name — no per-closing detail. */
+function aggregateYtd(rows: { nilai_hjr: number | null; sales_person: string | null; sales_hunter: string | null }[]) {
+  const hunterTeam: AggMap = {}
+  const hunterDirect: AggMap = {}
+  const agent: AggMap = {}
+  const sp: AggMap = {}
+  function bump(map: AggMap, key: string, val: number) {
+    if (!map[key]) map[key] = { omset: 0, count: 0 }
+    map[key].omset += val
+    map[key].count += 1
+  }
+  for (const c of rows) {
+    const val = c.nilai_hjr || 0
+    if (c.sales_hunter) bump(hunterTeam, c.sales_hunter, val)
+    if (c.sales_person === "Agent" && c.sales_hunter) bump(agent, c.sales_hunter, val)
+    else if (c.sales_person) bump(sp, c.sales_person, val)
+    else if (c.sales_hunter) bump(hunterDirect, c.sales_hunter, val)
+  }
+  return { hunterTeam, hunterDirect, agent, sp }
+}
 
 const now = new Date()
+
+/** "Bulan Ini: 3 unit · Rp900Jt   |   YTD: 18 unit · Rp5.4M" */
+function MonthVsYtdStats({ monthUnit, monthOmset, ytd }: { monthUnit: number; monthOmset: number; ytd: Agg | undefined }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+      <span className="text-slate-400">
+        <span className="text-slate-600">Bulan Ini:</span> {monthUnit} unit · {formatRupiah(monthOmset)}
+      </span>
+      <span className="text-slate-700">|</span>
+      <span className="text-slate-400">
+        <span className="text-slate-600">YTD:</span> {ytd?.count || 0} unit · {formatRupiah(ytd?.omset || 0)}
+      </span>
+    </div>
+  )
+}
 const ALL_HUNTER_DB_NAMES = new Set(HUNTER_GROUPS.map(h => h.dbName))
 
 export default function TeamPage() {
@@ -60,6 +102,9 @@ export default function TeamPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [coverageMap, setCoverageMap] = useState<Record<string, string[]>>({})
   const [editingCoverage, setEditingCoverage] = useState<string | null>(null)
+  const [ytdAgg, setYtdAgg] = useState<{ hunterTeam: AggMap; hunterDirect: AggMap; agent: AggMap; sp: AggMap }>({
+    hunterTeam: {}, hunterDirect: {}, agent: {}, sp: {},
+  })
 
   function prevMonth() {
     if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1)
@@ -165,6 +210,22 @@ export default function TeamPage() {
 
   useEffect(() => { if (user) queueMicrotask(() => void fetchData()) }, [fetchData, user])
 
+  // YTD is always Jan through the real current calendar month — independent of the
+  // prev/next month picker above, which only scopes the "Bulan Ini" figures.
+  useEffect(() => {
+    if (!user) return
+    queueMicrotask(async () => {
+      const ytdYear = now.getFullYear()
+      const ytdMonth = now.getMonth() + 1
+      const { data } = await supabase.from("konsumen")
+        .select("nilai_hjr,sales_person,sales_hunter")
+        .eq("status", "closing")
+        .eq("closing_year", ytdYear)
+        .lte("closing_month", ytdMonth)
+      setYtdAgg(aggregateYtd(data || []))
+    })
+  }, [user])
+
   function getMember(displayOrSpName: string): MemberStatus | undefined {
     return members.find(m => m.name === displayOrSpName)
   }
@@ -186,6 +247,22 @@ export default function TeamPage() {
     }
     showToast("Coverage berhasil diperbarui", "success")
   }
+
+  const participationRows = HUNTER_GROUPS
+    .filter(hunter => members.some(m => m.name === hunter.name))
+    .map(hunter => {
+      const spNames = hunterSpMap[hunter.dbName] || []
+      const totalSp = spNames.length
+      const activeSpNames = spNames.filter(spName => (spClosingsMap[spName] || []).length > 0)
+      const activeSp = activeSpNames.length
+      const participationPct = totalSp > 0 ? Math.round((activeSp / totalSp) * 100) : 0
+      const activeUnits = activeSpNames.reduce((s, spName) => s + (spClosingsMap[spName] || []).length, 0)
+      const avgUnitPerActive = activeSp > 0 ? activeUnits / activeSp : 0
+      return { hunter, totalSp, activeSp, participationPct, avgUnitPerActive }
+    })
+  const totalSpAll = participationRows.reduce((s, r) => s + r.totalSp, 0)
+  const activeSpAll = participationRows.reduce((s, r) => s + r.activeSp, 0)
+  const participationPctAll = totalSpAll > 0 ? Math.round((activeSpAll / totalSpAll) * 100) : 0
 
   return (
     <DashboardShell>
@@ -212,6 +289,52 @@ export default function TeamPage() {
             </button>
           </div>
         </div>
+
+        {/* Partisipasi Sales Aktif — % SP yang closing per tim hunter */}
+        {!loading && participationRows.length > 0 && (
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="px-4 py-3 flex items-center justify-between flex-wrap gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
+              <div>
+                <div className="text-sm font-semibold text-white">Partisipasi Sales Aktif</div>
+                <p className="text-xs text-slate-500 mt-0.5">Sales Person yang closing ≥1 unit · {getMonthName(month)} {year}</p>
+              </div>
+              <div className="text-right">
+                <div className={`text-xl font-black ${participationPctAll >= 70 ? "text-green-400" : participationPctAll >= 40 ? "text-blue-400" : "text-red-400"}`}>
+                  {participationPctAll}%
+                </div>
+                <div className="text-xs text-slate-500">{activeSpAll}/{totalSpAll} SP aktif</div>
+              </div>
+            </div>
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {participationRows.map(row => {
+                if (row.totalSp === 0) {
+                  return (
+                    <div key={row.hunter.name} className="rounded-lg p-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                      <div className="text-xs text-slate-400 font-medium truncate">{row.hunter.name}</div>
+                      <div className="text-xs text-slate-600 mt-1.5">Tidak ada tim SP</div>
+                    </div>
+                  )
+                }
+                const barColorPct = row.participationPct >= 70 ? "#22c55e" : row.participationPct >= 40 ? "#3b82f6" : "#ef4444"
+                return (
+                  <div key={row.hunter.name} className="rounded-lg p-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <div className="text-xs text-slate-400 font-medium truncate">{row.hunter.name}</div>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <span className="text-lg font-black text-white">{row.participationPct}%</span>
+                      <span className="text-xs text-slate-500">{row.activeSp}/{row.totalSp} SP</span>
+                    </div>
+                    <div className="mt-1.5 h-1 rounded-full" style={{ background: "var(--border)" }}>
+                      <div className="h-1 rounded-full transition-all" style={{ width: `${Math.min(row.participationPct, 100)}%`, background: barColorPct }} />
+                    </div>
+                    <div className="text-xs text-slate-600 mt-1.5">
+                      {row.activeSp > 0 ? `${row.avgUnitPerActive.toFixed(1)} unit / SP aktif` : "Belum ada SP aktif"}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-12 text-slate-600 text-sm">Memuat data...</div>
@@ -251,6 +374,13 @@ export default function TeamPage() {
                           <div className="mt-1.5 h-1 rounded-full bg-slate-800 w-full max-w-[200px]">
                             <div className="h-1 rounded-full transition-all"
                               style={{ width: `${Math.min(ach, 100)}%`, background: ach >= 100 ? "#22c55e" : "#6366f1" }} />
+                          </div>
+                          <div className="mt-2">
+                            <MonthVsYtdStats
+                              monthUnit={(hunterClosingsMap[hunter.name] || []).length}
+                              monthOmset={m.omset}
+                              ytd={ytdAgg.hunterTeam[hunter.dbName]}
+                            />
                           </div>
                         </div>
                       )
@@ -303,6 +433,9 @@ export default function TeamPage() {
                           </div>
                           <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
                             <div className="px-4 py-3">
+                              <div className="mb-2.5">
+                                <MonthVsYtdStats monthUnit={agentClosings.length} monthOmset={agentOmset} ytd={ytdAgg.agent[hunter.dbName]} />
+                              </div>
                               {agentClosings.length === 0 ? (
                                 <div className="text-xs text-slate-600 italic">Belum ada closing Agent bulan ini</div>
                               ) : (
@@ -364,6 +497,9 @@ export default function TeamPage() {
                           </div>
                           <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
                             <div className="px-4 py-3">
+                              <div className="mb-2.5">
+                                <MonthVsYtdStats monthUnit={directClosings.length} monthOmset={directOmset} ytd={ytdAgg.hunterDirect[hunter.dbName]} />
+                              </div>
                               {directClosings.length === 0 ? (
                                 <div className="text-xs text-slate-600 italic">Belum ada closing langsung bulan ini</div>
                               ) : (
@@ -423,6 +559,9 @@ export default function TeamPage() {
                             </div>
                             <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
                               <div className="px-4 py-3">
+                                <div className="mb-2.5">
+                                  <MonthVsYtdStats monthUnit={spClosings.length} monthOmset={spOmset} ytd={ytdAgg.sp[spName]} />
+                                </div>
                                 {spClosings.length === 0 ? (
                                   <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
                                 ) : (
@@ -474,6 +613,9 @@ export default function TeamPage() {
                           </div>
                           <div className={`expand-panel ${isExpanded ? "open" : "closed"}`} style={{ background: "rgba(0,0,0,0.25)", borderTop: "1px solid var(--border)" }}>
                             <div className="px-4 py-3">
+                              <div className="mb-2.5">
+                                <MonthVsYtdStats monthUnit={spClosings.length} monthOmset={spOmset} ytd={ytdAgg.sp[spName]} />
+                              </div>
                               {spClosings.length === 0 ? (
                                 <div className="text-xs text-slate-600 italic">Belum ada closing bulan ini</div>
                               ) : (
