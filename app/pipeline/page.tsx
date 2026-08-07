@@ -835,6 +835,7 @@ export default function PipelinePage() {
       project: row.project,
       unit: row.unit,
       visited: row.sudah_visit,
+      sudahBookingFee: row.sudah_booking_fee,
       status: row.status,
       nilaiPotensi: Number(row.potensi_closing) || 0,
     })), latestProgress)

@@ -374,15 +374,15 @@ export default function UnitSpecialPage() {
           <div className="flex gap-2 flex-wrap">
             {bulkEditing ? (
               <>
-                <button onClick={handleBulkSave} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
+                <button onClick={handleBulkSave} disabled={saving} className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition">
                   <Save size={16} /> {saving ? "Menyimpan..." : "Simpan Semua"}
                 </button>
-                <button onClick={() => { setBulkEditing(false); setBulkRows({}) }} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                <button onClick={() => { setBulkEditing(false); setBulkRows({}) }} disabled={saving} className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                   Batal
                 </button>
               </>
             ) : (
-              <button onClick={startBulkEdit} disabled={loading || filteredRows.length === 0} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition">
+              <button onClick={startBulkEdit} disabled={loading || filteredRows.length === 0} className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition">
                 <Edit3 size={16} /> Edit Bulk
               </button>
             )}
@@ -453,7 +453,7 @@ export default function UnitSpecialPage() {
         </div>
 
         <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto hidden lg:block">
             <table className="w-full text-sm">
               <thead style={{ background: "var(--surface2)" }}>
                 <tr className="text-slate-400 text-left">
@@ -517,6 +517,57 @@ export default function UnitSpecialPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile card list — avoids horizontal scroll on narrow/tablet screens; bulk edit stays desktop-only */}
+          <div className="lg:hidden divide-y" style={{ borderColor: "var(--border)" }}>
+            {loading ? (
+              <div className="px-4 py-8 text-center text-slate-500 text-sm">Memuat data...</div>
+            ) : filteredRows.length === 0 ? (
+              <div className="px-4 py-8 text-center text-slate-500 text-sm">Belum ada data.</div>
+            ) : filteredRows.map((row, index) => (
+              <div key={row.id} className="p-3" style={{ background: row.status === "Sold" ? "rgba(239,68,68,0.10)" : undefined }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-xs text-slate-500">#{index + 1}</div>
+                    <div className="font-medium text-white text-sm">{row.project}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{[row.cluster, row.unit_no].filter(Boolean).join(" · ") || "—"}</div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${row.status === "Open" ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"}`}>
+                      {row.status}
+                    </span>
+                    <button onClick={() => openEdit(row)} className="p-2 rounded-lg text-slate-400 hover:text-white transition" style={{ background: "var(--surface2)" }} title="Edit">
+                      <Edit3 size={14} />
+                    </button>
+                    <button onClick={() => setDeleteTarget(row)} className="p-2 rounded-lg text-red-400 hover:text-red-300 transition" style={{ background: "var(--surface2)" }} title="Hapus">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2.5 text-xs">
+                  <div>
+                    <span className="text-slate-600">LT/LB: </span>
+                    <span className="text-slate-300">{row.lt_lb || "—"}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-600">Harga Jual: </span>
+                    <span className="text-slate-300 font-semibold">{formatRupiahFull(row.sale_price || 0)}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-600">Cara Bayar: </span>
+                    <span className="text-slate-300">{row.payment_method || "—"}</span>
+                  </div>
+                </div>
+
+                {row.notes && (
+                  <div className="text-slate-400 mt-2 whitespace-pre-wrap text-xs rounded-lg px-2.5 py-2" style={{ background: "var(--surface2)" }}>
+                    {row.notes}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 

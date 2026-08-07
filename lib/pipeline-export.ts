@@ -7,6 +7,7 @@ export interface PipelineExportRow {
   project?: string | null
   unit?: string | null
   visited?: boolean
+  sudahBookingFee?: boolean
   status: string
   nilaiPotensi?: number
 }
@@ -33,7 +34,8 @@ export function formatPipelineExport(
       return [
         `Sales: ${row.salesPerson || "—"}`,
         `Prospek: ${row.prospect || row.konsumen || "—"}`,
-        `Status: ${row.visited ? "Sudah" : "Belum"}`,
+        `Status Visit: ${row.visited ? "Sudah" : "Belum"}`,
+        `Status BF: ${row.sudahBookingFee ? "Sudah" : "Belum"}`,
         `Minat: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,
         `Kendala: ${progress?.kendala || "—"}`,
         `Next Action: ${progress?.nextAction || "—"}`,
