@@ -7,6 +7,7 @@ import { useToast } from "@/contexts/ToastContext"
 import { supabase } from "@/lib/supabase"
 import { buildReportHtml, calculateVisitSummary, getMtdRange, getPreviousWeekPeriod, monthsInRange, parsePivotSheet, type ReportActivity, type ReportSnapshot, type SalesVisit } from "@/lib/weekly-report"
 import { formatRupiah } from "@/lib/utils"
+import { getHunterTitle } from "@/lib/hunters"
 import { Download, FileSpreadsheet, Plus, Trash2 } from "lucide-react"
 
 interface StoredReport { id: string; hunter_name: string; period_start: string; period_end: string; status: "final"; snapshot: ReportSnapshot|null; updated_at: string }
@@ -122,9 +123,9 @@ export default function ReportPage() {
 
   return <DashboardShell><div className="space-y-6">
     <div><h1 className="text-xl font-bold text-white">REPORT</h1><p className="text-sm text-slate-500">Weekly Sales Report · MASCOL Division</p></div>
-    {isAdmin ? <ReportHistory reports={reports} onDownload={download} onDelete={deleteReport} /> : user?.role !== "hunter" ? <div className="card">REPORT hanya tersedia untuk Sales Hunter.</div> : <>
+    {isAdmin ? <ReportHistory reports={reports} onDownload={download} onDelete={deleteReport} /> : user?.role !== "hunter" ? <div className="card">REPORT hanya tersedia untuk Sales Leader / Sales Manager.</div> : <>
       <section className="rounded-xl border p-5 space-y-4" style={{background:"var(--surface)",borderColor:"var(--border)"}}>
-        <div className="grid md:grid-cols-4 gap-3"><Field label="Sales Hunter" value={user.name} disabled/><Field label="Tanggal Laporan" value={reportDate} type="date" onChange={setReportDate}/><Field label="Periode Otomatis (Senin–Minggu)" value={`${periodStart} – ${periodEnd}`} disabled/><Field label="Coverage" value={profile.project_coverage.join(", ") || "Belum diatur"} disabled/></div>
+        <div className="grid md:grid-cols-4 gap-3"><Field label={getHunterTitle(user.name)} value={user.name} disabled/><Field label="Tanggal Laporan" value={reportDate} type="date" onChange={setReportDate}/><Field label="Periode Otomatis (Senin–Minggu)" value={`${periodStart} – ${periodEnd}`} disabled/><Field label="Coverage" value={profile.project_coverage.join(", ") || "Belum diatur"} disabled/></div>
       </section>
       <div className="grid md:grid-cols-4 gap-3">{[["Closing MTD",closings.length.toString()],["Omset MTD",formatRupiah(closings.reduce((s,x)=>s+x.value,0))],["Pipeline Hot",pipelines.length.toString()],["Potensi Pipeline",formatRupiah(pipelines.reduce((s,x)=>s+x.value,0))]].map(([a,b])=><div key={a} className="rounded-xl border p-4" style={{background:"var(--surface)",borderColor:"var(--border)"}}><div className="text-xs text-slate-500">{a}</div><b className="text-white block mt-1">{b}</b></div>)}</div>
       <section className="rounded-xl border p-5 space-y-3" style={{background:"var(--surface)",borderColor:"var(--border)"}}><h2 className="font-semibold text-white">Pencapaian Visit Tim</h2><label className="inline-flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer bg-emerald-600 text-white text-sm"><FileSpreadsheet size={16}/> Upload Pivot Activities<input type="file" accept=".xlsx,.xls" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)void parsePivot(f)}}/></label>{pivotFilename&&<span className="ml-3 text-xs text-emerald-400">{pivotFilename}</span>}<div className="text-sm text-slate-300">Visit Hunter: <b>{visits.hunterVisits}</b> · {visits.sales.map(x=>`${x.name}: ${x.visits}`).join(" · ") || "Belum ada data"}</div></section>

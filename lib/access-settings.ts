@@ -34,7 +34,7 @@ export function isSalesTelemarketing(role: string, hasTmAccess?: boolean): boole
 
 export const ACCESS_ROLES: { key: AccessRoleKey; label: string }[] = [
   { key: "admin", label: "Admin" },
-  { key: "hunter", label: "Sales Hunter" },
+  { key: "hunter", label: "Sales Leader / Sales Manager" },
   { key: "sales_person", label: "Sales Person" },
   { key: "telemarketing", label: "Telemarketing" },
   { key: "task_force", label: "Non Sales" },

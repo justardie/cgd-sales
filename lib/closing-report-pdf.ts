@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import { formatRupiahFull } from "@/lib/utils"
+import { getHunterTitle } from "./hunters"
 
 export interface ClosingReportRow {
   hunter: string
@@ -270,7 +271,7 @@ export async function generateClosingReportPdf(data: ClosingReportData): Promise
       pdf.text(`Belum ada closing ${periodWord}`, x + 4, y + 14)
     }
   }
-  drawPerformer(kpiX + summaryW + summaryGap, "Top Sales Hunter", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`, accentBorder)
+  drawPerformer(kpiX + summaryW + summaryGap, data.topHunter?.name ? `Top ${getHunterTitle(data.topHunter.name)}` : "Top Sales Leader/Manager", data.topHunter?.name ?? null, data.topHunter?.omset ?? 0, accent, `Capaian ${periodWord}: ${data.topHunter?.pct ?? 0}%`, accentBorder)
   drawPerformer(kpiX + (summaryW + summaryGap) * 2, "Top Sales Person", data.topSales?.name ?? null, data.topSales?.omset ?? 0, green, `Kontribusi ${periodWord}`, greenBorder)
   y += summaryH + 5
 

@@ -7,7 +7,7 @@ import { AnimatedNumber, DashboardSkeleton, useReducedMotion } from "@/component
 import { formatRupiah, pct, getMonthName, normalizeProject, PROJECT_NAMES, TEAM_MONTHLY_TARGET } from "@/lib/utils"
 import { canonicalProjectTotals, periodTarget, topClosingBy } from "@/lib/dashboard-rules"
 import { DollarSign, Star, Trophy } from "lucide-react"
-import { HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS, getHunterTitle } from "@/lib/hunters"
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 interface HunterStat {
@@ -521,15 +521,15 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Top Performers — Sales Hunter & Sales Person */}
+        {/* Top Performers — Sales Leader/Manager & Sales Person */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 section-fade-1">
-          {/* Top Sales Hunter (Supervisor) */}
+          {/* Top Sales Leader/Manager */}
           <div className="rounded-2xl p-5" style={{
             background: "linear-gradient(145deg, var(--surface) 0%, var(--surface2) 100%)",
             border: "1px solid var(--border)", boxShadow: "var(--shadow-md)",
           }}>
             <p className="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
-              <Trophy size={14} aria-hidden /> Top Sales Hunter
+              <Trophy size={14} aria-hidden /> Top {topHunter ? getHunterTitle(topHunter.name) : "Sales Leader/Manager"}
             </p>
             {topHunter ? (
               <>

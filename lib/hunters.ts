@@ -1,8 +1,13 @@
+/** Job title shown in place of the old generic "Sales Hunter" label. Function, targets, and data scope are unchanged. */
+export type HunterTitle = "Sales Leader" | "Sales Manager"
+
 export interface HunterGroup {
   /** Display name used in UI */
   name: string
   /** Exact name stored in the `users` table */
   dbName: string
+  /** Job title: Sales Leader or Sales Manager */
+  title: HunterTitle
   /** Sales Person names under this hunter */
   spNames: string[]
   /** True for Lyndon, Jimmy, Firyal — they sell via Agent channel */
@@ -15,6 +20,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Lyndon Sumarli",
     dbName: "Lyndon Sumarli",
+    title: "Sales Manager",
     hasAgent: true,
     spNames: [
       "Heriyandi",
@@ -26,6 +32,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Jimmy Darmadi",
     dbName: "Jimmy Darmadi",
+    title: "Sales Manager",
     hasAgent: true,
     sellsOwnLeads: true,
     spNames: [],
@@ -33,6 +40,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Firyal Badriyyah (Al)",
     dbName: "Firyal Badriyyah",
+    title: "Sales Manager",
     hasAgent: true,
     sellsOwnLeads: true,
     spNames: ["Adi Chandra"],
@@ -40,6 +48,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Aida",
     dbName: "Aida",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: [
       "M Fadjri Saputra",
@@ -52,6 +61,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Aldo",
     dbName: "Aldo",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: [
       "Yossi Eka Nofrita",
@@ -64,12 +74,14 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Frans",
     dbName: "Frans",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: ["M. Amirullah", "Shinta Okvianti", "Nisa Nur fadhila"],
   },
   {
     name: "Andre",
     dbName: "Andre",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: [
       "Riezkya Adella Hayuningtyas",
@@ -83,6 +95,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Prediman",
     dbName: "Prediman",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: [
       "Crisna Ardhiansyah",
@@ -94,6 +107,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Elen Rulita",
     dbName: "Ellen",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: [
       "Amos Marihot Panggabean",
@@ -106,6 +120,7 @@ export const HUNTER_GROUPS: HunterGroup[] = [
   {
     name: "Rika Sanusi",
     dbName: "Rika Sanusi",
+    title: "Sales Leader",
     hasAgent: false,
     spNames: ["Santoso", "Sentia Julika Putri", "Rio Pratama", "Eka Vitria Lestari"],
   },
@@ -129,6 +144,19 @@ export function getSpOptions(hunterName: string): string[] {
  */
 export function findHunterGroup(name: string): HunterGroup | undefined {
   return HUNTER_GROUPS.find((g) => g.dbName === name || g.name === name)
+}
+
+/**
+ * Returns the job title (Sales Leader / Sales Manager) for a given hunter name.
+ * Falls back to "Sales Leader" for hunters not yet classified.
+ */
+export function getHunterTitle(name: string): HunterTitle {
+  return findHunterGroup(name)?.title ?? "Sales Leader"
+}
+
+/** Short badge text for a hunter title: SL or SM. */
+export function hunterTitleAbbrev(title: HunterTitle): string {
+  return title === "Sales Manager" ? "SM" : "SL"
 }
 
 /**

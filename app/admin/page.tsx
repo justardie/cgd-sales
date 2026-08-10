@@ -9,7 +9,7 @@ import Modal from "@/components/Modal"
 import { formatRupiah, isFormDirty } from "@/lib/utils"
 import { Shield, Plus, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide-react"
 import type { User, Role } from "@/types"
-import { HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS, getHunterTitle } from "@/lib/hunters"
 
 export default function AdminPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
@@ -203,7 +203,7 @@ export default function AdminPage() {
                       u.role === "sales_person"   ? "bg-green-500/20 text-green-400" :
                                                     "bg-slate-500/20 text-slate-400"
                     }`}>
-                      {u.role === "hunter"        ? "Sales Hunter"   :
+                      {u.role === "hunter"        ? getHunterTitle(u.name) :
                        u.role === "sales_person" && u.has_tm_access ? "Telemarketing" :
                        u.role === "sales_person"  ? "Sales Person"   :
                        u.role === "task_force"    ? "Non Sales"      : u.role}
@@ -262,7 +262,7 @@ export default function AdminPage() {
                 <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
                   className="w-full text-sm px-3 py-2 rounded-lg text-white outline-none"
                   style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                  <option value="hunter">Sales Hunter</option>
+                  <option value="hunter">Sales Leader / Sales Manager</option>
                   <option value="sales_person">Sales Person</option>
                   <option value="telemarketing">Telemarketing</option>
                   <option value="task_force">Non Sales</option>

@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/contexts/ToastContext"
 import DashboardShell from "@/components/DashboardShell"
-import { HUNTER_GROUPS } from "@/lib/hunters"
+import { HUNTER_GROUPS, hunterTitleAbbrev } from "@/lib/hunters"
 import { formatRupiah, getMonthName, pct, PROJECT_NAMES } from "@/lib/utils"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -352,13 +352,13 @@ export default function TeamPage() {
                   <div className={`px-4 py-3 border-b ${borderColor(color)}`}
                     style={{ background: "var(--surface2)" }}>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>SH</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>{hunterTitleAbbrev(hunter.title)}</span>
                       <span className="text-sm font-semibold text-white">{hunter.name}</span>
                       {(hunterClosingsMap[hunter.name] || []).length > 0 && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">✓ Closing</span>
                       )}
                       <span className="text-xs px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 ml-auto">
-                        Sales Hunter
+                        {hunter.title}
                       </span>
                     </div>
                     {m ? (() => {
