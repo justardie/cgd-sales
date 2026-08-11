@@ -14,6 +14,7 @@ import { daysSince, isStaleLead } from "@/lib/stale-leads"
 import { canManageRecord, filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
 import { Plus, Pencil, CheckCircle2, Trash2, Send, BookOpen, ChevronDown, FileDown, MoreVertical, AlertTriangle } from "lucide-react"
 import Modal from "@/components/Modal"
+import ConfirmModal from "@/components/ConfirmModal"
 
 interface KonsumenRow {
   id: string
@@ -202,13 +203,14 @@ interface SavedPipelineNote {
   createdAt: string
 }
 
-function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; canManage: boolean; legacyNote?: string; onSaved: (saved: SavedPipelineNote) => void; onDirtyChange?: (dirty: boolean) => void }) {
+function PipelineNotes({ konsumenId, user, canManage, legacyNote, formDirty, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; canManage: boolean; legacyNote?: string; formDirty?: boolean; onSaved: (saved: SavedPipelineNote) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const { showToast } = useToast()
   const [notes, setNotes]         = useState<PipelineNote[]>([])
   const [loading, setLoading]     = useState(true)
   const [tableExists, setTableExists] = useState(true)
   const [progress, setProgress]   = useState({ kendala: "", nextAction: "", targetClosing: "" })
   const [sending, setSending]     = useState(false)
+  const [confirmingSend, setConfirmingSend] = useState(false)
   const bottomRef                 = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -270,14 +272,16 @@ function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDir
     const { error: syncError } = await supabase.from("konsumen").update({ notes: content }).eq("id", konsumenId)
     setSending(false)
     setProgress({ kendala: "", nextAction: "", targetClosing: "" })
+    // The modal stays open, so refresh the timeline and let the parent patch the
+    // table row. Any unsaved Status/Nilai edits in the form above are untouched.
+    onSaved({ progress: saved, content, createdAt: data.created_at })
+    loadNotes()
     showToast(
       syncError
         ? `Catatan tersimpan, tetapi sinkronisasi ke tabel gagal: ${syncError.message}`
         : "Catatan progress berhasil disimpan",
       syncError ? "error" : "success",
     )
-    // Last — the parent closes the modal here, unmounting this component.
-    onSaved({ progress: saved, content, createdAt: data.created_at })
   }
 
   function fmtNoteDate(iso: string): string {
@@ -368,7 +372,7 @@ function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDir
             </label>
           <button
             type="button"
-            onClick={handleSend}
+            onClick={() => { if (formDirty) setConfirmingSend(true); else void handleSend() }}
             disabled={!progress.kendala.trim() || !progress.nextAction.trim() || !progress.targetClosing || sending}
             title="Simpan Progress"
             style={{
@@ -383,6 +387,18 @@ function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDir
           </button>
           </div>
         </div>
+      )}
+
+      {/* Portalled to body — the modal panel keeps a transform, which would trap a fixed child. */}
+      {confirmingSend && typeof document !== "undefined" && createPortal(
+        <ConfirmModal
+          title="Perubahan Status/Nilai belum disimpan"
+          message="Catatan akan dikirim sekarang, tapi perubahan pada form di atas belum tersimpan. Klik Simpan setelah ini supaya tidak hilang."
+          confirmLabel="Kirim Catatan"
+          onConfirm={() => { setConfirmingSend(false); void handleSend() }}
+          onCancel={() => setConfirmingSend(false)}
+        />,
+        document.body,
       )}
     </div>
   )
@@ -401,7 +417,6 @@ const emptyForm = {
   visit_date:        "",
   sudah_booking_fee: "false",
   status:            "warm",
-  notes:             "",
 }
 
 export default function PipelinePage() {
@@ -443,6 +458,7 @@ export default function PipelinePage() {
   const [deleting, setDeleting] = useState(false)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [notesDirty, setNotesDirty] = useState(false)
+  const [confirmingSaveWithNote, setConfirmingSaveWithNote] = useState(false)
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({})
   const mobileRowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [initialForm, setInitialForm] = useState<typeof emptyForm | null>(null)
@@ -635,7 +651,6 @@ export default function PipelinePage() {
       visit_date:        r.visit_date || "",
       sudah_booking_fee: String(r.sudah_booking_fee ?? false),
       status:            r.status || "warm",
-      notes:             r.notes || "",
     }
     setForm(next)
     setInitialForm(next)
@@ -736,6 +751,16 @@ export default function PipelinePage() {
       showToast(validationError, "error")
       return
     }
+    // Catatan is a separate area with its own send button — warn before the
+    // form save discards a progress note that was typed but never sent.
+    if (notesDirty) {
+      setConfirmingSaveWithNote(true)
+      return
+    }
+    await persistPipeline()
+  }
+
+  async function persistPipeline() {
     setSaving(true)
     const payload = {
       name:              form.name,
@@ -751,7 +776,9 @@ export default function PipelinePage() {
       sudah_visit:       !!form.visit_date,
       sudah_booking_fee: form.sudah_booking_fee === "true",
       status:            form.status,
-      notes:             form.notes || null,
+      // notes is deliberately absent: konsumen.notes belongs to the Catatan /
+      // Progress area, which syncs it on send. The form has no input for it, so
+      // writing it here would only stamp a stale copy back over a fresh note.
       user_id:           editing && user?.role === "sales_person" ? editing.user_id : user!.id,
       board:             "pipeline",
     }
@@ -1402,15 +1429,16 @@ export default function PipelinePage() {
                     user={user ? { id: user.id, name: user.name } : null}
                     canManage={canManageRecord(user?.role, user?.id, editing)}
                     legacyNote={editing.notes || ""}
+                    formDirty={isFormDirty(initialForm, form)}
                     onSaved={({ progress, content, createdAt }) => {
                       setLatestProgress(current => ({ ...current, [editing.id]: progress }))
                       setLatestNotes(current => ({ ...current, [editing.id]: content }))
                       // Clears the stale border and "Xh tanpa update" badge right away.
                       setLatestNoteDates(current => ({ ...current, [editing.id]: createdAt }))
-                      // konsumen.notes was synced too — keep the row in step so a later
-                      // "Simpan" does not write the old legacy note back over it.
+                      // konsumen.notes was synced too — keep the row in step.
                       setRows(current => current.map(row => row.id === editing.id ? { ...row, notes: content } : row))
-                      setShowModal(false)
+                      // The modal deliberately stays open: Status/Nilai is a separate
+                      // area, so unsaved form edits must survive sending a note.
                     }}
                     onDirtyChange={setNotesDirty}
                   />
@@ -1419,6 +1447,16 @@ export default function PipelinePage() {
             </form>
           </div>
         </Modal>
+      )}
+      {/* Saving the form would drop a progress note that was typed but never sent. */}
+      {confirmingSaveWithNote && (
+        <ConfirmModal
+          title="Catatan progress belum dikirim"
+          message="Catatan yang sedang ditulis akan hilang kalau form disimpan sekarang. Batalkan dulu lalu kirim dengan tombol pesawat, atau lanjut simpan tanpa catatan."
+          confirmLabel="Simpan Tanpa Catatan"
+          onConfirm={() => { setConfirmingSaveWithNote(false); void persistPipeline() }}
+          onCancel={() => setConfirmingSaveWithNote(false)}
+        />
       )}
       {/* Delete Confirmation Modal */}
       {deleteTarget && (

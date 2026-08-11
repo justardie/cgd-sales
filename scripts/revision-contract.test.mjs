@@ -489,6 +489,29 @@ test("Sending a Pipeline progress note refreshes the table row everywhere", asyn
   assert.match(onSaved, /setLatestNotes\(current => \(\{ \.\.\.current, \[editing\.id\]: content \}\)\)/)
   assert.match(onSaved, /setLatestNoteDates\(current => \(\{ \.\.\.current, \[editing\.id\]: createdAt \}\)\)/)
   assert.match(onSaved, /setRows\(current => current\.map\(row => row\.id === editing\.id \? \{ \.\.\.row, notes: content \} : row\)\)/)
+  // Status/Nilai is a separate area — sending a note must not close the form.
+  assert.doesNotMatch(onSaved, /setShowModal\(false\)/)
+})
+
+test("Pipeline warns both ways between the form area and the Catatan area", async () => {
+  const pipeline = await read("app/pipeline/page.tsx")
+
+  // Simpan warns when a progress note was typed but never sent.
+  const save = pipeline.match(/async function handleSave\([\s\S]*?(?=\n  async function persistPipeline)/)?.[0] ?? ""
+  assert.match(save, /if \(notesDirty\) \{\s*\n\s*setConfirmingSaveWithNote\(true\)\s*\n\s*return\s*\n\s*\}/)
+  assert.match(save, /await persistPipeline\(\)/)
+  assert.match(pipeline, /confirmingSaveWithNote && \(\s*\n\s*<ConfirmModal[\s\S]*?onConfirm=\{\(\) => \{ setConfirmingSaveWithNote\(false\); void persistPipeline\(\) \}\}/)
+
+  // The send button warns when Status/Nilai has unsaved edits.
+  assert.match(pipeline, /formDirty=\{isFormDirty\(initialForm, form\)\}/)
+  assert.match(pipeline, /onClick=\{\(\) => \{ if \(formDirty\) setConfirmingSend\(true\); else void handleSend\(\) \}\}/)
+  assert.match(pipeline, /confirmingSend && typeof document !== "undefined" && createPortal\(\s*\n\s*<ConfirmModal/)
+
+  // konsumen.notes is owned by the Catatan area, so the form must not stamp it back.
+  const payload = pipeline.match(/async function persistPipeline\([\s\S]*?(?=\n  function canDelete)/)?.[0] ?? ""
+  assert.match(payload, /from\("konsumen"\)\.update\(payload\)\.eq\("id", editing\.id\)/)  // block really matched
+  assert.doesNotMatch(payload, /notes:\s*form\.notes/)
+  assert.doesNotMatch(pipeline, /notes:\s*r\.notes \|\| ""/)
 })
 
 test("Sales Closing PDF consumes the persisted single-Hunter scope", async () => {
