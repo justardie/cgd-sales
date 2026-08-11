@@ -474,6 +474,23 @@ test("Pipeline and Closing bind ownership checks to mutation handlers and contro
   assert.match(closing, /canManageRecord\(user\?\.role, user\?\.id, c\) && \(\s*<button onClick=\{\(\) => openEdit\(c\)\}/)
 })
 
+test("Sending a Pipeline progress note refreshes the table row everywhere", async () => {
+  const pipeline = await read("app/pipeline/page.tsx")
+  const send = pipeline.match(/async function handleSend\([\s\S]*?(?=\n  function fmtNoteDate)/)?.[0] ?? ""
+
+  // The row's last-activity date must come from the inserted row, not the client clock.
+  assert.match(send, /\.select\("created_at"\)\.single\(\)/)
+  // The legacy konsumen.notes column is mirrored so Closing and exports agree.
+  assert.match(send, /from\("konsumen"\)\.update\(\{ notes: content \}\)\.eq\("id", konsumenId\)/)
+  // Trimmed values are what gets persisted AND handed back to the parent.
+  assert.match(send, /onSaved\(\{ progress: saved, content, createdAt: data\.created_at \}\)/)
+
+  const onSaved = pipeline.match(/onSaved=\{\(\{ progress, content, createdAt \}\) => \{[\s\S]*?\n                    \}\}/)?.[0] ?? ""
+  assert.match(onSaved, /setLatestNotes\(current => \(\{ \.\.\.current, \[editing\.id\]: content \}\)\)/)
+  assert.match(onSaved, /setLatestNoteDates\(current => \(\{ \.\.\.current, \[editing\.id\]: createdAt \}\)\)/)
+  assert.match(onSaved, /setRows\(current => current\.map\(row => row\.id === editing\.id \? \{ \.\.\.row, notes: content \} : row\)\)/)
+})
+
 test("Sales Closing PDF consumes the persisted single-Hunter scope", async () => {
   const closing = await read("app/closing/page.tsx")
   const salesFetch = closing.match(/else if \(user && user\.role === "sales_person"\) \{[\s\S]*?\n    \} else \{/)?.[0] ?? ""

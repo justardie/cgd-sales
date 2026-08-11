@@ -191,7 +191,18 @@ interface PipelineNote {
   created_at: string
 }
 
-function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; canManage: boolean; legacyNote?: string; onSaved: (progress: PipelineProgressExport) => void; onDirtyChange?: (dirty: boolean) => void }) {
+/**
+ * A progress note that was just persisted. `createdAt` comes from the database
+ * row (not the client clock) so the row's last-activity/stale state matches
+ * exactly what a later refetch will read back.
+ */
+interface SavedPipelineNote {
+  progress: PipelineProgressExport
+  content: string
+  createdAt: string
+}
+
+function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDirtyChange }: { konsumenId: string; user: { id: string; name: string } | null; canManage: boolean; legacyNote?: string; onSaved: (saved: SavedPipelineNote) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const { showToast } = useToast()
   const [notes, setNotes]         = useState<PipelineNote[]>([])
   const [loading, setLoading]     = useState(true)
@@ -234,25 +245,39 @@ function PipelineNotes({ konsumenId, user, canManage, legacyNote, onSaved, onDir
       return
     }
     setSending(true)
-    const content = `Kendala: ${progress.kendala.trim()}\nNext Action: ${progress.nextAction.trim()}\nTarget Closing: ${progress.targetClosing}`
-    const { error } = await supabase.from("pipeline_notes").insert({
+    const saved: PipelineProgressExport = {
+      kendala:       progress.kendala.trim(),
+      nextAction:    progress.nextAction.trim(),
+      targetClosing: progress.targetClosing,
+    }
+    const content = `Kendala: ${saved.kendala}\nNext Action: ${saved.nextAction}\nTarget Closing: ${saved.targetClosing}`
+    const { data, error } = await supabase.from("pipeline_notes").insert({
       konsumen_id: konsumenId,
       content,
-      kendala: progress.kendala.trim(),
-      next_action: progress.nextAction.trim(),
-      target_closing: progress.targetClosing,
+      kendala: saved.kendala,
+      next_action: saved.nextAction,
+      target_closing: saved.targetClosing,
       author_name: user.name,
       created_by:  user.id,
-    })
-    setSending(false)
+    }).select("created_at").single()
     if (error) {
+      setSending(false)
       showToast(`Gagal menyimpan catatan: ${error.message}`, "error")
       return
     }
-    onSaved(progress)
+    // Mirror the latest progress onto the legacy konsumen.notes column so views
+    // that still read it (Closing table, exports) show the same catatan.
+    const { error: syncError } = await supabase.from("konsumen").update({ notes: content }).eq("id", konsumenId)
+    setSending(false)
     setProgress({ kendala: "", nextAction: "", targetClosing: "" })
-    loadNotes()
-    showToast("Catatan progress berhasil disimpan", "success")
+    showToast(
+      syncError
+        ? `Catatan tersimpan, tetapi sinkronisasi ke tabel gagal: ${syncError.message}`
+        : "Catatan progress berhasil disimpan",
+      syncError ? "error" : "success",
+    )
+    // Last — the parent closes the modal here, unmounting this component.
+    onSaved({ progress: saved, content, createdAt: data.created_at })
   }
 
   function fmtNoteDate(iso: string): string {
@@ -1377,12 +1402,14 @@ export default function PipelinePage() {
                     user={user ? { id: user.id, name: user.name } : null}
                     canManage={canManageRecord(user?.role, user?.id, editing)}
                     legacyNote={editing.notes || ""}
-                    onSaved={progress => {
+                    onSaved={({ progress, content, createdAt }) => {
                       setLatestProgress(current => ({ ...current, [editing.id]: progress }))
-                      setLatestNotes(current => ({
-                        ...current,
-                        [editing.id]: `Kendala: ${progress.kendala}\nNext Action: ${progress.nextAction}\nTarget Closing: ${progress.targetClosing}`,
-                      }))
+                      setLatestNotes(current => ({ ...current, [editing.id]: content }))
+                      // Clears the stale border and "Xh tanpa update" badge right away.
+                      setLatestNoteDates(current => ({ ...current, [editing.id]: createdAt }))
+                      // konsumen.notes was synced too — keep the row in step so a later
+                      // "Simpan" does not write the old legacy note back over it.
+                      setRows(current => current.map(row => row.id === editing.id ? { ...row, notes: content } : row))
                       setShowModal(false)
                     }}
                     onDirtyChange={setNotesDirty}
