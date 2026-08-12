@@ -1,3 +1,5 @@
+import { formatRupiahFull } from "./utils.ts"
+
 export interface PipelineExportRow {
   id: string
   salesHunter?: string
@@ -37,6 +39,7 @@ export function formatPipelineExport(
         `Status Visit: ${row.visited ? "Sudah" : "Belum"}`,
         `Status BF: ${row.sudahBookingFee ? "Sudah" : "Belum"}`,
         `Minat: ${[row.project, row.unit].filter(Boolean).join(" - ") || "—"}`,
+        `Nilai Potensi: ${row.nilaiPotensi ? formatRupiahFull(row.nilaiPotensi) : "—"}`,
         `Kendala: ${progress?.kendala || "—"}`,
         `Next Action: ${progress?.nextAction || "—"}`,
         `Target closing: ${displayDate(progress?.targetClosing || "")}`,
