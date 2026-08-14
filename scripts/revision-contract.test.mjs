@@ -200,6 +200,27 @@ test("Admin stores Telemarketing as Sales Person with TM access", async () => {
   assert.match(types, /has_tm_access\?: boolean/)
 })
 
+test("Admin table title carries its filter and sort controls", async () => {
+  const admin = await read("app/admin/page.tsx")
+
+  assert.match(admin, /<h2 className="text-sm font-semibold text-white">Daftar User<\/h2>/)
+  // Controls sit in the same row as the title, which is pushed left by mr-auto.
+  const bar = admin.match(/\{\/\* Table title with its filter \+ sort controls alongside \*\/\}[\s\S]*?\n          <table/)?.[0] ?? ""
+  assert.match(bar, /mr-auto/)
+  assert.match(bar, /value=\{search\}/)
+  assert.match(bar, /value=\{filterRole\}/)
+  assert.match(bar, /value=\{filterStatus\}/)
+  assert.match(bar, /value=\{sortKey\}/)
+  assert.match(bar, /setSortDir\(d => d === "asc" \? "desc" : "asc"\)/)
+  assert.match(bar, /ADMIN_SORT_OPTIONS\.map/)
+  assert.match(bar, /ACCESS_ROLES\.map/)
+
+  // The table renders the filtered list, not the raw one, and says so when empty.
+  assert.match(admin, /\) : visibleUsers\.map\(u => \(/)
+  assert.match(admin, /Tidak ada user yang cocok dengan filter\./)
+  assert.match(admin, /filterAndSortAdminUsers\(users, listOptions\)/)
+})
+
 test("Telemarketing is an access profile, not a database role", async () => {
   const types = await read("types/index.ts")
   const migration = await read("supabase/047_unify_telemarketing_role.sql")

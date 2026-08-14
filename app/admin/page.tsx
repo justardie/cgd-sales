@@ -7,9 +7,22 @@ import { useRouter } from "next/navigation"
 import DashboardShell from "@/components/DashboardShell"
 import Modal from "@/components/Modal"
 import { formatRupiah, isFormDirty } from "@/lib/utils"
-import { Shield, Plus, Edit2, UserX, UserCheck, ArrowRightLeft } from "lucide-react"
+import { Shield, Plus, Edit2, UserX, UserCheck, ArrowRightLeft, Search, ArrowUpDown } from "lucide-react"
 import type { User, Role } from "@/types"
 import { HUNTER_GROUPS, getHunterTitle } from "@/lib/hunters"
+import { ACCESS_ROLES, accessRoleForUser } from "@/lib/access-settings"
+import { ADMIN_SORT_OPTIONS, filterAndSortAdminUsers, isAdminListFiltered, type AdminSortKey } from "@/lib/admin-user-list"
+
+/** Badge text for a user's role. Hunters show their own title (Sales Leader / Sales Manager). */
+function roleLabel(u: User): string {
+  return u.role === "hunter"        ? getHunterTitle(u.name) :
+         u.role === "sales_person" && u.has_tm_access ? "Telemarketing" :
+         u.role === "sales_person"  ? "Sales Person"   :
+         u.role === "task_force"    ? "Non Sales"      : u.role
+}
+
+const controlClass = "text-xs px-3 py-2 rounded-lg text-slate-300 outline-none"
+const controlStyle = { background: "var(--surface)", border: "1px solid var(--border)" }
 
 export default function AdminPage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
@@ -23,6 +36,11 @@ export default function AdminPage() {
   const [transferTarget, setTransferTarget] = useState<User | null>(null)
   const [transferHunter, setTransferHunter] = useState("")
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState("")
+  const [filterRole, setFilterRole] = useState("")
+  const [filterStatus, setFilterStatus] = useState("")
+  const [sortKey, setSortKey] = useState<AdminSortKey>("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   const [form, setForm] = useState({
     name: "",
@@ -151,6 +169,14 @@ export default function AdminPage() {
     showToast(newStatus === "active" ? `${u.name} diaktifkan` : `${u.name} dinonaktifkan`, "success")
   }
 
+  const listOptions = {
+    search, role: filterRole, status: filterStatus, sortKey, sortDir,
+    labelOf: roleLabel,
+    roleKeyOf: (u: User) => accessRoleForUser(u.role, u.has_tm_access),
+  }
+  const visibleUsers = filterAndSortAdminUsers(users, listOptions)
+  const isFiltered = isAdminListFiltered(listOptions)
+
   if (!isAdmin) return (
     <DashboardShell>
       <div className="flex items-center justify-center h-64 text-slate-500 text-sm">Akses ditolak</div>
@@ -174,6 +200,63 @@ export default function AdminPage() {
         </div>
 
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border)" }}>
+          {/* Table title with its filter + sort controls alongside */}
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3"
+            style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+            <div className="mr-auto">
+              <h2 className="text-sm font-semibold text-white">Daftar User</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {loading
+                  ? "Memuat..."
+                  : isFiltered
+                    ? `${visibleUsers.length} dari ${users.length} user`
+                    : `${users.length} user`}
+              </p>
+            </div>
+
+            <label className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Cari nama atau tim..."
+                aria-label="Cari user"
+                className={`${controlClass} pl-7 w-44`} style={controlStyle} />
+            </label>
+
+            <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
+              aria-label="Filter role" className={controlClass} style={controlStyle}>
+              <option value="">Semua Role</option>
+              {ACCESS_ROLES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+            </select>
+
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              aria-label="Filter status" className={controlClass} style={controlStyle}>
+              <option value="">Semua Status</option>
+              <option value="active">Active</option>
+              <option value="resigned">Resigned</option>
+            </select>
+
+            <select value={sortKey} onChange={e => setSortKey(e.target.value as AdminSortKey)}
+              aria-label="Urutkan berdasarkan" className={controlClass} style={controlStyle}>
+              {ADMIN_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>Urutkan: {o.label}</option>)}
+            </select>
+
+            <button type="button"
+              onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+              title={sortDir === "asc" ? "Urutan naik — klik untuk membalik" : "Urutan turun — klik untuk membalik"}
+              className={`${controlClass} flex items-center gap-1.5 hover:text-white transition`}
+              style={controlStyle}>
+              <ArrowUpDown size={13} /> {sortDir === "asc" ? "Naik" : "Turun"}
+            </button>
+
+            {isFiltered && (
+              <button type="button"
+                onClick={() => { setSearch(""); setFilterRole(""); setFilterStatus("") }}
+                className="text-xs px-2 py-2 text-slate-500 hover:text-white transition">
+                Reset
+              </button>
+            )}
+          </div>
+
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
@@ -188,7 +271,11 @@ export default function AdminPage() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-xs">Memuat...</td></tr>
-              ) : users.map(u => (
+              ) : visibleUsers.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-xs">
+                  {isFiltered ? "Tidak ada user yang cocok dengan filter." : "Belum ada user."}
+                </td></tr>
+              ) : visibleUsers.map(u => (
                 <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }} className="hover:bg-white/[0.02]">
                   <td className="px-4 py-3">
                     <div className="font-medium text-white">{u.name}</div>
@@ -203,10 +290,7 @@ export default function AdminPage() {
                       u.role === "sales_person"   ? "bg-green-500/20 text-green-400" :
                                                     "bg-slate-500/20 text-slate-400"
                     }`}>
-                      {u.role === "hunter"        ? getHunterTitle(u.name) :
-                       u.role === "sales_person" && u.has_tm_access ? "Telemarketing" :
-                       u.role === "sales_person"  ? "Sales Person"   :
-                       u.role === "task_force"    ? "Non Sales"      : u.role}
+                      {roleLabel(u)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-slate-400">
