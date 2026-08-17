@@ -1261,7 +1261,7 @@ export default function ClosingPage() {
             onCancel={() => { setShowEditModal(false); setEditingClosing(null) }}
             onSubmit={handleEditSave}
             title={`Edit: ${editingClosing.name}`}
-            submitLabel="Simpan Perubahan"
+            submitLabel="Simpan"
             formError={formError}
             onCancelClosing={() => setShowCancelClosingConfirm(true)}
           />
