@@ -34,6 +34,25 @@ export function formatUnitSpecialPayments(values: string[]): string {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).join(", ")
 }
 
+/** Reads a price the user typed (or that was formatted as "1.450.000.000") back into a number. */
+export function parseUnitSpecialPrice(value: string): number {
+  return Number(value.replace(/[^\d]/g, "")) || 0
+}
+
+/**
+ * Totals the sale price of the rows being shown. While bulk editing, the draft
+ * value in the input wins over the saved one so the total tracks edits live.
+ */
+export function sumUnitSpecialSalePrice(
+  rows: readonly { id: string; sale_price: number }[],
+  drafts?: Readonly<Record<string, Pick<UnitSpecialForm, "sale_price">>>,
+): number {
+  return rows.reduce((total, row) => {
+    const draft = drafts?.[row.id]?.sale_price
+    return total + (draft === undefined ? (row.sale_price || 0) : parseUnitSpecialPrice(draft))
+  }, 0)
+}
+
 export function buildEmptyUnitSpecialForm(category: UnitSpecialCategory): UnitSpecialForm {
   return {
     category,

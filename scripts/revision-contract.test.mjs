@@ -133,6 +133,24 @@ test("Pipeline exports active filtered rows and stores structured progress", asy
   assert.match(migration, /target_closing DATE/)
 })
 
+test("Unit Special totals the sale price in a footer row on both layouts", async () => {
+  const page = await read("app/unit-special/page.tsx")
+
+  assert.match(page, /sumUnitSpecialSalePrice\(filteredRows, bulkEditing \? bulkRows : undefined\)/)
+
+  // Desktop: one <tfoot> row whose colSpans still add up to the 10 columns.
+  const foot = page.match(/<tfoot>[\s\S]*?<\/tfoot>/)?.[0] ?? ""
+  assert.match(foot, /colSpan=\{6\}/)
+  assert.match(foot, /formatRupiahFull\(totalSalePrice\)/)
+  assert.match(foot, /colSpan=\{3\}/)
+  const spans = [...foot.matchAll(/colSpan=\{(\d+)\}/g)].reduce((sum, m) => sum + Number(m[1]), 0)
+  assert.equal(spans + 1, 10, "tfoot colSpans plus the price cell must cover every column")
+
+  // Card layout carries the same total so tablet/mobile is not left without it.
+  assert.equal(page.match(/TOTAL <span className="text-slate-500 font-normal">/g)?.length, 2)
+  assert.equal(page.match(/formatRupiahFull\(totalSalePrice\)/g)?.length, 2)
+})
+
 test("Unit Special page exposes three editable stock tables", async () => {
   const page = await read("app/unit-special/page.tsx")
   const helper = await read("lib/unit-special.ts")

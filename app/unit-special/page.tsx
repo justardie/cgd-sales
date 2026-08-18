@@ -9,6 +9,8 @@ import {
   buildEmptyUnitSpecialForm,
   formatUnitSpecialPayments,
   isUnitSpecialCategory,
+  parseUnitSpecialPrice,
+  sumUnitSpecialSalePrice,
   type UnitSpecialCategory,
   UNIT_SPECIAL_CATEGORIES,
   UNIT_SPECIAL_PAYMENT_OPTIONS,
@@ -36,10 +38,6 @@ interface UnitSpecialRow {
 }
 
 type SortKey = "project" | "cluster" | "unit_no" | "lt_lb" | "payment_method" | "sale_price" | "notes" | "status"
-
-function parseNumber(value: string) {
-  return Number(value.replace(/[^\d]/g, "")) || 0
-}
 
 function priceInput(value: string) {
   const numeric = value.replace(/[^\d]/g, "")
@@ -95,6 +93,11 @@ export default function UnitSpecialPage() {
       return sort.dir === "asc" ? result : -result
     })
   }, [categoryRows, sort, search, filterProject, filterPayment, filterStatus])
+
+  const totalSalePrice = useMemo(
+    () => sumUnitSpecialSalePrice(filteredRows, bulkEditing ? bulkRows : undefined),
+    [filteredRows, bulkEditing, bulkRows]
+  )
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -205,7 +208,7 @@ export default function UnitSpecialPage() {
         unit_no: next.unit_no.trim(),
         lt_lb: next.lt_lb.trim(),
         payment_method: next.payment_method.trim(),
-        sale_price: parseNumber(next.sale_price),
+        sale_price: parseUnitSpecialPrice(next.sale_price),
         notes: next.notes.trim(),
         status: next.status,
       }).eq("id", row.id)
@@ -329,7 +332,7 @@ export default function UnitSpecialPage() {
       unit_no: form.unit_no.trim(),
       lt_lb: form.lt_lb.trim(),
       payment_method: form.payment_method.trim(),
-      sale_price: parseNumber(form.sale_price),
+      sale_price: parseUnitSpecialPrice(form.sale_price),
       notes: form.notes.trim(),
       status: form.status,
     }
@@ -516,6 +519,19 @@ export default function UnitSpecialPage() {
                   </tr>
                 ))}
               </tbody>
+              {!loading && filteredRows.length > 0 && (
+                <tfoot>
+                  <tr style={{ borderTop: "2px solid var(--border-medium)", background: "var(--surface2)" }}>
+                    <td colSpan={6} className="px-3 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      TOTAL <span className="text-slate-500 font-normal">· {filteredRows.length} unit</span>
+                    </td>
+                    <td className="px-3 py-3 text-sm font-bold whitespace-nowrap" style={{ color: "var(--accent)" }}>
+                      {formatRupiahFull(totalSalePrice)}
+                    </td>
+                    <td colSpan={3} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
 
@@ -568,6 +584,14 @@ export default function UnitSpecialPage() {
                 )}
               </div>
             ))}
+            {!loading && filteredRows.length > 0 && (
+              <div className="px-3 py-3 text-xs font-semibold flex items-center justify-between" style={{ background: "var(--surface2)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>
+                  TOTAL <span className="text-slate-500 font-normal">· {filteredRows.length} unit</span>
+                </span>
+                <span style={{ color: "var(--accent)" }}>{formatRupiahFull(totalSalePrice)}</span>
+              </div>
+            )}
           </div>
         </div>
 
