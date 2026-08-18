@@ -149,6 +149,17 @@ test("Unit Special totals the sale price in a footer row on both layouts", async
   // Card layout carries the same total so tablet/mobile is not left without it.
   assert.equal(page.match(/TOTAL <span className="text-slate-500 font-normal">/g)?.length, 2)
   assert.equal(page.match(/formatRupiahFull\(totalSalePrice\)/g)?.length, 2)
+
+  // The PDF export carries the same total row.
+  const exportFn = page.match(/function exportPdf\(\)[\s\S]*?(?=\n  async function handleSave)/)?.[0] ?? ""
+  assert.match(exportFn, /const priceIndex = hasPayment \? 6 : 5/)
+  assert.match(exportFn, /colSpan: priceIndex/)
+  // Must sum saved prices, not bulk-edit drafts — the PDF body prints saved ones.
+  assert.match(exportFn, /sumUnitSpecialSalePrice\(filteredRows\)\.toLocaleString\("id-ID"\)/)
+  assert.doesNotMatch(exportFn, /totalSalePrice/)
+  // Page 2+ is deleted to keep one A4 sheet, so the foot must repeat per page.
+  assert.match(exportFn, /showFoot: "everyPage"/)
+  assert.match(exportFn, /footStyles:/)
 })
 
 test("Unit Special page exposes three editable stock tables", async () => {

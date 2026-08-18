@@ -253,6 +253,14 @@ export default function UnitSpecialPage() {
       row.notes,
       row.status,
     ])
+    // The body prints saved prices, so the total must sum those too — never the
+    // bulk-edit drafts, or the PDF would not add up against its own rows.
+    const priceIndex = hasPayment ? 6 : 5
+    const foot = filteredRows.length > 0 ? [[
+      { content: `TOTAL · ${filteredRows.length} unit`, colSpan: priceIndex },
+      { content: sumUnitSpecialSalePrice(filteredRows).toLocaleString("id-ID"), styles: { halign: "right" as const } },
+      { content: "", colSpan: 2 },
+    ]] : undefined
     const dense = filteredRows.length > 45
     pdf.setFont("helvetica", "bold")
     pdf.setFontSize(14)
@@ -267,6 +275,10 @@ export default function UnitSpecialPage() {
       margin: { top: 12, left: 10, right: 10, bottom: 10 },
       head: [head],
       body,
+      foot,
+      // Rows past page 1 get deleted below to keep one A4 sheet, so the total
+      // has to be drawn on every page or it would be thrown away with them.
+      showFoot: "everyPage",
       styles: {
         fontSize: dense ? 5.1 : 7,
         cellPadding: dense ? { top: 0.6, right: 0.8, bottom: 0.6, left: 0.8 } : 1.3,
@@ -276,6 +288,7 @@ export default function UnitSpecialPage() {
         minCellHeight: dense ? 3.2 : 5,
       },
       headStyles: { fillColor: [11, 34, 73], textColor: 255, fontStyle: "bold", fontSize: dense ? 5.8 : 7.4 },
+      footStyles: { fillColor: [11, 34, 73], textColor: 255, fontStyle: "bold", fontSize: dense ? 5.8 : 7.4 },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: hasPayment ? {
         0: { cellWidth: 7, halign: "center" },
