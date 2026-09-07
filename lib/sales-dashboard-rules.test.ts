@@ -8,11 +8,26 @@ import {
   getFunnelEmptyStateMessage,
   getFunnelMetrics,
   getFunnelDetailActionState,
+  getPipelineInactiveReason,
+  getPipelineDisplayNote,
   mergeFunnelNotes,
   getVisibleFunnelLeads,
   matchesFunnelKpiStatus,
   matchesPipelineStatus,
 } from "./sales-dashboard-rules.ts"
+
+test("requires a reason only when Pipeline changes to Tidak Potensial", () => {
+  assert.equal(getPipelineInactiveReason("warm", "tidak_potensial", "  Budget belum tersedia  "), "Budget belum tersedia")
+  assert.equal(getPipelineInactiveReason("hot", "tidak_potensial", "   "), "")
+  assert.equal(getPipelineInactiveReason("tidak_potensial", "tidak_potensial", ""), null)
+  assert.equal(getPipelineInactiveReason("warm", "hot", ""), null)
+})
+
+test("shows the mandatory Tidak Potensial reason instead of an older progress note", () => {
+  assert.equal(getPipelineDisplayNote("tidak_potensial", "Follow up besok", "Alasan Tidak Potensial: Budget"), "Alasan Tidak Potensial: Budget")
+  assert.equal(getPipelineDisplayNote("tidak_potensial", "Catatan terakhir", null), "Catatan terakhir")
+  assert.equal(getPipelineDisplayNote("hot", "Follow up besok", "Catatan lama"), "Follow up besok")
+})
 
 const counters = {
   new: 10,

@@ -8,7 +8,7 @@ import DashboardShell from "@/components/DashboardShell"
 import SalesFilterBar from "@/components/SalesFilterBar"
 import { formatRupiah, CANONICAL_CARA_BAYAR, isFormDirty } from "@/lib/utils"
 import { HUNTER_GROUPS, buildSpOptions } from "@/lib/hunters"
-import { formatSalesPerson, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
+import { formatSalesPerson, getPipelineDisplayNote, getPipelineInactiveReason, matchesPipelineStatus, type PipelineStatusFilter } from "@/lib/sales-dashboard-rules"
 import { formatPipelineExport, type PipelineProgressExport } from "@/lib/pipeline-export"
 import { daysSince, isStaleLead } from "@/lib/stale-leads"
 import { canManageRecord, filterRecordsForHunterTeam } from "@/lib/hunter-team-scope"
@@ -417,6 +417,7 @@ const emptyForm = {
   visit_date:        "",
   sudah_booking_fee: "false",
   status:            "warm",
+  tidak_potensial_reason: "",
 }
 
 export default function PipelinePage() {
@@ -651,6 +652,7 @@ export default function PipelinePage() {
       visit_date:        r.visit_date || "",
       sudah_booking_fee: String(r.sudah_booking_fee ?? false),
       status:            r.status || "warm",
+      tidak_potensial_reason: "",
     }
     setForm(next)
     setInitialForm(next)
@@ -736,6 +738,9 @@ export default function PipelinePage() {
     if (missing.length > 0) {
       return `Wajib diisi: ${missing.join(", ")}`
     }
+    if (getPipelineInactiveReason(editing?.status, form.status, form.tidak_potensial_reason) === "") {
+      return "Kendala / Alasan Tidak Potensial wajib diisi"
+    }
     return ""
   }
 
@@ -762,6 +767,8 @@ export default function PipelinePage() {
 
   async function persistPipeline() {
     setSaving(true)
+    const inactiveReason = getPipelineInactiveReason(editing?.status, form.status, form.tidak_potensial_reason)
+    const inactiveNote = inactiveReason ? `Alasan Tidak Potensial: ${inactiveReason}` : ""
     const payload = {
       name:              form.name,
       sales_hunter:      (isAdmin || isTf) ? form.sales_hunter : user!.name,
@@ -776,9 +783,9 @@ export default function PipelinePage() {
       sudah_visit:       !!form.visit_date,
       sudah_booking_fee: form.sudah_booking_fee === "true",
       status:            form.status,
-      // notes is deliberately absent: konsumen.notes belongs to the Catatan /
-      // Progress area, which syncs it on send. The form has no input for it, so
-      // writing it here would only stamp a stale copy back over a fresh note.
+      // Preserve Catatan / Progress unless this save supplies the mandatory
+      // reason for a transition to Tidak Potensial.
+      ...(inactiveNote ? { notes: inactiveNote } : {}),
       user_id:           editing && user?.role === "sales_person" ? editing.user_id : user!.id,
       board:             "pipeline",
     }
@@ -1010,6 +1017,7 @@ export default function PipelinePage() {
                   <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</td></tr>
                 ) : visibleRows.map(r => {
                   const isTidakPotensial = r.status === "tidak_potensial"
+                  const displayedNote = getPipelineDisplayNote(r.status, latestNotes[r.id], r.notes)
                   const badge = statusBadge(r.status)
                   const lastActivity = latestNoteDates[r.id] || r.created_at
                   const isStale = isStaleLead(r.status, lastActivity)
@@ -1039,9 +1047,9 @@ export default function PipelinePage() {
                           </span>
                         )}
                       </div>
-                      {(latestNotes[r.id] || r.notes) && (
+                      {displayedNote && (
                         <div className="text-slate-500 mt-1 whitespace-pre-wrap md:hidden" style={{ fontSize: "10px", lineHeight: "1.4" }}>
-                          {latestNotes[r.id] || r.notes}
+                          {displayedNote}
                         </div>
                       )}
                     </td>
@@ -1065,7 +1073,7 @@ export default function PipelinePage() {
                       <YNBadge value={r.sudah_booking_fee} />
                     </td>
                     <td className="px-3 py-3 text-xs text-slate-400 min-w-[220px] whitespace-pre-wrap hidden md:table-cell">
-                      {latestNotes[r.id] || r.notes || "—"}
+                      {displayedNote || "—"}
                     </td>
                     <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center">
@@ -1108,6 +1116,7 @@ export default function PipelinePage() {
               <div className="px-4 py-8 text-center text-slate-600 text-xs">Tidak ada data</div>
             ) : visibleRows.map(r => {
               const isTidakPotensial = r.status === "tidak_potensial"
+              const displayedNote = getPipelineDisplayNote(r.status, latestNotes[r.id], r.notes)
               const badge = statusBadge(r.status)
               const lastActivity = latestNoteDates[r.id] || r.created_at
               const isStale = isStaleLead(r.status, lastActivity)
@@ -1166,9 +1175,9 @@ export default function PipelinePage() {
                     </div>
                   </div>
 
-                  {(latestNotes[r.id] || r.notes) && (
+                  {displayedNote && (
                     <div className="text-slate-500 mt-2 whitespace-pre-wrap text-xs rounded-lg px-2.5 py-2" style={{ background: "var(--surface2)" }}>
-                      {latestNotes[r.id] || r.notes}
+                      {displayedNote}
                     </div>
                   )}
                 </div>
@@ -1413,6 +1422,24 @@ export default function PipelinePage() {
                   </select>
                 </div>
               </div>
+              {getPipelineInactiveReason(editing?.status, form.status, form.tidak_potensial_reason) !== null && (
+                <div>
+                  <label htmlFor="tidak-potensial-reason" className="text-xs text-slate-500 block mb-1">
+                    Kendala / Alasan Tidak Potensial <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    id="tidak-potensial-reason"
+                    value={form.tidak_potensial_reason}
+                    onChange={e => setForm(f => ({ ...f, tidak_potensial_reason: e.target.value }))}
+                    rows={3}
+                    required
+                    placeholder="Jelaskan kendala atau alasan prospek tidak potensial"
+                    className="w-full resize-y text-sm px-3 py-2 rounded-lg text-white outline-none"
+                    style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">Alasan akan disimpan bersama data Pipeline.</p>
+                </div>
+              )}
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="flex-1 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition"

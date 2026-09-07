@@ -70,6 +70,15 @@ export function filterFunnelKpiLeads<T extends { name: string; phone: string; st
     : statusFiltered
 }
 
+export function getPipelineInactiveReason(previousStatus: string | undefined, nextStatus: string, reason: string): string | null {
+  if (!previousStatus || previousStatus === "tidak_potensial" || nextStatus !== "tidak_potensial") return null
+  return reason.trim()
+}
+
+export function getPipelineDisplayNote(status: string, latestNote: string | undefined, savedNote: string | null): string {
+  return (status === "tidak_potensial" ? (savedNote || latestNote) : (latestNote || savedNote)) || ""
+}
+
 export function getVisibleFunnelLeads<T>(leads: readonly T[], limit: number): T[] {
   return leads.slice(0, limit)
 }
