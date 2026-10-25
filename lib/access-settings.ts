@@ -14,6 +14,7 @@ export const MENU_ITEMS = [
   { key: "funnel_summary", label: "Funnel Summary", href: "/funnel-summary" },
   { key: "admin", label: "Admin", href: "/admin" },
   { key: "lapor_mas", label: "Lapor Mas", href: "/lapor-mas" },
+  { key: "tracker", label: "TRACKER", href: "/tracker" },
 ] as const
 
 export type MenuKey = typeof MENU_ITEMS[number]["key"]
@@ -48,7 +49,7 @@ export const DEFAULT_ROLE_ACCESS: Record<AccessRoleKey, {
 }> = {
   admin: {
     data_scope: "all",
-    desktop_menus: ["overview", "pipeline", "closing", "unit_special", "report", "monthly_report", "funnel", "funnel_summary", "team", "admin", "lapor_mas"],
+    desktop_menus: ["overview", "pipeline", "closing", "unit_special", "report", "monthly_report", "funnel", "funnel_summary", "team", "admin", "lapor_mas", "tracker"],
     tablet_menus: ["overview", "pipeline", "closing", "team", "admin"],
     mobile_menus: ["overview", "pipeline", "closing", "team"],
   },

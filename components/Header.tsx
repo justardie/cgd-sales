@@ -18,6 +18,7 @@ const SALES_NAV = [
   { href: "/monthly-report", label: "MONTHLY REPORT", reportAccess: true },
   { href: "/funnel",         label: "Leads Funnel",  funnelAccess: true  },
   { href: "/funnel-summary", label: "Funnel Summary", funnelAccess: true },
+  { href: "/tracker",        label: "TRACKER",        adminOnly: true    },
 ]
 
 const DGM_NAV = [
@@ -60,6 +61,7 @@ export default function Header() {
     : SALES_NAV.filter((item) => {
         if (item.funnelAccess && role !== "hunter" && !hasTmAccess && !isAdmin) return false
         if (item.reportAccess && role !== "hunter" && !isAdmin) return false
+        if (item.adminOnly && !isAdmin) return false
         return true
       })
 
